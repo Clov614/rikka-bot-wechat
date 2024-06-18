@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	args := os.Args
+	args := os.Args[1:]
 
 	bot := openwechat.DefaultBot(openwechat.Desktop) // 桌面模式
 
