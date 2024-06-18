@@ -1,19 +1,21 @@
 name: Release
 
 on:
+  pull_request:
+    branches-ignore:
+      - "dev"
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        run: |
-          git version
-          git clone "${{ github.event.repository.html_url }}" /home/runner/work/go-cqhttp/go-cqhttp
-          git checkout "${{ github.ref }}"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v3
