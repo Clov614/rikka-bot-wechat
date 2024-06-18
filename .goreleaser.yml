@@ -1,11 +1,15 @@
-# This is an example .goreleaser.yml file with some sensible defaults.
+# This is an example .goreleaser.yaml file with some sensible defaults.
 # Make sure to check the documentation at https://goreleaser.com
+
+version: "2"
+
 before:
   hooks:
     # You may remove this if you don't use go modules.
     # - go mod tidy
     # you may remove this if you don't need go generate
     - go generate ./...
+
 builds:
   - id: nowin
     env:
@@ -50,6 +54,7 @@ archives:
     format_overrides:
       - goos: windows
         format: binary
+
   - id: nowin
     builds:
       - nowin
