@@ -13,8 +13,8 @@
 ./rikka-bot-wechat <custom reply msg> <target user ttl>
 ```
 
-<custom reply msg>: 自定义回复的消息
-<target user ttl>: 回复特定消息后，目标用户的下次触发间隔时间 （默认小时为单位）
+- custom reply msg: 自定义回复的消息
+- target user ttl: 回复特定消息后，目标用户的下次触发间隔时间 （默认小时为单位）
 
 For example:
 
