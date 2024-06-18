@@ -40,11 +40,19 @@ func (rm *ResendMsg) IsReply(msg *openwechat.Message) bool {
 	if !msg.IsSendByFriend() { // 只有私聊自己的消息才会回复
 		return false
 	}
-	// 白名单，只有这些消息触发
-	if msg.AppMsgType != openwechat.AppMsgTypeText || msg.AppMsgType != openwechat.AppMsgTypeImg ||
-		msg.AppMsgType != openwechat.AppMsgTypeAudio || msg.AppMsgType != openwechat.AppMsgTypeEmoji {
+
+	if msg.AppMsgType == 5 {
 		return false
 	}
+
+	// 白名单取反 (取反剩余即为黑名单)
+	if !(msg.MsgType == openwechat.MsgTypeText || msg.MsgType == openwechat.MsgTypeVoice ||
+		msg.MsgType == openwechat.MsgTypeImage || msg.MsgType == openwechat.MsgTypeVideo ||
+		msg.MsgType == openwechat.MsgTypeEmoticon || msg.MsgType == openwechat.MsgTypeLocation ||
+		msg.MsgType == openwechat.MsgTypeVoip) {
+		return false
+	}
+
 	fromUserName := msg.FromUserName
 	userTimestamp, ok := rm.UserNameToTime[fromUserName]
 	if !ok || rm.isMessageExpired(userTimestamp) {
