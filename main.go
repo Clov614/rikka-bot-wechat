@@ -44,6 +44,7 @@ func main() {
 			gapTime()
 			msg.ReplyText(resendMsg.CustomMsg)
 		}
+		dingdong(bot, msg) // 待测试
 	}
 	// 注册登陆二维码回调
 	bot.UUIDCallback = openwechat.PrintlnQrcodeUrl
@@ -77,11 +78,15 @@ func gapTime() {
 	time.Sleep(2000 * time.Millisecond) // 暂停两秒发送消息
 }
 
-func is2MeMsg(bot *openwechat.Bot, msg *openwechat.Message) bool {
-	self, _ := bot.GetCurrentUser()
-
-	if msg.ToUserName == self.UserName {
-		return true
+func dingdong(bot *openwechat.Bot, msg *openwechat.Message) {
+	if msg.IsSendBySelf() && msg.IsText() && msg.Content == "<ding>" {
+		gapTime()
+		self, err := bot.GetCurrentUser()
+		if err != nil {
+			fmt.Errorf("GetCurrentUser Error: %s", err)
+			os.Exit(2)
+		}
+		fh := self.FileHelper()
+		fh.SendText("<dong>") // 向文件助手发送消息
 	}
-	return false
 }
