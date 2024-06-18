@@ -3,14 +3,37 @@ package main
 import (
 	"fmt"
 	"github.com/eatmoreapple/openwechat"
+	"os"
+	"strconv"
 	"time"
 	"wechat-demo/autoResendMsg"
 )
 
 func main() {
+	args := os.Args
+
 	bot := openwechat.DefaultBot(openwechat.Desktop) // 桌面模式
 
 	resendMsg := autoResendMsg.Init()
+
+	if args != nil && len(args) == 1 {
+		customMsg := args[0]
+		resendMsg.CustomMsg = customMsg // 自定义消息 命令行设置
+	}
+
+	if args != nil && len(args) >= 2 {
+		customMsg := args[0]
+		if customMsg != "" {
+			resendMsg.CustomMsg = customMsg
+		}
+		ttl := args[1]
+		ttlNum, err := strconv.Atoi(ttl)
+		if err != nil {
+			fmt.Errorf("convErr: ttl (arg[1]) not a integer, %s", err)
+			os.Exit(1)
+		}
+		resendMsg.TTL = time.Hour * time.Duration(ttlNum)
+	}
 
 	// 注册消息处理函数
 	bot.MessageHandler = func(msg *openwechat.Message) {
