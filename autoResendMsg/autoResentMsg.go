@@ -37,6 +37,14 @@ func (rm *ResendMsg) IsReply(msg *openwechat.Message) bool {
 	if msg.IsSendByGroup() { // 忽略群聊消息
 		return false
 	}
+	if !msg.IsSendByFriend() { // 只有私聊自己的消息才会回复
+		return false
+	}
+	// 白名单，只有这些消息触发
+	if msg.AppMsgType != openwechat.AppMsgTypeText || msg.AppMsgType != openwechat.AppMsgTypeImg ||
+		msg.AppMsgType != openwechat.AppMsgTypeAudio || msg.AppMsgType != openwechat.AppMsgTypeEmoji {
+		return false
+	}
 	fromUserName := msg.FromUserName
 	userTimestamp, ok := rm.UserNameToTime[fromUserName]
 	if !ok || rm.isMessageExpired(userTimestamp) {
