@@ -1,14 +1,11 @@
 # This is an example .goreleaser.yaml file with some sensible defaults.
 # Make sure to check the documentation at https://goreleaser.com
-
-version: "2"
-
 before:
   hooks:
     # You may remove this if you don't use go modules.
-    # - go mod tidy
+     - go mod tidy
+     - go generate ./...
     # you may remove this if you don't need go generate
-    - go generate ./...
 
 builds:
   - id: nowin
@@ -30,7 +27,6 @@ builds:
         goarch: arm
       - goos: darwin
         goarch: '386'
-
 
   - id: win
     env:
