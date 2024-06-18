@@ -21,12 +21,12 @@ builds:
       - arm
       - arm64
     goarm:
-      - '7'
+      - 7
     ignore:
       - goos: darwin
         goarch: arm
       - goos: darwin
-        goarch: '386'
+        goarch: 386
 
   - id: win
     env:
@@ -35,26 +35,23 @@ builds:
     goos:
       - windows
     goarch:
-      - '386'
+      - 386
       - amd64
       - arm
       - arm64
     goarm:
-      - '7'
+      - 7
 
 archives:
   - id: binary
-    builds:
-      - win
+    builds: [win]
     name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
     format_overrides:
       - goos: windows
         format: binary
 
   - id: nowin
-    builds:
-      - nowin
-      - win
+    builds: [win, nowin]
     name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
     format_overrides:
       - goos: windows
