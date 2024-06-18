@@ -2,6 +2,8 @@
 
 一个自用的简易微信机器人，基于Go
 
+version >= Go 1.20.x 
+
 ![rikka](./docs/img/rikka.jpg)
 
 ## 快速开始
