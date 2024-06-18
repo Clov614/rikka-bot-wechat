@@ -19,7 +19,9 @@
 For example:
 
 ```shell
-./rikka-bot-wechat "hello this is rikka death!" 2
+./rikka-bot-wechat `hello this is rikka death!` 2
 ```
 
-说明： 回复该条消息“hello this is rikka death!” 每间隔2小时刷新触发
+说明： 回复该条消息 hello this is rikka death! 每间隔2小时刷新触发
+
+- 特别注意字符串包裹的符号：`
