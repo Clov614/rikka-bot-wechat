@@ -1,0 +1,8 @@
+# Ignore all storage.json files in any directory
+**/storage.json
+
+# Ignore other specific files or directories
+# 忽略测试临时文件
+**/test/
+# 忽略本地生成的配置文件
+**/cfg/

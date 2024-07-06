@@ -1,2 +1,7 @@
 github.com/eatmoreapple/openwechat v1.4.7 h1:JyMr7I6ZdjWrVWKNs3onGz68YhkAnvTXTBMkS74O0nc=
 github.com/eatmoreapple/openwechat v1.4.7/go.mod h1:h4m2N8m0XsUKlm7UR8BUGkV89GNuKHCnlGV3J8n9Mpw=
+github.com/zwgblue/yaml-encoder v0.0.0-20221226083717-a0bdbda0d998 h1:nfgqxY/ewt2bYcoPiND18j/uKPn4cbiQa9WyD+HIPKM=
+github.com/zwgblue/yaml-encoder v0.0.0-20221226083717-a0bdbda0d998/go.mod h1:gDS9Ro20YdMC2SY41VMVcy6PqyVCseFPIX1+symaFww=
+gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
+gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
+gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
