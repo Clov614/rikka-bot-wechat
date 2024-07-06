@@ -12,7 +12,7 @@ type CommonConfig struct {
 	Symbol  string `comment:"The Robot Prefix default to ‘/’ "`
 	Botname string `comment:"The Robot Name default to \"rikka\""`
 	// todo 其他设置项
-	PluginConfigMap map[string]interface{} `comment:"插件的设置"`
+	PluginConfig map[string]interface{} `comment:"插件的设置" yaml:"plugin_config"`
 }
 
 // todo 动态设置项的注册以及持久化管理
@@ -21,7 +21,7 @@ var config = CommonConfig{
 	Symbol:  "/",
 	Botname: "rikka",
 	// 其他设置项
-	PluginConfigMap: make(map[string]interface{}),
+	PluginConfig: make(map[string]interface{}),
 }
 
 func GetConfig() *CommonConfig {
@@ -29,7 +29,7 @@ func GetConfig() *CommonConfig {
 }
 
 func (c *CommonConfig) RegistConfig(pulginname string, v interface{}) {
-	c.PluginConfigMap[pulginname] = v
+	c.PluginConfig[pulginname] = v
 }
 
 func (c *CommonConfig) Update() error {
