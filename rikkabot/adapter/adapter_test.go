@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 	"wechat-demo/rikkabot"
+	"wechat-demo/rikkabot/message"
 	"wechat-demo/rikkabot/utils/serializer"
 )
 
@@ -135,10 +136,10 @@ func echo(a *Adapter, done chan struct{}) error {
 		case <-done:
 			return nil
 		case rikkaMsg := <-recvChan:
-			if rikkaMsg.MetaType != rikkabot.MsgRequest {
+			if rikkaMsg.MetaType != message.MsgRequest {
 				return fmt.Errorf("metaType err")
 			}
-			rikkaMsg.MetaType = rikkabot.MsgResponse
+			rikkaMsg.MetaType = message.MsgResponse
 			context := rikkaMsg.RawContext
 			if strings.HasPrefix(context, "echo ") {
 				trimed := strings.TrimPrefix(context, "echo ")
@@ -158,10 +159,10 @@ func doubleEcho(a *Adapter, done chan struct{}) error {
 		case <-done:
 			return nil
 		case rikkaMsg := <-recvChan:
-			if rikkaMsg.MetaType != rikkabot.MsgRequest {
+			if rikkaMsg.MetaType != message.MsgRequest {
 				return fmt.Errorf("metaType err")
 			}
-			rikkaMsg.MetaType = rikkabot.MsgResponse
+			rikkaMsg.MetaType = message.MsgResponse
 			context := rikkaMsg.RawContext
 			if strings.HasPrefix(context, "echo ") {
 				trimed := strings.TrimPrefix(context, "echo ")
@@ -182,10 +183,10 @@ func doubleEchoActive(a *Adapter, done chan struct{}) error {
 		case <-done:
 			return nil
 		case rikkaMsg := <-recvChan:
-			if rikkaMsg.MetaType != rikkabot.MsgRequest {
+			if rikkaMsg.MetaType != message.MsgRequest {
 				return fmt.Errorf("metaType err")
 			}
-			rikkaMsg.MetaType = rikkabot.MsgResponse
+			rikkaMsg.MetaType = message.MsgResponse
 			context := rikkaMsg.RawContext
 			if strings.HasPrefix(context, "echo ") {
 				trimed := strings.TrimPrefix(context, "echo ")
@@ -205,11 +206,11 @@ func imgEcho(a *Adapter, done chan struct{}) error {
 		case <-done:
 			return nil
 		case rikkaMsg := <-recvChan:
-			if rikkaMsg.MetaType != rikkabot.MsgRequest {
+			if rikkaMsg.MetaType != message.MsgRequest {
 				return fmt.Errorf("metaType err")
 			}
-			rikkaMsg.MetaType = rikkabot.MsgResponse
-			if rikkaMsg.Msgtype == rikkabot.MsgTypeImage {
+			rikkaMsg.MetaType = message.MsgResponse
+			if rikkaMsg.Msgtype == message.MsgTypeImage {
 				msg := rikkaMsg.RawMsg.GetRawMsg().(*openwechat.Message)
 				msg.SaveFileToLocal("./test/testImg.jpg")
 				a.selfBot.GetRespMsgSendChan() <- rikkaMsg

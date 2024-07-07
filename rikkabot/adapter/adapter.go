@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/eatmoreapple/openwechat"
 	"wechat-demo/rikkabot"
+	"wechat-demo/rikkabot/message"
 )
 
 type Adapter struct {
@@ -71,24 +72,24 @@ func (e *EnhanceRawMsg) GetReceiverId() string {
 
 //</editor-fold>
 
-func (a *Adapter) covert(msg *openwechat.Message) *rikkabot.Message {
-	var rikkaMsgType rikkabot.MsgType
+func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
+	var rikkaMsgType message.MsgType
 	switch msg.MsgType {
 	case openwechat.MsgTypeText:
-		rikkaMsgType = rikkabot.MsgTypeText
+		rikkaMsgType = message.MsgTypeText
 	case openwechat.MsgTypeImage:
-		rikkaMsgType = rikkabot.MsgTypeImage
+		rikkaMsgType = message.MsgTypeImage
 	case openwechat.MsgTypeVoice:
-		rikkaMsgType = rikkabot.MsgTypeVoice
+		rikkaMsgType = message.MsgTypeVoice
 	case openwechat.MsgTypeVideo:
-		rikkaMsgType = rikkabot.MsgTypeVideo
+		rikkaMsgType = message.MsgTypeVideo
 	}
 
 	enhanceRawMsg := NewEnhanceRawMsg(msg)
 
-	return &rikkabot.Message{
+	return &message.Message{
 		Msgtype:    rikkaMsgType,
-		MetaType:   rikkabot.MsgRequest,
+		MetaType:   message.MsgRequest,
 		Raw:        handleSpecialRaw(msg),
 		RawContext: msg.RawContent,
 		IsAt:       msg.IsAt(),
@@ -116,8 +117,8 @@ func (a *Adapter) recevieMsg(msg *openwechat.Message) {
 	a.selfBot.GetReqMsgSendChan() <- selfMsg
 }
 
-func (a *Adapter) sendMsg(sendMsg *rikkabot.Message) error {
-	if sendMsg.MetaType != rikkabot.MsgResponse {
+func (a *Adapter) sendMsg(sendMsg *message.Message) error {
+	if sendMsg.MetaType != message.MsgResponse {
 		panic(fmt.Errorf("sendMsg err: metaType want ”MsgResponse“(2) but got %d", sendMsg.MetaType))
 	}
 	if sendMsg.RawMsg == nil {
@@ -128,9 +129,9 @@ func (a *Adapter) sendMsg(sendMsg *rikkabot.Message) error {
 		panic(fmt.Errorf("sendMsg err: rawMsg is %#v, can't send msg", sendMsg.RawMsg))
 	}
 	switch sendMsg.Msgtype {
-	case rikkabot.MsgTypeText:
+	case message.MsgTypeText:
 		rawMsg.ReplyText(sendMsg.RawContext)
-	case rikkabot.MsgTypeImage:
+	case message.MsgTypeImage:
 		rawMsg.ReplyImage(bytes.NewReader(sendMsg.Raw))
 	}
 	return nil // todo 完善错误处理
