@@ -41,8 +41,8 @@ func TestGetMsgJson(t *testing.T) {
 		for rikkaMsg := range a.selfBot.GetReqMsgRecvChan() {
 			fmt.Printf("save json recv rikkaMsg: %#v\n", *rikkaMsg)
 			err := serializer.Save("./test/cacheMsg", fmt.Sprintf("rikkaMsg%d", cnt), rikkaMsg)
-			senderId := rikkaMsg.RawMsg.GetSenderId()
-			receiverId := rikkaMsg.RawMsg.GetReceiverId()
+			senderId := rikkaMsg.SenderId
+			receiverId := rikkaMsg.ReceiverId
 			t.Logf("sender id: %s, receiver id: %s\n", senderId, receiverId)
 			if err != nil {
 				t.Logf("err: %v", err)
@@ -79,22 +79,149 @@ func TestGetMsgJson(t *testing.T) {
 	// Output: hello
 }
 
-// 测试发送文本消息
+// 测试发送xx消息
 func TestSendMsg(t *testing.T) {
+	runBase(t, imgEcho) // t  测试函数
+}
+
+// 测试群聊和个人发送的id解析
+func TestMsgSenderId(t *testing.T) {
+	runBase(t, GetUserId)
+	// Output:
+	//groupId= 813467281
+	//senderId = 813466966
+	//receviceId = 2788092443
+
+	//groupId= 813467281
+	//senderId = 2788092443
+	//receviceId = 2788092443
+
+	// 大号: 813466966
+	// 小号: 2788092443
+	// 群号: 813467281
+}
+
+// 测试各种消息的唯一ID
+func GetUserId(a *Adapter, done chan struct{}) error {
+	recvChan := a.selfBot.GetReqMsgRecvChan()
+	for {
+		select {
+		case <-done:
+			return nil
+		case rikkaMsg := <-recvChan:
+			if rikkaMsg.Msgtype == message.MsgTypeText {
+				if rikkaMsg.IsGroup { // 群消息返回
+					rikkaMsg.RawContext = fmt.Sprintf("groupId= %s \n senderId = %s \n"+
+						" receviceId = %s", rikkaMsg.GroupId, rikkaMsg.SenderId, rikkaMsg.ReceiverId)
+					rikkaMsg.Raw = []byte(rikkaMsg.RawContext)
+					a.selfBot.GetRespMsgSendChan() <- rikkaMsg // 原路返回消息
+				} else {
+					rikkaMsg.RawContext = fmt.Sprintf("senderId = %s \n receviceId = %s",
+						rikkaMsg.SenderId, rikkaMsg.ReceiverId)
+					rikkaMsg.Raw = []byte(rikkaMsg.RawContext)
+					a.selfBot.GetRespMsgSendChan() <- rikkaMsg // 原路返回消息
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func echo(a *Adapter, done chan struct{}) error {
+	recvChan := a.selfBot.GetReqMsgRecvChan()
+	for {
+		select {
+		case <-done:
+			return nil
+		case rikkaMsg := <-recvChan:
+
+			context := rikkaMsg.RawContext
+			if strings.HasPrefix(context, "echo ") {
+				trimed := strings.TrimPrefix(context, "echo ")
+				rikkaMsg.RawContext = trimed
+				rikkaMsg.Raw = []byte(rikkaMsg.RawContext)
+				a.selfBot.GetRespMsgSendChan() <- rikkaMsg
+			}
+		}
+	}
+	return nil
+}
+
+func doubleEcho(a *Adapter, done chan struct{}) error {
+	recvChan := a.selfBot.GetReqMsgRecvChan()
+	for {
+		select {
+		case <-done:
+			return nil
+		case rikkaMsg := <-recvChan:
+
+			context := rikkaMsg.RawContext
+			if strings.HasPrefix(context, "echo ") {
+				trimed := strings.TrimPrefix(context, "echo ")
+				rikkaMsg.RawContext = trimed
+				rikkaMsg.Raw = []byte(rikkaMsg.RawContext)
+				a.selfBot.GetRespMsgSendChan() <- rikkaMsg
+				a.selfBot.GetRespMsgSendChan() <- rikkaMsg
+			}
+		}
+	}
+	return nil
+}
+
+// todo test 主动发送消息测试 （获取发送者id -> 获取发送者对象（friend），发送）
+func doubleEchoActive(a *Adapter, done chan struct{}) error {
+	recvChan := a.selfBot.GetReqMsgRecvChan()
+	for {
+		select {
+		case <-done:
+			return nil
+		case rikkaMsg := <-recvChan:
+
+			context := rikkaMsg.RawContext
+			if strings.HasPrefix(context, "echo ") {
+				trimed := strings.TrimPrefix(context, "echo ")
+				rikkaMsg.RawContext = trimed
+				rikkaMsg.Raw = []byte(rikkaMsg.RawContext)
+				rikkaMsg.MetaData.GetRawMsg() // todo 主动发送消息的 rawMsg增强
+			}
+		}
+	}
+	return nil
+}
+
+func imgEcho(a *Adapter, done chan struct{}) error {
+	recvChan := a.selfBot.GetReqMsgRecvChan()
+	for {
+		select {
+		case <-done:
+			return nil
+		case rikkaMsg := <-recvChan:
+
+			if rikkaMsg.Msgtype == message.MsgTypeImage {
+				msg := rikkaMsg.MetaData.GetRawMsg().(*openwechat.Message)
+				msg.SaveFileToLocal("./test/testImg.jpg")
+				a.selfBot.GetRespMsgSendChan() <- rikkaMsg
+
+			}
+
+		}
+	}
+	return nil
+}
+
+func runBase(t *testing.T, testfunc func(*Adapter, chan struct{}) error) {
 	bot := openwechat.DefaultBot(openwechat.Desktop)
-
 	a := NewAdapter(bot, rikkabot.GetDefaultBot())
-
 	HandleCovert(a)
 	defer a.Close()
 
 	t.Logf("Start test\n")
 
 	// test 实际回复功能测试
-	doneEcho := make(chan struct{})
+	done := make(chan struct{})
 	go func() {
-		defer close(doneEcho)
-		err2 := imgEcho(a, doneEcho)
+		defer close(done)
+		err2 := testfunc(a, done)
 		if err2 != nil {
 			t.Logf("echo err: %v", err2)
 		}
@@ -127,97 +254,4 @@ func TestSendMsg(t *testing.T) {
 	bot.Block()
 	fmt.Println("hello")
 	// Output: hello
-}
-
-func echo(a *Adapter, done chan struct{}) error {
-	recvChan := a.selfBot.GetReqMsgRecvChan()
-	for {
-		select {
-		case <-done:
-			return nil
-		case rikkaMsg := <-recvChan:
-			if rikkaMsg.MetaType != message.MsgRequest {
-				return fmt.Errorf("metaType err")
-			}
-			rikkaMsg.MetaType = message.MsgResponse
-			context := rikkaMsg.RawContext
-			if strings.HasPrefix(context, "echo ") {
-				trimed := strings.TrimPrefix(context, "echo ")
-				rikkaMsg.RawContext = trimed
-				rikkaMsg.Raw = []byte(rikkaMsg.RawContext)
-				a.selfBot.GetRespMsgSendChan() <- rikkaMsg
-			}
-		}
-	}
-	return nil
-}
-
-func doubleEcho(a *Adapter, done chan struct{}) error {
-	recvChan := a.selfBot.GetReqMsgRecvChan()
-	for {
-		select {
-		case <-done:
-			return nil
-		case rikkaMsg := <-recvChan:
-			if rikkaMsg.MetaType != message.MsgRequest {
-				return fmt.Errorf("metaType err")
-			}
-			rikkaMsg.MetaType = message.MsgResponse
-			context := rikkaMsg.RawContext
-			if strings.HasPrefix(context, "echo ") {
-				trimed := strings.TrimPrefix(context, "echo ")
-				rikkaMsg.RawContext = trimed
-				rikkaMsg.Raw = []byte(rikkaMsg.RawContext)
-				a.selfBot.GetRespMsgSendChan() <- rikkaMsg
-				a.selfBot.GetRespMsgSendChan() <- rikkaMsg
-			}
-		}
-	}
-	return nil
-}
-
-func doubleEchoActive(a *Adapter, done chan struct{}) error {
-	recvChan := a.selfBot.GetReqMsgRecvChan()
-	for {
-		select {
-		case <-done:
-			return nil
-		case rikkaMsg := <-recvChan:
-			if rikkaMsg.MetaType != message.MsgRequest {
-				return fmt.Errorf("metaType err")
-			}
-			rikkaMsg.MetaType = message.MsgResponse
-			context := rikkaMsg.RawContext
-			if strings.HasPrefix(context, "echo ") {
-				trimed := strings.TrimPrefix(context, "echo ")
-				rikkaMsg.RawContext = trimed
-				rikkaMsg.Raw = []byte(rikkaMsg.RawContext)
-				rikkaMsg.RawMsg.GetRawMsg() // todo 主动发送消息的 rawMsg增强
-			}
-		}
-	}
-	return nil
-}
-
-func imgEcho(a *Adapter, done chan struct{}) error {
-	recvChan := a.selfBot.GetReqMsgRecvChan()
-	for {
-		select {
-		case <-done:
-			return nil
-		case rikkaMsg := <-recvChan:
-			if rikkaMsg.MetaType != message.MsgRequest {
-				return fmt.Errorf("metaType err")
-			}
-			rikkaMsg.MetaType = message.MsgResponse
-			if rikkaMsg.Msgtype == message.MsgTypeImage {
-				msg := rikkaMsg.RawMsg.GetRawMsg().(*openwechat.Message)
-				msg.SaveFileToLocal("./test/testImg.jpg")
-				a.selfBot.GetRespMsgSendChan() <- rikkaMsg
-
-			}
-
-		}
-	}
-	return nil
 }

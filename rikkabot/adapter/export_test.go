@@ -15,7 +15,7 @@ var SendMsg = (*Adapter).sendMsg
 var HandleCovert = func(a *Adapter) {
 	a.openwcBot.MessageHandler = func(msg *openwechat.Message) {
 		fmt.Printf("收到消息： %#v\n", msg)
-		a.recevieMsg(msg)
+		a.receiveMsg(msg)
 	}
 	go func() {
 		respMsgRecvChan := a.selfBot.GetRespMsgRecvChan()
