@@ -18,9 +18,16 @@ func IsCallMe(s string) bool {
 	return strings.HasPrefix(strings.ToLower(s), strings.ToLower(symbol+botname))
 }
 
-func IsOrder(content string, order string) bool {
+func IsOrder(orders []string, content string) (isorder bool, order string) {
 	content = strings.TrimSpace(content)
-	return strings.HasPrefix(content, order)
+	for _, s := range orders {
+		s = strings.TrimSpace(s)
+		if strings.HasPrefix(content, s) {
+			isorder = true
+			order = s
+		}
+	}
+	return isorder, order
 }
 
 // 去除呼唤机器人的部分 获得剩余部分

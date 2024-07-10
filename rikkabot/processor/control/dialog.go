@@ -6,7 +6,7 @@ package control
 import "wechat-demo/rikkabot/message"
 
 type IDialog interface {
-	GetPluginName()
+	GetPluginName() string
 	GetProcessRules() *ProcessRules
 	RunPlugin(sendChan chan<- *message.Message, receiveChan chan message.Message, done chan struct{})
 }
@@ -16,8 +16,9 @@ type Dialog struct {
 	ProcessRules *ProcessRules           // 触发规则
 	sendMsg      chan<- *message.Message // 发送消息通道
 	recvMsg      chan message.Message    // 接收消息通道
-	HandleFunc   func()                  // 对话逻辑方法
-	done         chan struct{}
+	// deprecated
+	HandleFunc func() // 对话逻辑方法
+	done       chan struct{}
 }
 
 func (d *Dialog) GetPluginName() string {
@@ -46,7 +47,7 @@ func (d *Dialog) recvMessage() message.Message {
 
 type OnceDialog struct {
 	Dialog
-	Once func(msg message.Message, sendMsg chan<- *message.Message) // 一次对话
+	Once func(recvmsg message.Message, sendMsg chan<- *message.Message) // 一次对话
 }
 
 func (cd *OnceDialog) RunPlugin(sendChan chan<- *message.Message, receiveChan chan message.Message, done chan struct{}) {

@@ -5,15 +5,14 @@ package register
 
 import (
 	"sync"
-	"wechat-demo/rikkabot/message"
 	"wechat-demo/rikkabot/processor/control"
 )
 
 // todo 通用 状态缓存，信息缓存结构的定义（定义标准供插件使用） （总结出功能的共性）（通用的开发功能方法的提取）
 
 type IPlugin interface {
-	HandleMsgFunc(msg *message.Message)
-	GetHandleRules() *control.ProcessRules
+	GetPluginName() string
+	GetProcessRules() *control.ProcessRules
 }
 
 type PluginRegister struct {
@@ -53,6 +52,11 @@ func (p *PluginRegister) GetPluginMap() map[string]IPlugin {
 }
 
 var pluginPool *PluginRegister
+
+// 注册对话插件
+func RegisterPlugin(name string, plugin IPlugin) {
+	pluginPool.Regist(name, plugin)
+}
 
 func GetPluginPool() *PluginRegister {
 	return pluginPool

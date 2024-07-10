@@ -13,4 +13,5 @@ func TestMsgDispatch(t *testing.T) {
 	sendChan := make(chan *message.Message)
 	processor := NewProcessor()
 	processor.DispatchMsg(recvChan, sendChan)
+	// todo test 设计模拟消息交互
 }

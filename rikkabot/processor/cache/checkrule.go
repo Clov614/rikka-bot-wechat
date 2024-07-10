@@ -13,7 +13,7 @@ import (
 func (c *Cache) IsEnable(pluginname string) bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	return c.EnablePlugins[pluginname]
+	return c.enablePlugins[pluginname]
 }
 
 // 根据处理规则校验是否执行处理 是否触发该方法
@@ -36,7 +36,7 @@ func (c *Cache) IsHandle(rules *control.ProcessRules, msg *message.Message) bool
 	enableMsgFlag := false
 	costomTriggerFlag := false
 
-	if rules.ExecOrder == "" {
+	if rules.ExecOrder == nil || len(rules.ExecOrder) == 0 {
 		execOrderFlag = true
 	}
 
@@ -63,9 +63,10 @@ func (c *Cache) IsHandle(rules *control.ProcessRules, msg *message.Message) bool
 			msg.RawContext = msgutil.TrimCallMe(context)
 		}
 		// 必须先等前缀判定完 判断是否符合命令
-		if rules.ExecOrder != "" {
-			execOrderFlag = msgutil.IsOrder(msg.RawContext, rules.ExecOrder)
-			msg.RawContext = msgutil.TrimPrefix(msg.RawContext, rules.ExecOrder, true, true)
+		if rules.ExecOrder != nil && len(rules.ExecOrder) > 0 {
+			order := ""
+			execOrderFlag, order = msgutil.IsOrder(rules.ExecOrder, msg.RawContext)
+			msg.RawContext = msgutil.TrimPrefix(msg.RawContext, order, true, true)
 		}
 		if rules.IsAdmin {
 			adminFlag = c.checkAdmin(msg)
@@ -141,4 +142,13 @@ func (c *Cache) checkEnableMsgTyp(enableMsgTypes []message.MsgType, msg *message
 		intEnableMsgTypes[i] = int(enableMsgTypes[i])
 	}
 	return msgutil.ContainsInt(intEnableMsgTypes, int(msg.Msgtype))
+}
+
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }

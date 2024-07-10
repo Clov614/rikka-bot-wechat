@@ -194,25 +194,30 @@ func TestIsHandle(t *testing.T) {
 		},
 
 		// 测试 execOrder
-		{ProcessRules: &control.ProcessRules{IsCallMe: true, ExecOrder: "echo", EnableGroup: true}, // 33 符合order
+		{ProcessRules: &control.ProcessRules{IsCallMe: true, ExecOrder: []string{"echo"}, EnableGroup: true}, // 33 符合order
 			Message: &message.Message{Msgtype: message.MsgTypeText, RawContext: "  /rikka echo  123456 ",
 				GroupId: "813467281", SenderId: "12312333", ReceiverId: "2788092443", IsGroup: true},
 			want: true,
 		},
-		{ProcessRules: &control.ProcessRules{IsCallMe: true, ExecOrder: "echo", EnableGroup: true}, // 34 不符合order
+		{ProcessRules: &control.ProcessRules{IsCallMe: true, ExecOrder: []string{"echo"}, EnableGroup: true}, // 34 不符合order
 			Message: &message.Message{Msgtype: message.MsgTypeText, RawContext: "  /rikka ec ho  123456 ",
 				GroupId: "813467281", SenderId: "12312333", ReceiverId: "2788092443", IsGroup: true},
 			want: false,
 		},
-		{ProcessRules: &control.ProcessRules{IsCallMe: true, ExecOrder: "echo", EnableGroup: true}, // 35 不符合order
+		{ProcessRules: &control.ProcessRules{IsCallMe: true, ExecOrder: []string{"echo"}, EnableGroup: true}, // 35 不符合order
 			Message: &message.Message{Msgtype: message.MsgTypeText, RawContext: "/rikka  12344 123456 ",
 				GroupId: "813467281", SenderId: "12312333", ReceiverId: "2788092443", IsGroup: true},
 			want: false,
 		},
-		{ProcessRules: &control.ProcessRules{IsCallMe: false, ExecOrder: "echo", EnableGroup: true}, // 36 不符合order
+		{ProcessRules: &control.ProcessRules{IsCallMe: false, ExecOrder: []string{"echo"}, EnableGroup: true}, // 36 不符合order
 			Message: &message.Message{Msgtype: message.MsgTypeText, RawContext: "/rikka  echo 123456 ",
 				GroupId: "813467281", SenderId: "12312333", ReceiverId: "2788092443", IsGroup: true},
 			want: false,
+		},
+		{ProcessRules: &control.ProcessRules{IsCallMe: true, ExecOrder: []string{"echo", "Echo"}, EnableGroup: true}, // 37 符合order
+			Message: &message.Message{Msgtype: message.MsgTypeText, RawContext: "  /rikka Echo  123456 ",
+				GroupId: "813467281", SenderId: "12312333", ReceiverId: "2788092443", IsGroup: true},
+			want: true,
 		},
 
 		// todo test 测试自定义功能， 消息类型

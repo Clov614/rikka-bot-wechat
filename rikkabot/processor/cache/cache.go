@@ -13,12 +13,12 @@ import (
 
 type Cache struct {
 	mu              sync.RWMutex
-	WhiteUserIdSet  map[string]bool `json:"white_user_id_set"`  // 用户白名单
-	BlackUserIdSet  map[string]bool `json:"black_user_id_set"`  // 用户黑名单
-	WhiteGroupIdSet map[string]bool `json:"white_group_id_set"` // 群聊白名单
-	BlackGroupIdSet map[string]bool `json:"black_group_id_set"` // 群聊黑名单
-	AdminUserIdSet  map[string]bool `json:"admin_user_id_set"`  // 管理员名单 （不计入自己，自己默认管理员）
-	EnablePlugins   map[string]bool `json:"enable_plugins"`     // 插件是否启用
+	whiteUserIdSet  map[string]bool `json:"white_user_id_set"`  // 用户白名单
+	blackUserIdSet  map[string]bool `json:"black_user_id_set"`  // 用户黑名单
+	whiteGroupIdSet map[string]bool `json:"white_group_id_set"` // 群聊白名单
+	blackGroupIdSet map[string]bool `json:"black_group_id_set"` // 群聊黑名单
+	adminUserIdSet  map[string]bool `json:"admin_user_id_set"`  // 管理员名单 （不计入自己，自己默认管理员）
+	enablePlugins   map[string]bool `json:"enable_plugins"`     // 插件是否启用
 
 	done chan struct{} `json:"-" yaml:"-"`
 	wg   sync.WaitGroup
@@ -30,31 +30,31 @@ type Cache struct {
 func (c *Cache) HasAdminUserId(userId string) bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	return c.AdminUserIdSet[userId]
+	return c.adminUserIdSet[userId]
 }
 
 func (c *Cache) HasBlackUserId(userId string) bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	return c.BlackUserIdSet[userId]
+	return c.blackUserIdSet[userId]
 }
 
 func (c *Cache) HasWhiteUserId(userId string) bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	return c.WhiteUserIdSet[userId]
+	return c.whiteUserIdSet[userId]
 }
 
 func (c *Cache) HasBlackGroupId(groupId string) bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	return c.BlackGroupIdSet[groupId]
+	return c.blackGroupIdSet[groupId]
 }
 
 func (c *Cache) HasWhiteGroupId(groupId string) bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	return c.WhiteGroupIdSet[groupId]
+	return c.whiteGroupIdSet[groupId]
 }
 
 //endregion
@@ -63,31 +63,31 @@ func (c *Cache) HasWhiteGroupId(groupId string) bool {
 func (c *Cache) AddAdminUserId(userId string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.AdminUserIdSet[userId] = true
+	c.adminUserIdSet[userId] = true
 }
 
 func (c *Cache) AddBlackUserId(userId string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.BlackUserIdSet[userId] = true
+	c.blackUserIdSet[userId] = true
 }
 
 func (c *Cache) AddBlackGroupId(groupId string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.BlackGroupIdSet[groupId] = true
+	c.blackGroupIdSet[groupId] = true
 }
 
 func (c *Cache) AddWhiteUserId(userId string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.WhiteUserIdSet[userId] = true
+	c.whiteUserIdSet[userId] = true
 }
 
 func (c *Cache) AddWhiteGroupId(groupId string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.WhiteGroupIdSet[groupId] = true
+	c.whiteGroupIdSet[groupId] = true
 }
 
 //endregion
@@ -96,31 +96,31 @@ func (c *Cache) AddWhiteGroupId(groupId string) {
 func (c *Cache) DeleteAdminUserId(userId string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	delete(c.AdminUserIdSet, userId)
+	delete(c.adminUserIdSet, userId)
 }
 
 func (c *Cache) DeleteBlackUserId(userId string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	delete(c.BlackUserIdSet, userId)
+	delete(c.blackUserIdSet, userId)
 }
 
 func (c *Cache) DeleteBlackGroupId(groupId string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	delete(c.BlackGroupIdSet, groupId)
+	delete(c.blackGroupIdSet, groupId)
 }
 
 func (c *Cache) DeleteWhiteUserId(userId string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	delete(c.WhiteUserIdSet, userId)
+	delete(c.whiteUserIdSet, userId)
 }
 
 func (c *Cache) DeleteWhiteGroupId(groupId string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	delete(c.WhiteGroupIdSet, groupId)
+	delete(c.whiteGroupIdSet, groupId)
 }
 
 //endregion
@@ -128,8 +128,8 @@ func (c *Cache) DeleteWhiteGroupId(groupId string) {
 // todo 获取所有管理员可以使用
 func (c *Cache) AdminUserIdSets() map[string]bool {
 	c.mu.RLock()
-	copyAdminUserIDs := make(map[string]bool, len(c.AdminUserIdSet))
-	for k, v := range c.AdminUserIdSet {
+	copyAdminUserIDs := make(map[string]bool, len(c.adminUserIdSet))
+	for k, v := range c.adminUserIdSet {
 		copyAdminUserIDs[k] = v
 	}
 	c.mu.RUnlock()
@@ -144,11 +144,11 @@ func (c *Cache) initEnablePlugins() {
 	defer c.mu.Unlock()
 	pluginPool := register.GetPluginPool()
 	for name, _ := range pluginPool.GetPluginMap() {
-		_, ok := c.EnablePlugins[name]
+		_, ok := c.enablePlugins[name]
 		if ok {
 			continue
 		}
-		c.EnablePlugins[name] = true
+		c.enablePlugins[name] = true
 	}
 }
 
@@ -190,12 +190,12 @@ var cache *Cache
 func initCache() {
 	cache = &Cache{
 		mu:              sync.RWMutex{},
-		WhiteUserIdSet:  make(map[string]bool),
-		BlackUserIdSet:  make(map[string]bool),
-		WhiteGroupIdSet: make(map[string]bool),
-		BlackGroupIdSet: make(map[string]bool),
-		AdminUserIdSet:  make(map[string]bool),
-		EnablePlugins:   make(map[string]bool),
+		whiteUserIdSet:  make(map[string]bool),
+		blackUserIdSet:  make(map[string]bool),
+		whiteGroupIdSet: make(map[string]bool),
+		blackGroupIdSet: make(map[string]bool),
+		adminUserIdSet:  make(map[string]bool),
+		enablePlugins:   make(map[string]bool),
 		done:            make(chan struct{}),
 	}
 }
