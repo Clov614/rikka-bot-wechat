@@ -1,29 +1,18 @@
 # Rikka-Bot-WeChat
 
-一个自用的简易微信机器人，基于Go
+一个简易的微信机器人框架，基于GoLang
 
 version >= Go 1.20.x 
 
 ![rikka](./docs/img/rikka.jpg)
 
+## 功能介绍
+
+1. 支持规则校验
+2. 持久化设置
+3. 插件化调用对话（普通对话/长对话）
+4. 权限管理
+
 ## 快速开始
 
-
-## 配置项说明
-
-```shell
-./rikka-bot-wechat <custom reply msg> <target user ttl>
-```
-
-- custom reply msg: 自定义回复的消息
-- target user ttl: 回复特定消息后，目标用户的下次触发间隔时间 （默认小时为单位）
-
-For example:
-
-```shell
-./rikka-bot-wechat `hello this is rikka death!` 2
-```
-
-说明： 回复该条消息 hello this is rikka death! 每间隔2小时刷新触发
-
-- 特别注意字符串包裹的符号：`
+todo
