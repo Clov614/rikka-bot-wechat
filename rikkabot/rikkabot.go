@@ -31,6 +31,10 @@ func GetDefaultBot() *RikkaBot {
 	return DefaultBot
 }
 
+func Bot() *RikkaBot {
+	return DefaultBot
+}
+
 func GetBot(botname string) (*RikkaBot, error) {
 	DefaultBot.Config.Botname = botname
 	err := DefaultBot.Config.Update()

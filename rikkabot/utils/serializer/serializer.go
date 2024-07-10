@@ -84,3 +84,13 @@ func getPath(path string, filename string, v interface{}, iswrite bool) (string,
 
 	return path, nil
 }
+
+func IsPathExist(path string, filename string) bool {
+	path = filepath.Join(path, filename)
+	// 检测目录是否存在
+	dir := filepath.Dir(path)
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
