@@ -1,7 +1,7 @@
 // @Author Clover
 // @Data 2024/7/7 下午10:17:00
 // @Desc
-package processor
+package cache
 
 import (
 	"wechat-demo/rikkabot/message"
@@ -10,14 +10,14 @@ import (
 )
 
 // 插件是否启用
-func (c *Cache) isEnable(pluginname string) bool {
+func (c *Cache) IsEnable(pluginname string) bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.EnablePlugins[pluginname]
 }
 
 // 根据处理规则校验是否执行处理 是否触发该方法
-func (c *Cache) isHandle(rules *control.ProcessRules, msg *message.Message) bool {
+func (c *Cache) IsHandle(rules *control.ProcessRules, msg *message.Message) bool {
 	context := msg.RawContext
 
 	if rules == nil {

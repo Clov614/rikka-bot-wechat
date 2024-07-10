@@ -1,7 +1,7 @@
 // @Author Clover
 // @Data 2024/7/7 下午11:15:00
 // @Desc
-package processor
+package cache
 
 import (
 	"testing"
@@ -228,9 +228,10 @@ func TestIsHandle(t *testing.T) {
 	cache.AddBlackUserId("813466966")
 
 	for i, test := range tests {
-		handled := cache.isHandle(test.ProcessRules, test.Message)
+		handled := cache.IsHandle(test.ProcessRules, test.Message)
 		if handled != test.want {
 			t.Errorf("cache.isHandle(%drules) = %v, want %v", i, handled, test.want)
 		}
 	}
+	cache.Close()
 }
