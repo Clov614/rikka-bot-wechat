@@ -9,6 +9,7 @@ import (
 	"time"
 	"wechat-demo/rikkabot/message"
 	_ "wechat-demo/rikkabot/plugins"
+	"wechat-demo/rikkabot/processor/cache"
 )
 
 func TestMsgDispatch(t *testing.T) {
@@ -36,15 +37,15 @@ func TestMsgDispatch(t *testing.T) {
 		message.Message{IsMySelf: false, IsGroup: true,
 			GroupId: "813467281", SenderId: "813466966", ReceiverId: "2788092443",
 			RawContext: "/rikka 长对话测试"},
-		message.Message{IsMySelf: false, IsGroup: true,
-			GroupId: "813467281", SenderId: "813466966", ReceiverId: "2788092443",
+		message.Message{IsMySelf: true, IsGroup: true,
+			GroupId: "813467281", SenderId: "2788092443", ReceiverId: "2788092443",
 			RawContext: "44"},
 		message.Message{IsMySelf: false, IsGroup: true,
 			GroupId: "777777777777", SenderId: "813466966", ReceiverId: "2788092443",
-			RawContext: "44"},
+			RawContext: "46"},
 		message.Message{IsMySelf: false, IsGroup: false,
 			GroupId: "777777777777", SenderId: "813466966", ReceiverId: "2788092443",
-			RawContext: "44"},
+			RawContext: "46"},
 		message.Message{IsMySelf: false, IsGroup: true,
 			GroupId: "813467281", SenderId: "813466966", ReceiverId: "2788092443",
 			RawContext: "44"},
@@ -68,6 +69,7 @@ func TestMsgDispatch(t *testing.T) {
 	}()
 
 	processor.Block() // 阻塞
+	cache.GetCache().Close()
 }
 
 func gapOneSecond() {

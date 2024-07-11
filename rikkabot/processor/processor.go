@@ -61,7 +61,7 @@ func (p *Processor) Close() {
 func (p *Processor) DispatchMsg(recvChan chan *message.Message, sendChan chan *message.Message) {
 	for msg := range recvChan {
 		tempMsg := *msg
-		p.broadcastRecv(tempMsg) // 长连接分发消息 todo go
+		p.broadcastRecv(tempMsg) // 长连接分发消息
 		pluginMap := p.pluginPool.GetPluginMap()
 		for name, plugin := range pluginMap {
 			dialog := plugin.(control.IDialog)
