@@ -185,6 +185,7 @@ func (c *Cache) handleSave() {
 	}
 }
 
+// todo 临时的，为了避免 plugin引用导致注册器无法正确注册，实现将废弃
 var cache *Cache
 
 func initCache() {
@@ -200,16 +201,12 @@ func initCache() {
 	}
 }
 
+// deprecated
 func GetCache() *Cache {
 	return cache
 }
 
-const (
-	cachePath     = "./db"
-	cacheFilename = "cache"
-)
-
-func init() {
+func Init() *Cache {
 	initCache()
 	// 初始化读取 Cache
 	if serializer.IsPathExist(cachePath, cacheFilename) {
@@ -225,4 +222,10 @@ func init() {
 
 	// 启动独立线程定时持久化 cache
 	cache.cycleSave()
+	return cache
 }
+
+const (
+	cachePath     = "./db"
+	cacheFilename = "cache"
+)

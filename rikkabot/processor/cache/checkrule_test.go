@@ -224,6 +224,8 @@ func TestIsHandle(t *testing.T) {
 
 	}
 
+	Init()
+
 	cache.AddWhiteGroupId("813467281")
 	cache.AddBlackGroupId("813467281")
 
@@ -233,9 +235,49 @@ func TestIsHandle(t *testing.T) {
 	cache.AddBlackUserId("813466966")
 
 	for i, test := range tests {
-		handled := cache.IsHandle(test.ProcessRules, test.Message)
-		if handled != test.want {
-			t.Errorf("cache.isHandle(%drules) = %v, want %v", i, handled, test.want)
+		_, ok := cache.IsHandle(test.ProcessRules, *test.Message)
+		if ok != test.want {
+			t.Errorf("cache.isHandle(%drules) = %v, want %v", i, ok, test.want)
+		}
+	}
+	cache.Close()
+}
+
+func TestAlone(t *testing.T) {
+	var tests = []struct {
+		*control.ProcessRules
+		*message.Message
+		want bool
+	}{
+		{ProcessRules: &control.ProcessRules{IsCallMe: true, IsAdmin: true, EnableGroup: true,
+			ExecOrder: []string{"add whitelist", "加入白名单"}}, // 0 bug
+			Message: &message.Message{IsMySelf: true, IsGroup: true,
+				GroupId: "813467281 ", SenderId: "2788092443", ReceiverId: "2788092443",
+				RawContext: "/rikka add whitelist"},
+			want: true,
+		},
+		{ProcessRules: &control.ProcessRules{IsCallMe: true, IsAdmin: true, EnableGroup: true,
+			ExecOrder: []string{"add whitelist", "加入白名单"}}, // 1 bug
+			Message: &message.Message{IsMySelf: true, IsGroup: false,
+				GroupId: "", SenderId: "2788092443", ReceiverId: "2788092443",
+				RawContext: "/rikka add whitelist"},
+			want: true,
+		},
+		{ProcessRules: &control.ProcessRules{IsCallMe: true, IsAdmin: true, EnableGroup: true,
+			ExecOrder: []string{"add whitelist", "加入白名单"}}, // 1 bug
+			Message: &message.Message{IsMySelf: false, IsGroup: false,
+				GroupId: "", SenderId: "813466966", ReceiverId: "2788092443",
+				RawContext: "/rikka add whitelist"},
+			want: false,
+		},
+	}
+
+	Init()
+
+	for i, test := range tests {
+		_, ok := cache.IsHandle(test.ProcessRules, *test.Message)
+		if ok != test.want {
+			t.Errorf("cache.isHandle(%drules) = %v, want %v", i, ok, test.want)
 		}
 	}
 	cache.Close()

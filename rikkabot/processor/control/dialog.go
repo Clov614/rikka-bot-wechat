@@ -3,12 +3,16 @@
 // @Desc 对话控制-普通对话-长对话
 package control
 
-import "wechat-demo/rikkabot/message"
+import (
+	"bytes"
+	"sync"
+	"wechat-demo/rikkabot/message"
+)
 
 type IDialog interface {
 	GetPluginName() string
 	GetProcessRules() *ProcessRules
-	RunPlugin(sendChan chan<- *message.Message, receiveChan chan message.Message, done chan struct{})
+	RunPlugin(sendChan chan<- *message.Message, receiveChan chan message.Message, done *State)
 }
 
 type Dialog struct {
@@ -18,7 +22,9 @@ type Dialog struct {
 	recvMsg      chan message.Message    // 接收消息通道
 	// deprecated
 	HandleFunc func() // 对话逻辑方法
-	done       chan struct{}
+
+	MsgBuf bytes.Buffer // 消息构建缓冲
+	done   *State       // 控制存活
 }
 
 func (d *Dialog) GetPluginName() string {
@@ -28,13 +34,22 @@ func (d *Dialog) GetProcessRules() *ProcessRules {
 	return d.ProcessRules
 }
 
-func (d *Dialog) RunPlugin(sendChan chan<- *message.Message, receiveChan chan message.Message, done chan struct{}) {
+func (d *Dialog) RunPlugin(sendChan chan<- *message.Message, receiveChan chan message.Message, done *State) {
 	d.done = done
-	defer close(d.done)
-	defer close(d.recvMsg)
+	defer done.SafeClose()
 	d.sendMsg = sendChan
 	d.recvMsg = receiveChan
 	d.HandleFunc()
+}
+
+func (d *Dialog) SendText(meta message.IMeta, sendtext string) {
+	sendMsg := message.Message{Msgtype: message.MsgTypeText, MetaData: meta, RawContext: sendtext} // todo test 暂时修改 去掉raw
+	d.sendMessage(&sendMsg)
+}
+
+func (d *Dialog) SendImage(meta message.IMeta, imgData []byte) {
+	sendMsg := message.Message{Msgtype: message.MsgTypeImage, MetaData: meta, Raw: []byte(imgData)}
+	d.sendMessage(&sendMsg)
 }
 
 func (d *Dialog) sendMessage(msg *message.Message) {
@@ -50,11 +65,26 @@ type OnceDialog struct {
 	Once func(recvmsg message.Message, sendMsg chan<- *message.Message) // 一次对话
 }
 
-func (cd *OnceDialog) RunPlugin(sendChan chan<- *message.Message, receiveChan chan message.Message, done chan struct{}) {
+func (cd *OnceDialog) RunPlugin(sendChan chan<- *message.Message, receiveChan chan message.Message, done *State) {
 	cd.done = done
-	defer close(cd.done)
-	defer close(cd.recvMsg)
+	defer done.SafeClose()
 	cd.sendMsg = sendChan
 	cd.recvMsg = receiveChan
 	cd.Once(<-cd.recvMsg, cd.sendMsg)
+}
+
+type State struct {
+	once sync.Once
+	Done chan struct{}
+}
+
+func NewState() *State {
+	return &State{Done: make(chan struct{})}
+}
+
+// 安全关闭 Done
+func (s *State) SafeClose() {
+	s.once.Do(func() {
+		close(s.Done)
+	})
 }

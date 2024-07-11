@@ -10,9 +10,9 @@ import (
 
 type LongDialog struct {
 	Dialog
-	id         string                                                                // 长会话的标识
-	Long       func(recvMsg <-chan message.Message, sendMsg chan<- *message.Message) // 处理对话实现
-	TimeLimit  time.Duration                                                         // 对话超时时间
+	id         string                                                                                          // 长会话的标识
+	Long       func(firstMsg message.Message, recvMsg <-chan message.Message, sendMsg chan<- *message.Message) // 处理对话实现
+	TimeLimit  time.Duration                                                                                   // 对话超时时间
 	resetTimer chan struct{}
 }
 
@@ -20,7 +20,7 @@ func (ld *LongDialog) SendMessage(msg *message.Message) {
 	ld.sendMsg <- msg
 }
 
-func (ld *LongDialog) RunPlugin(sendChan chan<- *message.Message, receiveChan chan message.Message, done chan struct{}) {
+func (ld *LongDialog) RunPlugin(sendChan chan<- *message.Message, receiveChan chan message.Message, done *State) {
 	ld.done = done
 	ld.Dialog.sendMsg = sendChan
 	ld.Dialog.recvMsg = receiveChan
@@ -39,13 +39,9 @@ func (ld *LongDialog) RunPlugin(sendChan chan<- *message.Message, receiveChan ch
 
 	go ld.timeoutDitecter() // 超时监测
 
-	receiveChan <- firstMsg // 把第一条消息还回去
 	go func() {
-		defer func() {
-			ld.closeOnceRecv()
-			ld.closeOnce()
-		}()
-		ld.Long(ld.RecvMsgFilter(), sendChan)
+		defer ld.done.SafeClose()
+		ld.Long(firstMsg, ld.RecvMsgFilter(), sendChan)
 	}()
 }
 
@@ -56,8 +52,7 @@ func (ld *LongDialog) RecvMsgFilter() (filtedRecv chan message.Message) {
 		for {
 			select {
 			case msg, ok := <-ld.recvMsg:
-				if !ok { // recvMsg 被关闭后 filtedRecv也会被关闭
-					ld.closeOnce() // recv被关闭，对话也关闭
+				if !ok {
 					return
 				}
 				if msg.IsGroup {
@@ -71,8 +66,7 @@ func (ld *LongDialog) RecvMsgFilter() (filtedRecv chan message.Message) {
 						ld.resetTimer <- struct{}{} // 重置超时
 					}
 				}
-			case <-ld.done:
-				ld.closeOnceRecv()
+			case <-ld.done.Done:
 				return
 			}
 		}
@@ -91,34 +85,16 @@ func (ld *LongDialog) timeoutDitecter() {
 			select {
 			case <-timer.C:
 				// 关闭对话连接
-				ld.closeOnce()
+				ld.done.SafeClose()
 				return
 			case <-ld.resetTimer:
 				if !timer.Stop() {
 					<-timer.C
 				}
 				timer.Reset(ld.TimeLimit)
-			case <-ld.done:
+			case <-ld.done.Done:
 				return
 			}
 		}
 	}()
-}
-
-// closeOnce 确保 ld.done 只关闭一次
-func (ld *LongDialog) closeOnce() {
-	select {
-	case <-ld.done:
-		// already closed
-	default:
-		close(ld.done)
-	}
-}
-
-func (ld *LongDialog) closeOnceRecv() {
-	select {
-	case <-ld.recvMsg:
-	default:
-		close(ld.recvMsg)
-	}
 }

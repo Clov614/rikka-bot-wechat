@@ -17,8 +17,7 @@ func (c *Cache) IsEnable(pluginname string) bool {
 }
 
 // 根据处理规则校验是否执行处理 是否触发该方法
-func (c *Cache) IsHandle(rules *control.ProcessRules, msg *message.Message) bool {
-	context := msg.RawContext
+func (c *Cache) IsHandle(rules *control.ProcessRules, msg message.Message) (message.Message, bool) {
 
 	if rules == nil {
 		rules = &control.ProcessRules{}
@@ -59,8 +58,8 @@ func (c *Cache) IsHandle(rules *control.ProcessRules, msg *message.Message) bool
 			}
 		}
 		if rules.IsCallMe {
-			calledMeFlag = msgutil.IsCallMe(context)
-			msg.RawContext = msgutil.TrimCallMe(context)
+			calledMeFlag = msgutil.IsCallMe(msg.RawContext)
+			msg.RawContext = msgutil.TrimCallMe(msg.RawContext)
 		}
 		// 必须先等前缀判定完 判断是否符合命令
 		if rules.ExecOrder != nil && len(rules.ExecOrder) > 0 {
@@ -90,11 +89,11 @@ func (c *Cache) IsHandle(rules *control.ProcessRules, msg *message.Message) bool
 	}
 
 	firstFlags := calledMeFlag && adminFlag && whiteUserFlag && whiteGroupFlag && blackUserFlag && blackGroupFlag
-	return firstFlags && atMeFlag && enableMsgFlag && costomTriggerFlag && execOrderFlag && enableGroupFlag
+	return msg, firstFlags && atMeFlag && enableMsgFlag && costomTriggerFlag && execOrderFlag && enableGroupFlag
 }
 
 // 判断消息发送者是否为管理员
-func (c *Cache) checkAdmin(msg *message.Message) bool {
+func (c *Cache) checkAdmin(msg message.Message) bool {
 	if msg.IsMySelf {
 		return true
 	}
@@ -102,7 +101,7 @@ func (c *Cache) checkAdmin(msg *message.Message) bool {
 }
 
 // 判断消息发送者是否在白名单中
-func (c *Cache) checkWhiteUser(msg *message.Message) bool {
+func (c *Cache) checkWhiteUser(msg message.Message) bool {
 	if msg.IsMySelf {
 		return true
 	}
@@ -110,7 +109,7 @@ func (c *Cache) checkWhiteUser(msg *message.Message) bool {
 }
 
 // 判断群组消息是否存在白名单中
-func (c *Cache) checkWhiteGroup(msg *message.Message) bool {
+func (c *Cache) checkWhiteGroup(msg message.Message) bool {
 	if !msg.IsGroup { // 不是群组消息直接返回
 		return true
 	}
@@ -118,7 +117,7 @@ func (c *Cache) checkWhiteGroup(msg *message.Message) bool {
 }
 
 // 判断是否不存在黑名单中
-func (c *Cache) checkBlackUser(msg *message.Message) bool {
+func (c *Cache) checkBlackUser(msg message.Message) bool {
 	if msg.IsMySelf {
 		return true
 	}
@@ -126,14 +125,14 @@ func (c *Cache) checkBlackUser(msg *message.Message) bool {
 }
 
 // 判断是否不存在黑名单中
-func (c *Cache) checkBlackGroup(msg *message.Message) bool {
+func (c *Cache) checkBlackGroup(msg message.Message) bool {
 	if !msg.IsGroup { // 不是群组消息直接返回
 		return true
 	}
 	return !c.HasBlackGroupId(msg.GroupId)
 }
 
-func (c *Cache) checkEnableMsgTyp(enableMsgTypes []message.MsgType, msg *message.Message) bool {
+func (c *Cache) checkEnableMsgTyp(enableMsgTypes []message.MsgType, msg message.Message) bool {
 	if enableMsgTypes == nil || len(enableMsgTypes) == 0 {
 		return true
 	}
