@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sync"
 	"time"
+	"wechat-demo/rikkabot/config"
 	"wechat-demo/rikkabot/processor/register"
 	"wechat-demo/rikkabot/utils/serializer"
 )
@@ -14,6 +15,7 @@ import (
 type Cache struct {
 	mu             sync.RWMutex
 	*cacheExported // 隐藏字段
+	config         *config.CommonConfig
 
 	done chan struct{} `json:"-" yaml:"-"`
 	wg   sync.WaitGroup
@@ -26,9 +28,32 @@ type cacheExported struct {
 	BlackGroupIdSet map[string]bool `json:"black_group_id_set"` // 群聊黑名单
 	AdminUserIdSet  map[string]bool `json:"admin_user_id_set"`  // 管理员名单 （不计入自己，自己默认管理员）
 	EnablePlugins   map[string]bool `json:"enable_plugins"`     // 插件是否启用
+
+	PluginsCache map[string]interface{} `json:"plugins_cache"` // 各个插件模块需要缓存的数据
 }
 
 // region Cache crud
+
+// region PluginsCache crud
+func (c *Cache) UploadCacheByPluginName(pluginname string, dataCache interface{}) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.PluginsCache[pluginname] = dataCache
+}
+
+func (c *Cache) GetPluginCacheByName(pluginname string) interface{} {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.PluginsCache[pluginname]
+}
+
+func (c *Cache) RemovePluginCache(pluginname string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.PluginsCache, pluginname)
+}
+
+//endregion
 
 // region Has
 func (c *Cache) HasAdminUserId(userId string) bool {
@@ -194,7 +219,8 @@ var cache *Cache
 
 func initCache() {
 	cache = &Cache{
-		mu: sync.RWMutex{},
+		mu:     sync.RWMutex{},
+		config: config.GetConfig(),
 		cacheExported: &cacheExported{
 			WhiteUserIdSet:  make(map[string]bool),
 			BlackUserIdSet:  make(map[string]bool),
@@ -202,6 +228,7 @@ func initCache() {
 			BlackGroupIdSet: make(map[string]bool),
 			AdminUserIdSet:  make(map[string]bool),
 			EnablePlugins:   make(map[string]bool),
+			PluginsCache:    make(map[string]interface{}),
 		},
 		done: make(chan struct{}),
 	}
