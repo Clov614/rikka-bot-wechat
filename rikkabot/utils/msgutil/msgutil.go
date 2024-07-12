@@ -5,17 +5,12 @@ package msgutil
 
 import (
 	"strings"
-	"wechat-demo/rikkabot"
 )
 
 // 校验是否呼唤机器人 默认不区分大小写
-func IsCallMe(s string) bool {
-	bot := rikkabot.Bot()
-	config := bot.Config
-	symbol := config.Symbol
-	botname := config.Botname
+func IsCallMe(me string, s string) bool {
 	s = strings.TrimSpace(s)
-	return strings.HasPrefix(strings.ToLower(s), strings.ToLower(symbol+botname))
+	return strings.HasPrefix(strings.ToLower(s), strings.ToLower(me))
 }
 
 func IsOrder(orders []string, content string) (isorder bool, order string) {
@@ -31,13 +26,9 @@ func IsOrder(orders []string, content string) (isorder bool, order string) {
 }
 
 // 去除呼唤机器人的部分 获得剩余部分
-func TrimCallMe(s string) string {
-	bot := rikkabot.Bot()
-	config := bot.Config
-	symbol := config.Symbol
-	botname := config.Botname
+func TrimCallMe(me string, s string) string {
 	s = strings.TrimSpace(s)
-	return TrimPrefix(strings.ToLower(s), strings.ToLower(symbol+botname), false, true)
+	return TrimPrefix(strings.ToLower(s), strings.ToLower(me), false, true)
 }
 
 func TrimPrefix(s string, prefix string, caseSensitive bool, isTrimSpace bool) string {

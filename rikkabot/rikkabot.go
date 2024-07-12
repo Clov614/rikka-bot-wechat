@@ -4,6 +4,7 @@ import (
 	"context"
 	"wechat-demo/rikkabot/config"
 	"wechat-demo/rikkabot/message"
+	"wechat-demo/rikkabot/processor/cache"
 )
 
 type RikkaBot struct {
@@ -12,6 +13,7 @@ type RikkaBot struct {
 	recvMsg chan *message.Message
 	Config  *config.CommonConfig
 	//Processor *processor.Processor // todo 待完善 待确认
+	Cache *cache.Cache // 数据缓存
 
 	err error
 }

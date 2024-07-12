@@ -266,7 +266,7 @@ func TestAlone(t *testing.T) {
 		{ProcessRules: &control.ProcessRules{IsCallMe: true, IsAdmin: true, EnableGroup: true,
 			ExecOrder: []string{"add whitelist", "加入白名单"}}, // 1 bug
 			Message: &message.Message{IsMySelf: false, IsGroup: false,
-				GroupId: "", SenderId: "813466966", ReceiverId: "2788092443",
+				GroupId: "", SenderId: "7777777777", ReceiverId: "2788092443",
 				RawContext: "/rikka add whitelist"},
 			want: false,
 		},

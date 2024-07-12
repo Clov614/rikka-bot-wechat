@@ -58,8 +58,9 @@ func (c *Cache) IsHandle(rules *control.ProcessRules, msg message.Message) (mess
 			}
 		}
 		if rules.IsCallMe {
-			calledMeFlag = msgutil.IsCallMe(msg.RawContext)
-			msg.RawContext = msgutil.TrimCallMe(msg.RawContext)
+			me := c.config.Symbol + c.config.Botname
+			calledMeFlag = msgutil.IsCallMe(me, msg.RawContext)
+			msg.RawContext = msgutil.TrimCallMe(me, msg.RawContext)
 		}
 		// 必须先等前缀判定完 判断是否符合命令
 		if rules.ExecOrder != nil && len(rules.ExecOrder) > 0 {
