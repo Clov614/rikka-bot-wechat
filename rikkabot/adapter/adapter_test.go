@@ -134,7 +134,6 @@ func echo(a *Adapter, done chan struct{}) error {
 		case <-done:
 			return nil
 		case rikkaMsg := <-recvChan:
-
 			context := rikkaMsg.RawContext
 			if strings.HasPrefix(context, "echo ") {
 				trimed := strings.TrimPrefix(context, "echo ")

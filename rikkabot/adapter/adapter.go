@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/eatmoreapple/openwechat"
+	"math/rand"
+	"time"
 	"wechat-demo/rikkabot"
 	"wechat-demo/rikkabot/message"
 )
@@ -29,7 +31,9 @@ func (a *Adapter) HandleCovert() {
 			case <-a.done:
 				return
 			case respMsg := <-respMsgRecvChan:
-				a.sendMsg(respMsg) // todo 错误处理
+				rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+				time.Sleep(time.Duration((rnd.Intn(1000) + 1000)) * time.Millisecond) // sui
+				a.sendMsg(respMsg)                                                    // todo 错误处理
 			}
 		}
 	}()
