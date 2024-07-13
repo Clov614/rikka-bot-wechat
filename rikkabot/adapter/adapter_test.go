@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"github.com/eatmoreapple/openwechat"
 	_ "image/png"
+	"math/rand"
 	"strings"
 	"testing"
+	"time"
 	"wechat-demo/rikkabot"
 	"wechat-demo/rikkabot/message"
 	"wechat-demo/rikkabot/utils/serializer"
@@ -81,7 +83,7 @@ func TestGetMsgJson(t *testing.T) {
 
 // 测试发送xx消息
 func TestSendMsg(t *testing.T) {
-	runBase(t, imgEcho) // t  测试函数
+	runBase(t, echo) // t  测试函数
 }
 
 // 测试群聊和个人发送的id解析
@@ -253,4 +255,21 @@ func runBase(t *testing.T, testfunc func(*Adapter, chan struct{}) error) {
 	bot.Block()
 	fmt.Println("hello")
 	// Output: hello
+}
+
+func TestDelaytime(t *testing.T) {
+	delayMin := 1
+	delayMax := 3
+	for i := 0; i < 10; i++ {
+		rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+		startTime := time.Now()
+		time.Sleep(time.Duration((rnd.Intn(1000*delayMax-1000*delayMin) + 1000*delayMin)) * time.Millisecond)
+		fmt.Printf("delay %v\n", time.Now().Sub(startTime))
+	}
+}
+
+func FuzzDelaytime(f *testing.F) {
+	f.Fuzz(func(t *testing.T) {
+
+	})
 }

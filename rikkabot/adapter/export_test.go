@@ -6,8 +6,6 @@ package adapter
 import (
 	"fmt"
 	"github.com/eatmoreapple/openwechat"
-	"math/rand"
-	"time"
 )
 
 var Covert = (*Adapter).covert
@@ -26,8 +24,8 @@ var HandleCovert = func(a *Adapter) {
 			case <-a.done:
 				return
 			case respMsg := <-respMsgRecvChan:
-				rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-				time.Sleep(time.Duration((rnd.Intn(1000) + 1000)) * time.Millisecond)
+				//rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+				//time.Sleep(time.Duration((rnd.Intn(1000) + 1000)) * time.Millisecond)
 				a.sendMsg(respMsg) // todo 错误处理
 			}
 		}
