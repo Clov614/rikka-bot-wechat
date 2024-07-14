@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"github.com/eatmoreapple/openwechat"
 	"math/rand"
-	"strings"
+	"regexp"
 	"time"
 	"wechat-demo/rikkabot"
+	"wechat-demo/rikkabot/common"
+
 	"wechat-demo/rikkabot/message"
 )
 
@@ -18,6 +20,7 @@ type Adapter struct {
 }
 
 func NewAdapter(openwcBot *openwechat.Bot, selfBot *rikkabot.RikkaBot) *Adapter {
+	common.InitSelf(openwcBot) // 初始化 该用户数据（朋友、群组）
 	return &Adapter{openwcBot: openwcBot, selfBot: selfBot, done: make(chan struct{})}
 }
 
@@ -48,9 +51,10 @@ func (a *Adapter) Close() {
 
 // MetaData message.IMeta impl
 type MetaData struct {
-	Self       *openwechat.Self
-	RawMsg     *openwechat.Message
-	delayToken chan struct{} // 控制消息的接收与发送的随机间隔
+	Self        *openwechat.Self
+	RawMsg      *openwechat.Message
+	GroupMember openwechat.Members // 群组成员（群组消息才会有）
+	delayToken  chan struct{}      // 控制消息的接收与发送的随机间隔
 }
 
 func NewMetaData(self *openwechat.Self, rawMsg *openwechat.Message) *MetaData {
@@ -99,7 +103,9 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 	SenderId := ""
 	sender, _ := msg.Sender()     // ignore err
 	receiver, _ := msg.Receiver() // ignore erryu
-	rawContent := msg.RawContent
+	var isAtMe = false
+	var groupNameList []string
+	var groupAtNameList []string
 
 	if isSendByGroup {
 		senderInGroup, _ := msg.SenderInGroup() // ignore err
@@ -112,25 +118,48 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 		if msg.IsSendBySelf() {
 			GroupId, ReceiveId = ReceiveId, SenderId
 		}
-		// 处理群组消息
-		rawContent = strings.TrimPrefix(msg.RawContent, senderInGroup.UserName+":<br/>")
+		// 获取群成员的用户名
+		group, ok := sender.AsGroup()
+		if ok {
+			members, _ := group.Members()  // ignore err
+			metaData.GroupMember = members // 加入meta中
+			cnt := members.Count()
+			groupNameList = make([]string, cnt)
+			for i := 0; i < cnt; i++ {
+				groupNameList[i] = members[i].NickName
+			}
+		}
+		// 获取消息中艾特成员的成员名
+		re := regexp.MustCompile(`@([^\s]+) `)
+		matches := re.FindAllStringSubmatch(msg.Content, -1)
+		groupAtNameList = make([]string, len(matches))
+		for i, match := range matches {
+			if len(match) > 1 {
+				groupAtNameList[i] = match[1]
+				isAtMe = match[1] == self.NickName // 是否艾特自己
+			}
+		}
+
 	} else {
 		SenderId = sender.AvatarID()
 		ReceiveId = receiver.AvatarID()
 	}
 
 	return &message.Message{
-		Msgtype:    rikkaMsgType,
-		MetaData:   metaData,
-		Raw:        handleSpecialRaw(msg),
-		RawContext: rawContent,
-		GroupId:    GroupId,
-		SenderId:   SenderId,
-		ReceiverId: ReceiveId,
-		IsAt:       msg.IsAt(), // todo 获取 at的内容 （哪个用户）
-		IsGroup:    isSendByGroup,
-		IsFriend:   msg.IsSendByFriend(),
-		IsMySelf:   msg.IsSendBySelf(), // 是否为自己发送的消息
+		Msgtype:         rikkaMsgType,
+		MetaData:        metaData,
+		Raw:             handleSpecialRaw(msg),
+		RawContent:      msg.RawContent,
+		Content:         msg.Content,
+		GroupId:         GroupId,
+		SenderId:        SenderId,
+		ReceiverId:      ReceiveId,
+		GroupNameList:   groupNameList,
+		GroupAtNameList: groupAtNameList,
+		IsAtMe:          isAtMe,
+		IsGroup:         isSendByGroup,
+		IsFriend:        msg.IsSendByFriend(),
+		IsMySelf:        msg.IsSendBySelf(), // 是否为自己发送的消息
 	}
 }
 
@@ -162,7 +191,7 @@ func (a *Adapter) sendMsg(sendMsg *message.Message) error {
 	}
 	switch sendMsg.Msgtype {
 	case message.MsgTypeText:
-		rawMsg.ReplyText(sendMsg.RawContext)
+		rawMsg.ReplyText(sendMsg.Content)
 	case message.MsgTypeImage:
 		rawMsg.ReplyImage(bytes.NewReader(sendMsg.Raw))
 	}

@@ -103,6 +103,36 @@ func TestMsgSenderId(t *testing.T) {
 	// 群号: 813467281
 }
 
+func TestAtAnalys(t *testing.T) {
+	runBase(t, GetmsgAtAnalysis)
+}
+
+func GetmsgAtAnalysis(a *Adapter, done chan struct{}) error {
+	recvChan := a.selfBot.GetReqMsgRecvChan()
+	for {
+		select {
+		case <-done:
+			return nil
+		case rikkaMsg := <-recvChan:
+			_ = rikkaMsg.Content
+			self, _ := a.openwcBot.GetCurrentUser()
+			friends, _ := self.Friends()
+			groups, _ := self.Groups()
+			members, _ := self.Members()
+			//rawmsg := rikkaMsg.MetaData.GetRawMsg().(*openwechat.Message)
+
+			fmt.Printf("friends: %#v\n", friends)
+			fmt.Printf("groups: %v\n", groups)
+			fmt.Printf("members: %v\n", members)
+
+			rawMsg := rikkaMsg.MetaData.GetRawMsg().(*openwechat.Message)
+
+			fmt.Printf("rawMsg: %#v\n", *rawMsg)
+		}
+	}
+	return nil
+}
+
 // 测试各种消息的唯一ID
 func GetUserId(a *Adapter, done chan struct{}) error {
 	recvChan := a.selfBot.GetReqMsgRecvChan()
@@ -113,14 +143,14 @@ func GetUserId(a *Adapter, done chan struct{}) error {
 		case rikkaMsg := <-recvChan:
 			if rikkaMsg.Msgtype == message.MsgTypeText {
 				if rikkaMsg.IsGroup { // 群消息返回
-					rikkaMsg.RawContext = fmt.Sprintf("groupId= %s \n senderId = %s \n"+
+					rikkaMsg.Content = fmt.Sprintf("groupId= %s \n senderId = %s \n"+
 						" receviceId = %s", rikkaMsg.GroupId, rikkaMsg.SenderId, rikkaMsg.ReceiverId)
-					rikkaMsg.Raw = []byte(rikkaMsg.RawContext)
+					rikkaMsg.Raw = []byte(rikkaMsg.Content)
 					a.selfBot.GetRespMsgSendChan() <- rikkaMsg // 原路返回消息
 				} else {
-					rikkaMsg.RawContext = fmt.Sprintf("senderId = %s \n receviceId = %s",
+					rikkaMsg.Content = fmt.Sprintf("senderId = %s \n receviceId = %s",
 						rikkaMsg.SenderId, rikkaMsg.ReceiverId)
-					rikkaMsg.Raw = []byte(rikkaMsg.RawContext)
+					rikkaMsg.Raw = []byte(rikkaMsg.Content)
 					a.selfBot.GetRespMsgSendChan() <- rikkaMsg // 原路返回消息
 				}
 			}
@@ -136,11 +166,11 @@ func echo(a *Adapter, done chan struct{}) error {
 		case <-done:
 			return nil
 		case rikkaMsg := <-recvChan:
-			context := rikkaMsg.RawContext
+			context := rikkaMsg.Content
 			if strings.HasPrefix(context, "echo ") {
 				trimed := strings.TrimPrefix(context, "echo ")
-				rikkaMsg.RawContext = trimed
-				rikkaMsg.Raw = []byte(rikkaMsg.RawContext)
+				rikkaMsg.Content = trimed
+				rikkaMsg.Raw = []byte(rikkaMsg.Content)
 				a.selfBot.GetRespMsgSendChan() <- rikkaMsg
 			}
 		}
@@ -156,11 +186,11 @@ func doubleEcho(a *Adapter, done chan struct{}) error {
 			return nil
 		case rikkaMsg := <-recvChan:
 
-			context := rikkaMsg.RawContext
+			context := rikkaMsg.Content
 			if strings.HasPrefix(context, "echo ") {
 				trimed := strings.TrimPrefix(context, "echo ")
-				rikkaMsg.RawContext = trimed
-				rikkaMsg.Raw = []byte(rikkaMsg.RawContext)
+				rikkaMsg.Content = trimed
+				rikkaMsg.Raw = []byte(rikkaMsg.Content)
 				a.selfBot.GetRespMsgSendChan() <- rikkaMsg
 				a.selfBot.GetRespMsgSendChan() <- rikkaMsg
 			}
@@ -178,11 +208,11 @@ func doubleEchoActive(a *Adapter, done chan struct{}) error {
 			return nil
 		case rikkaMsg := <-recvChan:
 
-			context := rikkaMsg.RawContext
+			context := rikkaMsg.Content
 			if strings.HasPrefix(context, "echo ") {
 				trimed := strings.TrimPrefix(context, "echo ")
-				rikkaMsg.RawContext = trimed
-				rikkaMsg.Raw = []byte(rikkaMsg.RawContext)
+				rikkaMsg.Content = trimed
+				rikkaMsg.Raw = []byte(rikkaMsg.Content)
 				rikkaMsg.MetaData.GetRawMsg() // todo 主动发送消息的 rawMsg增强
 			}
 		}
@@ -212,22 +242,8 @@ func imgEcho(a *Adapter, done chan struct{}) error {
 
 func runBase(t *testing.T, testfunc func(*Adapter, chan struct{}) error) {
 	bot := openwechat.DefaultBot(openwechat.Desktop)
-	a := NewAdapter(bot, rikkabot.GetDefaultBot())
-	HandleCovert(a)
-	defer a.Close()
 
 	t.Logf("Start test\n")
-
-	// test 实际回复功能测试
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		err2 := testfunc(a, done)
-		if err2 != nil {
-			t.Logf("echo err: %v", err2)
-		}
-
-	}()
 
 	// 注册登陆二维码回调
 	bot.UUIDCallback = openwechat.PrintlnQrcodeUrl
@@ -239,6 +255,21 @@ func runBase(t *testing.T, testfunc func(*Adapter, chan struct{}) error) {
 		t.Error(err)
 		return
 	}
+
+	a := NewAdapter(bot, rikkabot.GetDefaultBot())
+	HandleCovert(a)
+	defer a.Close()
+
+	// test 实际回复功能测试
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		err2 := testfunc(a, done)
+		if err2 != nil {
+			t.Logf("echo err: %v", err2)
+		}
+
+	}()
 
 	// 获取登陆的用户
 	self, err := bot.GetCurrentUser()
