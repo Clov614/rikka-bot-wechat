@@ -59,14 +59,14 @@ func (c *Cache) IsHandle(rules *control.ProcessRules, msg message.Message) (mess
 		}
 		if rules.IsCallMe {
 			me := c.config.Symbol + c.config.Botname
-			calledMeFlag = msgutil.IsCallMe(me, msg.RawContext)
-			msg.RawContext = msgutil.TrimCallMe(me, msg.RawContext)
+			calledMeFlag = msgutil.IsCallMe(me, msg.Content)
+			msg.Content = msgutil.TrimCallMe(me, msg.Content)
 		}
 		// 必须先等前缀判定完 判断是否符合命令
 		if rules.ExecOrder != nil && len(rules.ExecOrder) > 0 {
 			order := ""
-			execOrderFlag, order = msgutil.IsOrder(rules.ExecOrder, msg.RawContext)
-			msg.RawContext = msgutil.TrimPrefix(msg.RawContext, order, true, true)
+			execOrderFlag, order = msgutil.IsOrder(rules.ExecOrder, msg.Content)
+			msg.Content = msgutil.TrimPrefix(msg.Content, order, true, true)
 		}
 		if rules.IsAdmin {
 			adminFlag = c.checkAdmin(msg)

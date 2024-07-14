@@ -23,32 +23,32 @@ func TestMsgDispatch(t *testing.T) {
 	testmessages := []message.Message{
 		message.Message{IsMySelf: true, IsGroup: true,
 			GroupId: "813467281 ", SenderId: "2788092443", ReceiverId: "2788092443",
-			RawContext: "/rikka add whitelist 1"},
+			Content: "/rikka add whitelist 1"},
 		message.Message{IsMySelf: true, IsGroup: true,
 			GroupId: "813467281 ", SenderId: "2788092443", ReceiverId: "2788092443",
-			RawContext: "/123123125432"},
+			Content: "/123123125432"},
 		message.Message{IsMySelf: true, IsGroup: false,
 			GroupId: "", SenderId: "2788092443", ReceiverId: "2788092443",
-			RawContext: "/rikka add whitelist 2"},
+			Content: "/rikka add whitelist 2"},
 		message.Message{IsMySelf: false, IsGroup: false,
 			GroupId: "", SenderId: "813466966", ReceiverId: "2788092443",
-			RawContext: "/rikka add whitelist"},
+			Content: "/rikka add whitelist"},
 		// 长对话测试
 		message.Message{IsMySelf: false, IsGroup: true,
 			GroupId: "813467281", SenderId: "813466966", ReceiverId: "2788092443",
-			RawContext: "/rikka 长对话测试"},
+			Content: "/rikka 长对话测试"},
 		message.Message{IsMySelf: true, IsGroup: true,
 			GroupId: "813467281", SenderId: "2788092443", ReceiverId: "2788092443",
-			RawContext: "44"},
+			Content: "44"},
 		message.Message{IsMySelf: false, IsGroup: true,
 			GroupId: "777777777777", SenderId: "813466966", ReceiverId: "2788092443",
-			RawContext: "46"},
+			Content: "46"},
 		message.Message{IsMySelf: false, IsGroup: false,
 			GroupId: "777777777777", SenderId: "813466966", ReceiverId: "2788092443",
-			RawContext: "46"},
+			Content: "46"},
 		message.Message{IsMySelf: false, IsGroup: true,
 			GroupId: "813467281", SenderId: "813466966", ReceiverId: "2788092443",
-			RawContext: "44"},
+			Content: "44"},
 	}
 	go func() {
 		for _, msg := range testmessages {
@@ -64,7 +64,7 @@ func TestMsgDispatch(t *testing.T) {
 	go func() {
 		for sendMsg := range sendChan {
 			fmt.Println("发送消息: ")
-			fmt.Printf("msg: %s  rawstruct: %#v\n\n", sendMsg.RawContext, sendMsg)
+			fmt.Printf("msg: %s  rawstruct: %#v\n\n", sendMsg.Content, sendMsg)
 		}
 	}()
 

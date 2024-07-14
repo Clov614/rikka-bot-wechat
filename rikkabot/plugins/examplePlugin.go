@@ -38,9 +38,9 @@ func (ap *AdminPlugin) addWhiteGroup(msg message.Message) (reply *message.Messag
 		// 添加白名单
 		c := cache.GetCache()
 		c.AddWhiteGroupId(msg.GroupId)
-		msg.RawContext = fmt.Sprintf("添加白名单成功！群聊: %s", msg.GroupId)
+		msg.Content = fmt.Sprintf("添加白名单成功！群聊: %s", msg.GroupId)
 	} else {
-		msg.RawContext = "仅能在群聊中添加白名单"
+		msg.Content = "仅能在群聊中添加白名单"
 	}
 
 	reply = &msg
@@ -60,7 +60,7 @@ func testLongDialogPlugin() {
 	msgBuf := testLongPlugin.MsgBuf
 
 	testLongPlugin.Long = func(firstMsg message.Message, recvMsg <-chan message.Message, sendMsg chan<- *message.Message) {
-		context := firstMsg.RawContext
+		context := firstMsg.Content
 		if context != "" {
 			msgBuf.WriteString(fmt.Sprintf("回复长对话消息 + %s,\n", context))
 			testLongPlugin.SendText(firstMsg.MetaData, msgBuf.String())
@@ -71,7 +71,7 @@ func testLongDialogPlugin() {
 		}
 
 		if msg, ok := <-recvMsg; ok {
-			context := msg.RawContext
+			context := msg.Content
 			if context == "44" {
 				msgBuf.WriteString("没错，答对啦")
 				testLongPlugin.SendText(msg.MetaData, msgBuf.String())

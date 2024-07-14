@@ -43,7 +43,7 @@ func (d *Dialog) RunPlugin(sendChan chan<- *message.Message, receiveChan chan me
 }
 
 func (d *Dialog) SendText(meta message.IMeta, sendtext string) {
-	sendMsg := message.Message{Msgtype: message.MsgTypeText, MetaData: meta, RawContext: sendtext} // todo test 暂时修改 去掉raw
+	sendMsg := message.Message{Msgtype: message.MsgTypeText, MetaData: meta, Content: sendtext} // todo test 暂时修改 去掉raw
 	d.sendMessage(&sendMsg)
 }
 
