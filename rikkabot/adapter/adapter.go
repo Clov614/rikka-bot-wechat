@@ -109,7 +109,10 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 
 	if isSendByGroup {
 		senderInGroup, _ := msg.SenderInGroup() // ignore err
-		senderInGroup.Detail()                  // 忽略错误
+		if senderInGroup == nil {
+			return nil
+		}
+		senderInGroup.Detail() // 忽略错误
 		SenderId = senderInGroup.AvatarID()
 		GroupId = sender.AvatarID() // GroupSenderID
 		ReceiveId = receiver.AvatarID()
@@ -177,6 +180,9 @@ func handleSpecialRaw(msg *openwechat.Message) []byte {
 // @Demand Version
 func (a *Adapter) receiveMsg(msg *openwechat.Message) {
 	selfMsg := a.covert(msg)
+	if selfMsg == nil {
+		return
+	}
 	a.selfBot.GetReqMsgSendChan() <- selfMsg
 }
 
