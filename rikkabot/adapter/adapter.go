@@ -69,6 +69,29 @@ func (md *MetaData) GetISelf() interface{} {
 	return md.Self
 }
 
+// 获取消息发送者昵称
+func (md *MetaData) GetMsgSenderNickname() string {
+	sender, _ := md.RawMsg.Sender()
+	if sender.IsGroup() { // 获取群组内真实发送者
+		senderInGroup, _ := md.RawMsg.SenderInGroup()
+		senderInGroup.Detail()
+		return senderInGroup.NickName
+	}
+	if sender == nil {
+		return ""
+	}
+	return sender.NickName
+}
+
+// 获取群组消息的群名
+func (md *MetaData) GetGroupNickname() string {
+	if !md.RawMsg.IsSendByGroup() {
+		return ""
+	}
+	sender, _ := md.RawMsg.Sender()
+	return sender.NickName
+}
+
 func (md *MetaData) runDelayTimer(delayMin int, delayMax int) {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	time.Sleep(time.Duration((rnd.Intn(1000*delayMax-1000*delayMin) + 1000*delayMin)) * time.Millisecond)

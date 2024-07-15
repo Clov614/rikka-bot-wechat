@@ -41,6 +41,8 @@ type Message struct {
 type IMeta interface {
 	GetISelf() interface{}
 	GetRawMsg() interface{}
+	GetMsgSenderNickname() string
+	GetGroupNickname() string
 }
 
 //type ISelf interface {
