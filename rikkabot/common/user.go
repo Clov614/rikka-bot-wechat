@@ -1,6 +1,6 @@
 // @Author Clover
 // @Data 2024/7/14 下午10:45:00
-// @Desc 用户
+// @Desc 对openwechat用户相关操作的进一步封装
 package common
 
 import (
@@ -76,6 +76,45 @@ func (s *Self) SendFile2FriendByNickname(nickname string, file io.Reader) error 
 	_, err := friend.SendFile(file)
 	if err != nil {
 		return fmt.Errorf("SendFile2FriendByNickname failed: %s", err.Error())
+	}
+	return nil
+}
+
+// 根据好友id发送文字
+func (s *Self) SendText2FriendById(avatarId string, text string) error {
+	friend := s.Friends.SearchByID(avatarId).First()
+	if friend == nil {
+		return fmt.Errorf("SendText2FriendById failed: friend not found")
+	}
+	_, err := friend.SendText(text)
+	if err != nil {
+		return fmt.Errorf("SendText2FriendById failed: %s", err.Error())
+	}
+	return nil
+}
+
+// 根据好友id发送图片
+func (s *Self) SendImg2FriendById(avatarId string, img io.Reader) error {
+	friend := s.Friends.SearchByID(avatarId).First()
+	if friend == nil {
+		return fmt.Errorf("SendImg2FriendById failed: friend not found")
+	}
+	_, err := friend.SendImage(img)
+	if err != nil {
+		return fmt.Errorf("SendImg2FriendById failed: %s", err.Error())
+	}
+	return nil
+}
+
+// 根据好友id发送文件
+func (s *Self) SendFile2FriendByAvatarId(avatarId string, file io.Reader) error {
+	friend := s.Friends.SearchByID(avatarId).First()
+	if friend == nil {
+		return fmt.Errorf("SendFile2FriendByAvatarId failed: friend not found")
+	}
+	_, err := friend.SendFile(file)
+	if err != nil {
+		return fmt.Errorf("SendFile2FriendByAvatarId failed: %s", err.Error())
 	}
 	return nil
 }
@@ -172,4 +211,61 @@ func (s *Self) IsFriend(nickname string) bool {
 func (s *Self) IsGroup(nickname string) bool {
 	results := s.Groups.SearchByNickName(1, nickname)
 	return results != nil && results.First() == nil
+}
+
+// 获取用户名
+func (s *Self) GetNickname() string {
+	return s.self.NickName
+}
+
+// 根据 nickname 查找出 用户id
+func (s *Self) GetFriendIdByNickname(nickname string) (string, error) {
+	return s.doGetIdByNickname(nickname, false)
+}
+
+// 根据 nickname 查找出 id
+func (s *Self) GetGroupIdByNickname(nickname string) (string, error) {
+	return s.doGetIdByNickname(nickname, true)
+}
+
+func (s *Self) doGetIdByNickname(nickname string, isGroup bool) (string, error) {
+	if isGroup {
+		group := s.Groups.SearchByNickName(1, nickname).First()
+		if group == nil {
+			return "", fmt.Errorf("doGetIdByNickname failed: group not found")
+		}
+		return group.AvatarID(), nil
+	} else {
+		friend := s.Friends.SearchByNickName(1, nickname).First()
+		if friend == nil {
+			return "", fmt.Errorf("doGetIdByNickname failed: friend not found")
+		}
+		return friend.AvatarID(), nil
+	}
+}
+
+// 根据群组id 查找出 群名
+func (s *Self) GetGroupNicknameById(id string) (string, error) {
+	return s.doGetNicknameById(id, true)
+}
+
+// 根据用户id 查找出 用户昵称
+func (s *Self) GetFriendNicknameById(id string) (string, error) {
+	return s.doGetNicknameById(id, false)
+}
+
+func (s *Self) doGetNicknameById(id string, isGroup bool) (string, error) {
+	if isGroup {
+		group := s.Groups.SearchByID(id).First()
+		if group == nil {
+			return "", fmt.Errorf("doGetNicknameById failed: group not found")
+		}
+		return group.NickName, nil
+	} else {
+		friend := s.Friends.SearchByID(id).First()
+		if friend == nil {
+			return "", fmt.Errorf("doGetNicknameById failed: friend not found")
+		}
+		return friend.NickName, nil
+	}
 }
