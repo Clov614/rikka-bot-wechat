@@ -2,18 +2,21 @@ package rikkabot
 
 import (
 	"context"
+	"errors"
+	"wechat-demo/rikkabot/common"
 	"wechat-demo/rikkabot/config"
 	"wechat-demo/rikkabot/message"
-	"wechat-demo/rikkabot/processor/cache"
+	"wechat-demo/rikkabot/processor"
 )
 
 type RikkaBot struct {
-	ctx     context.Context
-	sendMsg chan *message.Message
-	recvMsg chan *message.Message
-	Config  *config.CommonConfig
-	//Processor *processor.Processor // todo 待完善 待确认
-	Cache *cache.Cache // 数据缓存
+	ctx       context.Context
+	cancel    func()
+	self      *common.Self
+	sendMsg   chan *message.Message
+	recvMsg   chan *message.Message
+	Config    *config.CommonConfig
+	Processor *processor.Processor // todo 待完善 待确认
 
 	err error
 }
@@ -21,11 +24,14 @@ type RikkaBot struct {
 var DefaultBot *RikkaBot
 
 func init() {
+	ctx, cancel := context.WithCancel(context.Background())
 	DefaultBot = &RikkaBot{
-		ctx:     context.Background(),
-		sendMsg: make(chan *message.Message),
-		recvMsg: make(chan *message.Message),
-		Config:  config.GetConfig(),
+		ctx:       ctx,
+		cancel:    cancel,
+		sendMsg:   make(chan *message.Message),
+		recvMsg:   make(chan *message.Message),
+		Processor: processor.NewProcessor(),
+		Config:    config.GetConfig(),
 	}
 }
 
@@ -44,6 +50,27 @@ func GetBot(botname string) (*RikkaBot, error) {
 		return nil, err
 	}
 	return DefaultBot, nil
+}
+
+// 启动 rikkabot 进行消息处理
+func (r *RikkaBot) Start() {
+	println("rikkabot start")
+	go r.Processor.DispatchMsg(r.recvMsg, r.sendMsg)
+}
+
+// 主动退出 rikkabot
+func (r *RikkaBot) Exit() {
+	r.Processor.Close()
+	r.cancel()
+}
+
+// Block 当发生错误，该方法会立即返回，否则会一直阻塞
+func (r *RikkaBot) Block() error {
+	if r.self == nil {
+		return errors.New("`Block` must be called after adapter.HandleCovert()")
+	}
+	<-r.ctx.Done()
+	return r.err
 }
 
 // region Msg Chan Operation

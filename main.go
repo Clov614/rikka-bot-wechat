@@ -1,133 +1,50 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/eatmoreapple/openwechat"
 	"os"
-	"strconv"
-	"time"
-	"wechat-demo/autoResendMsg"
+	"wechat-demo/rikkabot"
+	"wechat-demo/rikkabot/adapter"
 )
 
 func main() {
+	bot := openwechat.DefaultBot(openwechat.Desktop)
 
-	bot := openwechat.DefaultBot(openwechat.Desktop) // 桌面模式
-
-	// 注册消息处理函数
-	bot.MessageHandler = func(msg *openwechat.Message) {
-		if msg.IsText() && msg.Content == "ping" {
-			msg.ReplyText("pong")
-		}
-	}
 	// 注册登陆二维码回调
 	bot.UUIDCallback = openwechat.PrintlnQrcodeUrl
 
 	// 登陆
-	if err := bot.Login(); err != nil {
-		fmt.Println(err)
+	reloadStorage := openwechat.NewFileHotReloadStorage("storage.json")
+	defer reloadStorage.Close()
+	println("请在手机中确认登录")
+	if err := bot.PushLogin(reloadStorage, openwechat.NewRetryLoginOption()); err != nil {
+		println(fmt.Println(err))
 		return
 	}
 
-	// 获取登陆的用户
-	self, err := bot.GetCurrentUser()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	rbot := rikkabot.GetDefaultBot()
 
-	// 获取所有的好友
-	friends, err := self.Friends()
-	fmt.Println(friends, err)
+	a := adapter.NewAdapter(bot, rbot)
+	a.HandleCovert() // 消息转换
+	defer a.Close()
 
-	// 获取所有的群组
-	groups, err := self.Groups()
-	fmt.Println(groups, err)
+	rbot.Start()
+
+	go func() {
+		println("退出请输入q 或者 exit")
+		input := bufio.NewScanner(os.Stdin)
+		for input.Scan() {
+			if input.Text() == "exit" || input.Text() == "quit" || input.Text() == "q" {
+				rbot.Exit()
+				bot.Exit()
+			}
+		}
+	}()
 
 	// 阻塞主goroutine, 直到发生异常或者用户主动退出
+	rbot.Block()
 	bot.Block()
-}
 
-func oldFunc() {
-	args := os.Args[1:]
-
-	bot := openwechat.DefaultBot(openwechat.Desktop) // 桌面模式
-
-	resendMsg := autoResendMsg.Init()
-
-	if args != nil && len(args) == 1 {
-		customMsg := args[0]
-		resendMsg.CustomMsg = customMsg // 自定义消息 命令行设置
-	}
-
-	if args != nil && len(args) >= 2 {
-		customMsg := args[0]
-		if customMsg != "" {
-			resendMsg.CustomMsg = customMsg
-		}
-		ttl := args[1]
-		ttlNum, err := strconv.Atoi(ttl)
-		if err != nil {
-			fmt.Errorf("convErr: ttl (arg[1]) not a integer, %s", err)
-			os.Exit(1)
-		}
-		resendMsg.TTL = time.Hour * time.Duration(ttlNum)
-	}
-
-	dispatcher := openwechat.NewMessageMatchDispatcher()
-
-	messageHandler := dispatcher.AsMessageHandler()
-
-	bot.MessageHandler = messageHandler
-
-	// 注册消息处理函数
-	bot.MessageHandler = func(msg *openwechat.Message) {
-		//if msg.IsText() && msg.Content == "ping" {
-		//	msg.ReplyText()
-		//}
-		if resendMsg.IsReply(msg) { // 自动回复消息设置
-			gapTime()
-			msg.ReplyText(resendMsg.CustomMsg)
-		}
-		dingdong(bot, msg) // 待测试
-	}
-	// 注册登陆二维码回调
-	bot.UUIDCallback = openwechat.PrintlnQrcodeUrl
-
-	// 登陆
-	if err := bot.Login(); err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	// 获取登陆的用户
-	self, err := bot.GetCurrentUser()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	// 获取所有的好友
-	friends, err := self.Friends()
-	fmt.Println(friends, err)
-
-	// 获取所有的群组
-	groups, err := self.Groups()
-	fmt.Println(groups, err)
-}
-
-func gapTime() {
-	time.Sleep(2000 * time.Millisecond) // 暂停两秒发送消息
-}
-
-func dingdong(bot *openwechat.Bot, msg *openwechat.Message) {
-	if msg.IsSendBySelf() && msg.IsText() && msg.Content == "<ding>" {
-		gapTime()
-		self, err := bot.GetCurrentUser()
-		if err != nil {
-			fmt.Errorf("GetCurrentUser Error: %s", err)
-			os.Exit(2)
-		}
-		fh := self.FileHelper()
-		fh.SendText("<dong>") // 向文件助手发送消息
-	}
 }

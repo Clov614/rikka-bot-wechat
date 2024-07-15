@@ -6,6 +6,7 @@ package plugins
 import (
 	"fmt"
 	"wechat-demo/rikkabot/message"
+	_ "wechat-demo/rikkabot/plugins/admin" // 需要副作用 init注册方法
 	"wechat-demo/rikkabot/processor/cache"
 	"wechat-demo/rikkabot/processor/control"
 	"wechat-demo/rikkabot/processor/register"

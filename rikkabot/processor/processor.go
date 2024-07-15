@@ -56,30 +56,40 @@ func (p *Processor) Close() {
 		close(p.done)
 	}
 	<-p.closeToken
+	p.Cache.Close() // 关闭缓存
 }
 
+// 处理器分发消息，并触发方法，管理长对话
 func (p *Processor) DispatchMsg(recvChan chan *message.Message, sendChan chan *message.Message) {
-	for msg := range recvChan {
-		tempMsg := *msg
-		p.broadcastRecv(tempMsg) // 长连接分发消息
-		pluginMap := p.pluginPool.GetPluginMap()
-		for name, plugin := range pluginMap {
-			dialog := plugin.(control.IDialog)
-			if p.IsEnable(name) { // 是否启用插件
-				if checkedMsg, ok := p.IsHandle(dialog.GetProcessRules(), tempMsg); ok {
-					recvConn := make(chan message.Message, 1)
-					done := control.NewState()
-					p.registLongConn(recvConn, done)
-					select { // 发送二手消息
-					case recvConn <- checkedMsg:
-					default:
-						// skip send
+	for {
+		select {
+		case msg := <-recvChan:
+			tempMsg := *msg
+			p.broadcastRecv(tempMsg) // 长连接分发消息
+			pluginMap := p.pluginPool.GetPluginMap()
+			for name, plugin := range pluginMap {
+				dialog := plugin.(control.IDialog)
+				if p.IsEnable(name) { // 是否启用插件
+					if checkedMsg, ok := p.IsHandle(dialog.GetProcessRules(), tempMsg); ok {
+						recvConn := make(chan message.Message, 1)
+						done := control.NewState()
+						p.registLongConn(recvConn, done)
+						select { // 发送二手消息
+						case recvConn <- checkedMsg:
+						default:
+							// skip send
+						}
+						go func() {
+							dialog.RunPlugin(sendChan, recvConn, done)
+						}()
 					}
-					go func() {
-						dialog.RunPlugin(sendChan, recvConn, done)
-					}()
 				}
-
+			}
+		default:
+			select {
+			case <-p.done:
+				return
+			default:
 			}
 		}
 	}
