@@ -28,17 +28,49 @@ func IsOrder(orders []string, content string) (isorder bool, order string) {
 // 去除呼唤机器人的部分 获得剩余部分
 func TrimCallMe(me string, s string) string {
 	s = strings.TrimSpace(s)
-	return TrimPrefix(strings.ToLower(s), strings.ToLower(me), false, true)
+	return TrimPrefix(s, me, false, true)
 }
 
+// caseSensitive 只在匹配的时候忽略大小写
 func TrimPrefix(s string, prefix string, caseSensitive bool, isTrimSpace bool) string {
+	original := s
+
 	if !caseSensitive {
-		return strings.TrimPrefix(strings.ToLower(s), strings.ToLower(prefix))
+		// Convert to lower case for comparison only
+		lowerS := strings.ToLower(s)
+		lowerPrefix := strings.ToLower(prefix)
+
+		if strings.HasPrefix(lowerS, lowerPrefix) {
+			// Calculate the position where the prefix ends
+			trimmed := s[len(prefix):]
+
+			if isTrimSpace {
+				return strings.TrimSpace(trimmed)
+			}
+			return trimmed
+		}
+	} else {
+		if strings.HasPrefix(s, prefix) {
+			trimmed := s[len(prefix):]
+
+			if isTrimSpace {
+				return strings.TrimSpace(trimmed)
+			}
+			return trimmed
+		}
 	}
+
 	if isTrimSpace {
-		return strings.TrimSpace(strings.TrimPrefix(s, prefix))
+		return strings.TrimSpace(original)
 	}
-	return strings.TrimPrefix(s, prefix)
+	return original
+}
+
+func HasPrefix(s string, prefix string, caseSensitive bool) bool {
+	if !caseSensitive {
+		return strings.HasPrefix(strings.ToLower(s), strings.ToLower(prefix))
+	}
+	return strings.HasPrefix(s, prefix)
 }
 
 // ContainsInt checks if a slice contains a specific integer
