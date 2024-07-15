@@ -21,7 +21,7 @@ type CommonConfig struct {
 
 const (
 	defaultSymbol             = "/"
-	defaultBotname            = "rikkka"
+	defaultBotname            = "rikka"
 	defaultAnswerDelayRandMin = 1
 	defaultAnswerDelayRandMax = 3
 )
