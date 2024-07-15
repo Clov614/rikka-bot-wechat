@@ -34,6 +34,45 @@ type cacheExported struct {
 
 // region Cache crud
 
+// 获取插件状态列表 插件名-状态
+func (c *Cache) EnablePluginMap() map[string]bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	cpEnablePlugins := make(map[string]bool, len(c.EnablePlugins))
+	for k, v := range c.EnablePlugins {
+		cpEnablePlugins[k] = v
+	}
+	return cpEnablePlugins
+}
+
+// 插件是否存在
+func (c *Cache) isExistPlugin(pluginName string) bool {
+	_, ok := c.EnablePlugins[pluginName]
+	return ok
+}
+
+// 启用插件
+func (c *Cache) EnablePlugin(pluginName string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if !c.isExistPlugin(pluginName) {
+		return fmt.Errorf("plugin %s not exists", pluginName)
+	}
+	c.EnablePlugins[pluginName] = true
+	return nil
+}
+
+// 禁用插件
+func (c *Cache) DisablePlugin(pluginName string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if !c.isExistPlugin(pluginName) {
+		return fmt.Errorf("plugin %s not exists", pluginName)
+	}
+	c.EnablePlugins[pluginName] = false
+	return nil
+}
+
 // region PluginsCache crud
 func (c *Cache) UploadCacheByPluginName(pluginname string, dataCache interface{}) {
 	c.mu.Lock()
@@ -151,6 +190,34 @@ func (c *Cache) DeleteWhiteGroupId(groupId string) {
 	defer c.mu.Unlock()
 	delete(c.WhiteGroupIdSet, groupId)
 }
+
+//region GetList
+
+// 获取所有管理员id
+func (c *Cache) AdminIdList() []string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	cnt := len(c.AdminUserIdSet)
+	list := make([]string, 0, cnt)
+	for k, _ := range c.AdminUserIdSet {
+		list = append(list, k)
+	}
+	return list
+}
+
+// 获取所有群组白名单id
+func (c *Cache) WhiteGroupIdList() []string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	cnt := len(c.WhiteGroupIdSet)
+	list := make([]string, 0, cnt)
+	for k, _ := range c.WhiteGroupIdSet {
+		list = append(list, k)
+	}
+	return list
+}
+
+//endregion
 
 //endregion
 
