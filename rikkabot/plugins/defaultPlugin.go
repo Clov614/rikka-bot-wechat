@@ -7,45 +7,25 @@ import (
 	"fmt"
 	"wechat-demo/rikkabot/message"
 	_ "wechat-demo/rikkabot/plugins/admin" // 需要副作用 init注册方法
-	"wechat-demo/rikkabot/processor/cache"
 	"wechat-demo/rikkabot/processor/control"
 	"wechat-demo/rikkabot/processor/register"
 )
 
 func init() {
-	adminPlugin := AdminPlugin{}
-	adminPlugin.PluginName = "管理员模块"
-	adminPlugin.ProcessRules = &control.ProcessRules{IsCallMe: true, IsAdmin: true, EnableGroup: true,
+	testPlugin := TestPlugin{}
+	testPlugin.PluginName = "管理员模块"
+	testPlugin.ProcessRules = &control.ProcessRules{IsCallMe: true, IsAdmin: true, EnableGroup: true,
 		ExecOrder: []string{"add whitelist", "加入白名单"}}
-	adminPlugin.Once = func(recvmsg message.Message, sendMsg chan<- *message.Message) {
-		reply := adminPlugin.addWhiteGroup(recvmsg)
-		sendMsg <- reply
-	}
 
 	// 注册插件
-	register.RegisterPlugin("admin_whitelist_add", &adminPlugin.OnceDialog)
+	register.RegisterPlugin("admin_whitelist_add", &testPlugin.OnceDialog)
 
 	testLongDialogPlugin()
 }
 
 // 管理员功能相关
-type AdminPlugin struct {
+type TestPlugin struct {
 	control.OnceDialog
-}
-
-// 添加白名单
-func (ap *AdminPlugin) addWhiteGroup(msg message.Message) (reply *message.Message) {
-	if msg.IsGroup {
-		// 添加白名单
-		c := cache.GetCache()
-		c.AddWhiteGroupId(msg.GroupId)
-		msg.Content = fmt.Sprintf("添加白名单成功！群聊: %s", msg.GroupId)
-	} else {
-		msg.Content = "仅能在群聊中添加白名单"
-	}
-
-	reply = &msg
-	return
 }
 
 // 长对话测试
@@ -58,7 +38,7 @@ func testLongDialogPlugin() {
 	testLongPlugin.PluginName = "长对话测试"
 	testLongPlugin.ProcessRules = &control.ProcessRules{IsCallMe: true, IsAdmin: false, EnableGroup: true,
 		ExecOrder: []string{"test long", "长对话测试"}}
-	msgBuf := testLongPlugin.MsgBuf
+	msgBuf := testLongPlugin.MsgBuf // 获取 msg buffer
 
 	testLongPlugin.Long = func(firstMsg message.Message, recvMsg <-chan message.Message, sendMsg chan<- *message.Message) {
 		context := firstMsg.Content
@@ -69,6 +49,10 @@ func testLongDialogPlugin() {
 			msgBuf.WriteString("接下来请发送 42+2等于多少")
 			testLongPlugin.SendText(firstMsg.MetaData, msgBuf.String())
 			msgBuf.Reset()
+		} else {
+			msgBuf.WriteString(fmt.Sprintf("长对话测试开始"))
+			testLongPlugin.SendText(firstMsg.MetaData, msgBuf.String())
+			msgBuf.Reset() // 清空构建的消息
 		}
 
 		if msg, ok := <-recvMsg; ok {
