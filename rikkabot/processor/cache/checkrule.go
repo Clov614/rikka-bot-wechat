@@ -4,6 +4,7 @@
 package cache
 
 import (
+	"wechat-demo/rikkabot/common"
 	"wechat-demo/rikkabot/message"
 	"wechat-demo/rikkabot/processor/control"
 	"wechat-demo/rikkabot/utils/msgutil"
@@ -58,9 +59,17 @@ func (c *Cache) IsHandle(rules *control.ProcessRules, msg message.Message) (mess
 			}
 		}
 		if rules.IsCallMe {
-			me := c.config.Symbol + c.config.Botname
-			calledMeFlag = msgutil.IsCallMe(me, msg.Content)
-			msg.Content = msgutil.TrimCallMe(me, msg.Content)
+			if msgutil.HasPrefix(msg.Content, "@", true) { // 处理艾特
+				nickname := msgutil.GetNicknameByAt(msg.Content)
+				if nickname == common.GetSelf().GetNickname() {
+					calledMeFlag = true
+					msg.Content = msgutil.TrimPrefix(msg.Content, "@"+nickname+" ", false, true)
+				}
+			} else { // 处理机器人名方式
+				me := c.config.Symbol + c.config.Botname
+				calledMeFlag = msgutil.IsCallMe(me, msg.Content)
+				msg.Content = msgutil.TrimCallMe(me, msg.Content)
+			}
 		}
 		// 必须先等前缀判定完 判断是否符合命令
 		if rules.ExecOrder != nil && len(rules.ExecOrder) > 0 {
