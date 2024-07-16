@@ -127,7 +127,7 @@ func GetmsgAtAnalysis(a *Adapter, done chan struct{}) error {
 
 			rawMsg := rikkaMsg.MetaData.GetRawMsg().(*openwechat.Message)
 
-			fmt.Printf("rawMsg: %#v\n", *rawMsg)
+			fmt.Printf("rawMsg: %#v\n", rawMsg)
 		}
 	}
 	return nil
