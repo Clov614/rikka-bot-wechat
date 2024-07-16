@@ -6,6 +6,7 @@ package plugin_admin
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"wechat-demo/rikkabot/common"
 	"wechat-demo/rikkabot/message"
 	"wechat-demo/rikkabot/processor/cache"
@@ -51,7 +52,7 @@ func registAdminPlugin() {
 				reply = "仅有超级管理员(自己)，才能操作"
 				break
 			}
-			reply = adminPlugin.addAdmin(nickname)
+			reply = adminPlugin.handleAtContentMapper(addAdmin, adminPlugin, nickname)
 		case isChoice(content, "del"):
 			nickname := msgutil.TrimPrefix(content, "del", false, true)
 			if nickname == "" {
@@ -62,7 +63,7 @@ func registAdminPlugin() {
 				reply = "仅有超级管理员(自己)，才能操作"
 				break
 			}
-			reply = adminPlugin.deleteAdmin(nickname)
+			reply = adminPlugin.handleAtContentMapper(deleteAdmin, adminPlugin, nickname)
 		case isChoice(content, "show admin"):
 			if !recvmsg.IsMySelf {
 				reply = "仅有超级管理员(自己)，才能操作"
@@ -105,7 +106,7 @@ func registAdminPlugin() {
 					}
 					reply = adminPlugin.addWhiteGroupByMsg(recvmsg)
 				} else {
-					reply = adminPlugin.addWhiteGroup(whiteContent)
+					reply = adminPlugin.handleAtContentMapper(addWhiteGroup, adminPlugin, whiteContent)
 				}
 			case isChoice(whiteContent, "del"):
 				whiteContent = msgutil.TrimPrefix(whiteContent, "del", false, true)
@@ -116,7 +117,7 @@ func registAdminPlugin() {
 					}
 					reply = adminPlugin.deleteWhiteGroupByMsg(recvmsg)
 				} else {
-					reply = adminPlugin.deleteWhiteGroup(whiteContent)
+					reply = adminPlugin.handleAtContentMapper(deleteWhiteGroup, adminPlugin, whiteContent)
 				}
 			case isChoice(whiteContent, "show"):
 				reply = adminPlugin.showWhiteGroup()
@@ -137,7 +138,7 @@ func registAdminPlugin() {
 						}
 						reply = adminPlugin.addBlackGroupByMsg(recvmsg)
 					} else { // 否则就是按照参数添加黑名单
-						reply = adminPlugin.addBlackGroupByNickname(groupContent)
+						reply = adminPlugin.handleAtContentMapper(addBlackGroupByNickname, adminPlugin, groupContent)
 					}
 				case isChoice(groupContent, "del"):
 					groupContent = msgutil.TrimPrefix(groupContent, "del", false, true)
@@ -148,7 +149,7 @@ func registAdminPlugin() {
 						}
 						reply = adminPlugin.deleteBlackGroupByMsg(recvmsg)
 					} else {
-						reply = adminPlugin.deleteBlackGroupByNickname(groupContent)
+						reply = adminPlugin.handleAtContentMapper(deleteBlackGroupByNickname, adminPlugin, groupContent)
 					}
 				case isChoice(groupContent, "show"):
 					reply = adminPlugin.showBlackGroup()
@@ -158,10 +159,10 @@ func registAdminPlugin() {
 				switch true {
 				case isChoice(userContent, "add"):
 					userContent = msgutil.TrimPrefix(userContent, "add", false, true)
-					reply = adminPlugin.addBlackUserByNickname(recvmsg, userContent)
+					reply = adminPlugin.handleAtContentMapper(addBlackUserByNickname, adminPlugin, recvmsg, userContent)
 				case isChoice(userContent, "del"):
 					userContent = msgutil.TrimPrefix(userContent, "del", false, true)
-					reply = adminPlugin.deleteBlackUserByNickname(recvmsg, userContent)
+					reply = adminPlugin.handleAtContentMapper(deleteBlackUserByNickname, adminPlugin, recvmsg, userContent)
 				case isChoice(userContent, "show"):
 					reply = adminPlugin.showBlackUser()
 				}
@@ -436,6 +437,55 @@ func (a AdminPlugin) showBlackUser() (reply string) {
 	}
 	buf.WriteString(fmt.Sprintf("匹配到的条数为：%d，群成员非好友条数：%d", l+lose, lose))
 	return buf.String()
+}
+
+type nicknameFunc func(a AdminPlugin, nickname string) (reply string)
+type msgnicknameFunc func(a AdminPlugin, msg message.Message, nickname string) (reply string)
+
+// 闭包以捕获接收者
+func addAdmin(a AdminPlugin, nickname string) (reply string) {
+	return a.addAdmin(nickname)
+}
+func deleteAdmin(a AdminPlugin, nickname string) (reply string) {
+	return a.deleteAdmin(nickname)
+}
+func deleteWhiteGroup(a AdminPlugin, groupnickname string) (reply string) {
+	return a.deleteWhiteGroup(groupnickname)
+}
+func addWhiteGroup(a AdminPlugin, groupnickname string) (reply string) {
+	return a.addWhiteGroup(groupnickname)
+}
+func addBlackGroupByNickname(a AdminPlugin, nickname string) (reply string) {
+	return a.addBlackGroupByNickname(nickname)
+}
+func deleteBlackGroupByNickname(a AdminPlugin, nickname string) (reply string) {
+	return a.deleteBlackGroupByNickname(nickname)
+}
+func addBlackUserByNickname(a AdminPlugin, msg message.Message, nickname string) (reply string) {
+	return a.addBlackUserByNickname(msg, nickname)
+}
+func deleteBlackUserByNickname(a AdminPlugin, msg message.Message, nickname string) (reply string) {
+	return a.deleteBlackUserByNickname(msg, nickname)
+}
+
+// 包装类
+// 处理艾特消息
+func (a AdminPlugin) handleAtContentMapper(fn interface{}, params ...interface{}) (reply string) {
+	switch f := fn.(type) {
+	case func(a AdminPlugin, nickname string) (reply string):
+		nickname := params[1].(string)
+		if strings.HasPrefix(nickname, "@") {
+			nickname = msgutil.GetNicknameByAt(nickname) // 支持获取at后的用户名
+		}
+		reply = f(a, nickname)
+	case func(a AdminPlugin, msg message.Message, nickname string) (reply string):
+		nickname := params[2].(string)
+		if strings.HasPrefix(nickname, "@") {
+			nickname = msgutil.GetNicknameByAt(nickname) // 支持获取at后的用户名
+		}
+		reply = f(a, params[1].(message.Message), nickname)
+	}
+	return
 }
 
 func helpContent() string {

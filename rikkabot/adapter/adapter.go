@@ -99,7 +99,8 @@ func (md *MetaData) GetGroupMemberIdByNickname(nickname string) (string, error) 
 	}
 	member, ok := md.GroupMember.GetByNickName(nickname)
 	if !ok && member == nil {
-		return "", fmt.Errorf("get group member failed by the nickname")
+		return nickname, nil // todo 自己发送的消息无法获取 member
+		//return "", fmt.Errorf("get group member failed by the nickname")
 	}
 	return member.NickName, nil // todo member只能获取到 username 但是 username 每次登录都会改变 故这临时使用nickname作为标识
 }
