@@ -9,6 +9,7 @@
 ![](https://img.shields.io/github/go-mod/go-version/Clov614/rikka-bot-wechat "语言")
 [![](https://img.shields.io/github/stars/Clov614/rikka-bot-wechat?style=flat&color=yellow)](#star-history "stars")
 [![](https://img.shields.io/github/actions/workflow/status/Clov614/rikka-bot-wechat/golangci-lint.yml?branch=main)](https://github.com/Clov614/rikka-bot-wechat/actions/workflows/golangci-lint.yml "代码分析")
+[![](https://github.com/Clov614/rikka-bot-wechat/actions/workflows/release.yml/badge.svg)](https://github.com/Clov614/rikka-bot-wechat/actions/workflows/release.yml "go-releaser")
 [![](https://img.shields.io/github/contributors/Clov614/rikka-bot-wechat)](https://github.com/Clov614/rikka-bot-wechat/graphs/contributors "贡献者")
 [![](https://img.shields.io/github/license/Clov614/rikka-bot-wechat)](https://github.com/Clov614/rikka-bot-wechat/blob/main/LICENSE "许可协议")
 </div>
