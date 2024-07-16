@@ -217,6 +217,30 @@ func (c *Cache) WhiteGroupIdList() []string {
 	return list
 }
 
+// 获取所有群组黑名单id
+func (c *Cache) BlackGroupIdList() []string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	cnt := len(c.BlackGroupIdSet)
+	list := make([]string, 0, cnt)
+	for k, _ := range c.BlackGroupIdSet {
+		list = append(list, k)
+	}
+	return list
+}
+
+// 获取所有用户黑名单id
+func (c *Cache) BlackUserIdList() []string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	cnt := len(c.BlackUserIdSet)
+	list := make([]string, 0, cnt)
+	for k, _ := range c.BlackUserIdSet {
+		list = append(list, k)
+	}
+	return list
+}
+
 //endregion
 
 //endregion

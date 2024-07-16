@@ -41,8 +41,9 @@ type Message struct {
 type IMeta interface {
 	GetISelf() interface{}
 	GetRawMsg() interface{}
-	GetMsgSenderNickname() string
-	GetGroupNickname() string
+	GetMsgSenderNickname() string                               // 获取消息发送者昵称
+	GetGroupNickname() string                                   // 获取群组消息的群名
+	GetGroupMemberIdByNickname(nickname string) (string, error) // 获取群成员的user_id根据nickname
 }
 
 //type ISelf interface {

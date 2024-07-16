@@ -92,6 +92,18 @@ func (md *MetaData) GetGroupNickname() string {
 	return sender.NickName
 }
 
+// 获取群成员的user_id根据nickname
+func (md *MetaData) GetGroupMemberIdByNickname(nickname string) (string, error) {
+	if !md.RawMsg.IsSendByGroup() { // 不是群组消息，无法获取群成员id
+		return "", fmt.Errorf("not a group msg, cannot get member id")
+	}
+	member, ok := md.GroupMember.GetByNickName(nickname)
+	if !ok && member == nil {
+		return "", fmt.Errorf("get group member failed by the nickname")
+	}
+	return member.NickName, nil // todo member只能获取到 username 但是 username 每次登录都会改变 故这临时使用nickname作为标识
+}
+
 func (md *MetaData) runDelayTimer(delayMin int, delayMax int) {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	time.Sleep(time.Duration((rnd.Intn(1000*delayMax-1000*delayMin) + 1000*delayMin)) * time.Millisecond)
