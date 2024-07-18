@@ -48,7 +48,7 @@ func (c *CommonConfig) RegistConfig(pulginname string, v interface{}) {
 func (c *CommonConfig) Update() error {
 	err := configutil.Save(c, defaultPath, defaultSaveFileName)
 	if err != nil {
-		return fmt.Errorf("update config failed. %v", err)
+		return fmt.Errorf("update config failed. %w", err)
 	}
 	return nil
 }
@@ -74,6 +74,9 @@ var defaultSaveFileName = "config.yaml"
 
 func init() {
 	err := configutil.Load(&config, defaultPath, defaultSaveFileName)
+	if err != nil {
+		logging.ErrorWithErr(err, "error load config")
+	}
 	config.verifiability() // 校验设置项是否合规
 	err = configutil.Save(&config, defaultPath, defaultSaveFileName)
 	if err != nil {

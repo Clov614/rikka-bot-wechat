@@ -3,6 +3,7 @@ package rikkabot
 import (
 	"context"
 	"errors"
+	"fmt"
 	"wechat-demo/rikkabot/common"
 	"wechat-demo/rikkabot/config"
 	"wechat-demo/rikkabot/logging"
@@ -48,7 +49,7 @@ func GetBot(botname string) (*RikkaBot, error) {
 	DefaultBot.Config.Botname = botname
 	err := DefaultBot.Config.Update()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error update bot config: %w", err)
 	}
 	return DefaultBot, nil
 }
@@ -73,7 +74,7 @@ func (r *RikkaBot) Exit() {
 // Block 当发生错误，该方法会立即返回，否则会一直阻塞
 func (r *RikkaBot) Block() error {
 	if r.self == nil {
-		return errors.New("`Block` must be called after adapter.HandleCovert()")
+		return fmt.Errorf("`Block` must be called after adapter.HandleCovert(): %w", errors.New("invalid block call"))
 	}
 	<-r.ctx.Done()
 	logging.Close() // 关闭日志文件

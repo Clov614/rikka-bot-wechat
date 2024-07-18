@@ -5,6 +5,7 @@
 package cache
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -58,7 +59,8 @@ func (c *Cache) EnablePlugin(pluginName string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if !c.isExistPlugin(pluginName) {
-		return fmt.Errorf("plugin %s not exists", pluginName)
+		ErrPluginNotExist := errors.New("plugin not exist")
+		return fmt.Errorf("%w: %s", ErrPluginNotExist, pluginName)
 	}
 	c.EnablePlugins[pluginName] = true
 	return nil
@@ -69,7 +71,8 @@ func (c *Cache) DisablePlugin(pluginName string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if !c.isExistPlugin(pluginName) {
-		return fmt.Errorf("plugin %s not exists", pluginName)
+		ErrPluginNotExist := errors.New("plugin not exist")
+		return fmt.Errorf("%w: %s", ErrPluginNotExist, pluginName)
 	}
 	c.EnablePlugins[pluginName] = false
 	return nil
@@ -247,7 +250,7 @@ func (c *Cache) BlackUserIdList() []string {
 
 //endregion
 
-// AdminUserIdSets todo 获取所有管理员可以使用
+// AdminUserIdSets 获取所有管理员包括状态
 func (c *Cache) AdminUserIdSets() map[string]bool {
 	c.mu.RLock()
 	copyAdminUserIDs := make(map[string]bool, len(c.AdminUserIdSet))

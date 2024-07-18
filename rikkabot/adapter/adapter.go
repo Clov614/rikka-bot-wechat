@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/eatmoreapple/openwechat"
 	"math/rand"
@@ -104,7 +105,7 @@ func (md *MetaData) GetGroupNickname() string {
 // GetGroupMemberIdByNickname 获取群成员的user_id根据nickname
 func (md *MetaData) GetGroupMemberIdByNickname(nickname string) (string, error) {
 	if !md.RawMsg.IsSendByGroup() { // 不是群组消息，无法获取群成员id
-		return "", fmt.Errorf("not a group msg, cannot get member id")
+		return "", fmt.Errorf("%w", errors.New("not a group msg, cannot get member id"))
 	}
 	member, ok := md.GroupMember.GetByNickName(nickname)
 	if !ok && member == nil {
@@ -242,12 +243,14 @@ func (a *Adapter) receiveMsg(msg *openwechat.Message) {
 
 func (a *Adapter) sendMsg(sendMsg *message.Message) error {
 	if sendMsg.MetaData == nil {
-		panic(fmt.Errorf("sendMsg err: MetaData is nil, can't send msg"))
+		logging.Debug("MetaData is nil", map[string]interface{}{"sendMsg": sendMsg})
+		return errors.New("sendMsg err: MetaData is nil, can't send msg")
 	}
 	<-sendMsg.MetaData.(*MetaData).delayToken // 需要延迟随机时间后，才能发送消息
 	rawMsg, ok := sendMsg.MetaData.GetRawMsg().(*openwechat.Message)
 	if !ok {
-		panic(fmt.Errorf("sendMsg err: MetaData is %#v, can't send msg", sendMsg.MetaData))
+		logging.Debug("get metaData.rawMsg failed", map[string]interface{}{"sendMsg": sendMsg})
+		return errors.New("get metaData.rawMsg failed")
 	}
 	switch sendMsg.Msgtype {
 	case message.MsgTypeText:
@@ -263,5 +266,5 @@ func (a *Adapter) sendMsg(sendMsg *message.Message) error {
 	default:
 		logging.Warn("unknown msgType do not handle send")
 	}
-	return nil // todo 完善错误处理
+	return nil
 }

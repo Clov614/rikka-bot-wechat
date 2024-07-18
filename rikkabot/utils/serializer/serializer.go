@@ -21,11 +21,13 @@ var S serializer
 type serializer struct{}
 
 func (s serializer) serialize(v interface{}) ([]byte, error) {
-	return json.Marshal(v)
+	marshal, err := json.Marshal(v)
+	return marshal, fmt.Errorf("serializer Error: %w", err)
 }
 
 func (s serializer) unserialize(data []byte, v interface{}) error {
-	return json.Unmarshal(data, v)
+	err := json.Unmarshal(data, v)
+	return fmt.Errorf("unserializer Error: %w", err)
 }
 
 // Save certain types of temporary json file
@@ -40,7 +42,8 @@ func Save(path string, filename string, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, data, 0644)
+	err = os.WriteFile(path, data, 0644)
+	return fmt.Errorf("error serializing: %w", err)
 }
 
 // Load certain types by json file
@@ -48,12 +51,12 @@ func Save(path string, filename string, v interface{}) error {
 // filename: 存放的文件名
 func Load(path string, filename string, v interface{}) error {
 	path, err := getPath(path, filename, v, false)
-	bytes, err2 := os.ReadFile(path)
 	if err != nil {
-		return err
+		return fmt.Errorf("get load serialize path %s error: %w", path, err)
 	}
-	if err2 != nil {
-		return err2
+	bytes, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("path %s loading serializer error: %w", path, err)
 	}
 	return S.unserialize(bytes, v)
 }
@@ -77,7 +80,7 @@ func getPath(path string, filename string, v interface{}, iswrite bool) (string,
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			// 创建所需目录
 			if err := os.MkdirAll(dir, 0755); err != nil {
-				return "", fmt.Errorf("error creating directory %s: %v", dir, err)
+				return "", fmt.Errorf("error creating directory %s: %w", dir, err)
 			}
 		}
 	}

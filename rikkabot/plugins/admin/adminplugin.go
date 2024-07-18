@@ -284,7 +284,7 @@ func (a AdminPlugin) addWhiteGroup(groupnickname string) (reply string) {
 // 群组添加白名单（添加发送消息的群组）
 func (a AdminPlugin) addWhiteGroupByMsg(msg message.Message) (reply string) {
 	if !msg.IsGroup {
-		return fmt.Sprintf("不是群消息，无法添加群聊白名单")
+		return "不是群消息，无法添加群聊白名单"
 	}
 	a.cache.AddWhiteGroupId(msg.GroupId)
 

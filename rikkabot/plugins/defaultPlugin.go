@@ -51,7 +51,7 @@ func testLongDialogPlugin() {
 			testLongPlugin.SendText(firstMsg.MetaData, msgBuf.String())
 			msgBuf.Reset()
 		} else {
-			msgBuf.WriteString(fmt.Sprintf("长对话测试开始"))
+			msgBuf.WriteString("长对话测试开始")
 			testLongPlugin.SendText(firstMsg.MetaData, msgBuf.String())
 			msgBuf.Reset() // 清空构建的消息
 		}
@@ -63,7 +63,7 @@ func testLongDialogPlugin() {
 				testLongPlugin.SendText(msg.MetaData, msgBuf.String())
 				msgBuf.Reset()
 			} else {
-				msgBuf.WriteString(fmt.Sprintf("很遗憾，答错了, 你的回答是：%s", context))
+				msgBuf.WriteString("很遗憾，答错了, 你的回答是: " + context)
 				testLongPlugin.SendText(msg.MetaData, msgBuf.String())
 				msgBuf.Reset()
 			}

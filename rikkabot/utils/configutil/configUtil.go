@@ -29,21 +29,23 @@ func Load(config interface{}, path string, filename string) error {
 func SaveConfig(data []byte, path string, filename string) error {
 	path, err := getPath(path, filename, true)
 	if err != nil {
-		return fmt.Errorf("error path load: %s", err)
+		return fmt.Errorf("error path load: %w", err)
 	}
-	return os.WriteFile(path, data, 0644)
+	err = os.WriteFile(path, data, 0644)
+	return fmt.Errorf("error save config: %w", err)
 }
 
 func LoadConfig(v interface{}, path string, filename string) error {
 	path, err := getPath(path, filename, false)
 	if err != nil {
-		return fmt.Errorf("error path load: %s", err)
+		return fmt.Errorf("error path load: %w", err)
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return fmt.Errorf("error loading config file: %s", err)
+		return fmt.Errorf("error loading config file: %w", err)
 	}
-	return yaml.Unmarshal(data, v)
+	err = yaml.Unmarshal(data, v)
+	return fmt.Errorf("error loading config file: %w", err)
 }
 
 func getPath(path string, filename string, iswrite bool) (string, error) {
@@ -60,7 +62,7 @@ func getPath(path string, filename string, iswrite bool) (string, error) {
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			// 创建所需目录
 			if err := os.MkdirAll(dir, 0755); err != nil {
-				return "", fmt.Errorf("error creating directory %s: %v", dir, err)
+				return "", fmt.Errorf("error creating directory %s: %w", dir, err)
 			}
 		}
 	}
