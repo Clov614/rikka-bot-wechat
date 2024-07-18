@@ -83,7 +83,7 @@ func NewState() *State {
 	return &State{Done: make(chan struct{})}
 }
 
-// 安全关闭 Done
+// SafeClose 安全关闭 Done
 func (s *State) SafeClose() {
 	s.once.Do(func() {
 		close(s.Done)

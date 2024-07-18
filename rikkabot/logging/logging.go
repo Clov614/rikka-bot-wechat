@@ -1,3 +1,4 @@
+// Package logging
 // @Author Clover
 // @Data 2024/7/18 上午10:24:00
 // @Desc 日志输出
@@ -36,7 +37,7 @@ func init() {
 	}
 }
 
-// 关闭日志文件
+// Close 关闭日志文件
 func Close() {
 	once.Do(func() {
 		if logfile != nil {
@@ -49,7 +50,7 @@ func Close() {
 	})
 }
 
-// 定义简化的日志函数
+// Info 定义简化的日志函数
 func Info(msg string, fields ...map[string]interface{}) {
 	event := log.Info()
 	for _, field := range fields {

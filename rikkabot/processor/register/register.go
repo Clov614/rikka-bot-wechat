@@ -53,7 +53,7 @@ func (p *PluginRegister) GetPluginMap() map[string]IPlugin {
 
 var pluginPool *PluginRegister
 
-// 注册对话插件
+// RegistPlugin 注册对话插件
 func RegistPlugin(name string, plugin IPlugin) {
 	pluginPool.Regist(name, plugin)
 }

@@ -36,12 +36,12 @@ func NewProcessor() *Processor {
 	}
 }
 
-// 阻塞不退出
+// Block 阻塞不退出
 func (p *Processor) Block() {
 	<-p.done
 }
 
-// 关闭阻塞
+// Close 关闭阻塞
 func (p *Processor) Close() {
 	p.closeToken <- true
 	// 关闭 长连接的所有连接
@@ -63,7 +63,7 @@ func (p *Processor) Close() {
 	logging.Info("processor closed")
 }
 
-// 处理器分发消息，并触发方法，管理长对话
+// DispatchMsg 处理器分发消息，并触发方法，管理长对话
 func (p *Processor) DispatchMsg(recvChan chan *message.Message, sendChan chan *message.Message) {
 	for {
 		select {

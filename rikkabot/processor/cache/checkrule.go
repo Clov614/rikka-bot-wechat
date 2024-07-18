@@ -12,14 +12,14 @@ import (
 	"wechat-demo/rikkabot/utils/msgutil"
 )
 
-// 插件是否启用
+// IsEnable 插件是否启用
 func (c *Cache) IsEnable(pluginname string) bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.EnablePlugins[pluginname]
 }
 
-// 根据处理规则校验是否执行处理 是否触发该方法
+// IsHandle 根据处理规则校验是否执行处理 是否触发该方法
 func (c *Cache) IsHandle(rules *control.ProcessRules, msg message.Message) (message.Message, bool) {
 
 	if rules == nil {

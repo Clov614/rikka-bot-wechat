@@ -6,7 +6,7 @@ package control
 
 import "wechat-demo/rikkabot/message"
 
-// 处理规则
+// ProcessRules 处理规则
 type ProcessRules struct {
 	CheckWhiteUser  bool // 启用 用户白名单 校验
 	CheckBlackUser  bool // 启用 用户黑名单 校验

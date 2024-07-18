@@ -24,12 +24,12 @@ func init() {
 	testLongDialogPlugin()
 }
 
-// 管理员功能相关
+// TestPlugin 管理员功能相关
 type TestPlugin struct {
 	control.OnceDialog
 }
 
-// 长对话测试
+// LongDialogPlugin 长对话测试
 type LongDialogPlugin struct {
 	control.LongDialog
 }
