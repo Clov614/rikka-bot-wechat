@@ -1,6 +1,4 @@
 
-
-
 <div style="text-align: center;">
 
 # Rikka-Bot-WeChat
@@ -16,10 +14,12 @@
 
 ## 功能介绍
 
-1. 支持规则校验
-2. 持久化设置
-3. 插件化调用对话（普通对话/长对话）
-4. 权限管理
+1. - [x] 支持规则校验
+2. - [x] 持久化设置
+3. - [x] 插件化调用对话（普通对话/长对话）
+4. - [x] 权限管理
+5. - [ ] corn定时任务
+6. - [ ] 正向http
 
 ## 快速开始
 
@@ -35,9 +35,14 @@ Win运行(不推荐直接点击exe运行、可以将如下内容写进run.bat双
 start cmd /K rikka-bot-wechat.exe
 ```
 
+## 功能模块
+
+1. - [x] [管理权限](docs/plugin/README.md)
+2. - [ ] 链接解析
+
 ## 如何开发插件
 
-todo
+todo (暂未完善文档，可以阅读一下 [/rikka/plugins](https://github.com/Clov614/rikka-bot-wechat/tree/main/rikkabot/plugins))
 
 ## 相关链接
 
