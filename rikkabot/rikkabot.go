@@ -23,6 +23,10 @@ type RikkaBot struct {
 	err error
 }
 
+var (
+	ErrInvalidCall = errors.New("invalid bot call")
+)
+
 var DefaultBot *RikkaBot
 
 func init() {
@@ -74,8 +78,7 @@ func (r *RikkaBot) Exit() {
 // Block 当发生错误，该方法会立即返回，否则会一直阻塞
 func (r *RikkaBot) Block() error {
 	if r.self == nil {
-		err := errors.New("invalid block call")
-		return fmt.Errorf("`Block` must be called after adapter.HandleCovert(): %w", err)
+		return fmt.Errorf("`Block` must be called after adapter.HandleCovert(): %w", ErrInvalidCall)
 	}
 	<-r.ctx.Done()
 	logging.Close() // 关闭日志文件

@@ -20,6 +20,11 @@ type Self struct {
 
 var self Self
 
+var (
+	ErrFriendNotFound = errors.New("friend not found")
+	ErrGroupNotFound  = errors.New("group not found")
+)
+
 func GetSelf() *Self {
 	return &self
 }
@@ -43,8 +48,7 @@ func (s *Self) SendText2FriendByNickname(nickname string, text string) error {
 	results := s.Friends.SearchByNickName(1, nickname) // todo 好友可能名字重复，暂时没有好的解决方案
 	friend := results.First()
 	if friend == nil {
-		err := errors.New("friend not found")
-		return fmt.Errorf("SendText2FriendByNickname failed: %w", err)
+		return fmt.Errorf("SendText2FriendByNickname failed: %w", ErrFriendNotFound)
 	}
 	_, err := friend.SendText(text)
 	if err != nil {
@@ -59,8 +63,7 @@ func (s *Self) SendImg2FriendByNickname(nickname string, img io.Reader) error {
 	results := s.Friends.SearchByNickName(1, nickname) // todo 好友可能名字重复，暂时没有好的解决方案
 	friend := results.First()
 	if friend == nil {
-		err := errors.New("friend not found")
-		return fmt.Errorf("SendImg2FriendByNickname failed: %w", err)
+		return fmt.Errorf("SendImg2FriendByNickname failed: %w", ErrFriendNotFound)
 	}
 	_, err := friend.SendImage(img)
 	if err != nil {
@@ -75,7 +78,6 @@ func (s *Self) SendFile2FriendByNickname(nickname string, file io.Reader) error 
 	results := s.Friends.SearchByNickName(1, nickname) // todo 好友可能名字重复，暂时没有好的解决方案
 	friend := results.First()
 	if friend == nil {
-		ErrFriendNotFound := errors.New("friend not found")
 		return fmt.Errorf("SendFile2FriendByNickname failed: %w", ErrFriendNotFound)
 	}
 	_, err := friend.SendFile(file)
@@ -89,7 +91,6 @@ func (s *Self) SendFile2FriendByNickname(nickname string, file io.Reader) error 
 func (s *Self) SendText2FriendById(avatarId string, text string) error {
 	friend := s.Friends.SearchByID(avatarId).First()
 	if friend == nil {
-		ErrFriendNotFound := errors.New("friend not found")
 		return fmt.Errorf("SendText2FriendById failed: %w", ErrFriendNotFound)
 	}
 	_, err := friend.SendText(text)
@@ -103,7 +104,6 @@ func (s *Self) SendText2FriendById(avatarId string, text string) error {
 func (s *Self) SendImg2FriendById(avatarId string, img io.Reader) error {
 	friend := s.Friends.SearchByID(avatarId).First()
 	if friend == nil {
-		ErrFriendNotFound := errors.New("friend not found")
 		return fmt.Errorf("SendImg2FriendById failed: %w", ErrFriendNotFound)
 	}
 	_, err := friend.SendImage(img)
@@ -117,7 +117,6 @@ func (s *Self) SendImg2FriendById(avatarId string, img io.Reader) error {
 func (s *Self) SendFile2FriendByAvatarId(avatarId string, file io.Reader) error {
 	friend := s.Friends.SearchByID(avatarId).First()
 	if friend == nil {
-		ErrFriendNotFound := errors.New("friend not found")
 		return fmt.Errorf("SendFile2FriendByAvatarId failed: %w", ErrFriendNotFound)
 	}
 	_, err := friend.SendFile(file)
@@ -133,7 +132,6 @@ func (s *Self) SendText2GroupByNickname(nickname string, text string) error {
 	results := s.Groups.SearchByNickName(1, nickname)
 	group := results.First()
 	if group == nil {
-		ErrGroupNotFound := errors.New("group not found")
 		return fmt.Errorf("SendText2GroupByNickname failed: %w", ErrGroupNotFound)
 	}
 	_, err := group.SendText(text)
@@ -148,7 +146,6 @@ func (s *Self) SendImg2GroupByNickname(nickname string, img io.Reader) error {
 	results := s.Groups.SearchByNickName(1, nickname)
 	group := results.First()
 	if group == nil {
-		ErrGroupNotFound := errors.New("group not found")
 		return fmt.Errorf("SendFile2GroupByNickname failed: %w", ErrGroupNotFound)
 	}
 	_, err := group.SendImage(img)
@@ -163,7 +160,6 @@ func (s *Self) SendFile2GroupByNickname(nickname string, file io.Reader) error {
 	results := s.Groups.SearchByNickName(1, nickname)
 	group := results.First()
 	if group == nil {
-		ErrGroupNotFound := errors.New("group not found")
 		return fmt.Errorf("SendFile2GroupByNickname failed: %w", ErrGroupNotFound)
 	}
 	_, err := group.SendFile(file)
@@ -178,13 +174,11 @@ func (s *Self) AddFriendInGroupByNickname(groupname string, friendname string) e
 	// 搜索群
 	group := s.Groups.SearchByNickName(1, groupname).First()
 	if group == nil {
-		ErrGroupNotFound := errors.New("group not found")
 		return fmt.Errorf("AddFriendInGroupByNickname failed: %w", ErrGroupNotFound)
 	}
 	// 搜索好友
 	friend := s.Friends.SearchByNickName(1, friendname).First()
 	if friend == nil {
-		ErrFriendNotFound := errors.New("friend not found")
 		return fmt.Errorf("AddFriendInGroupByNickname failed: %w", ErrFriendNotFound)
 	}
 	err := group.AddFriendsIn(friend)
@@ -245,13 +239,13 @@ func (s *Self) doGetIdByNickname(nickname string, isGroup bool) (string, error) 
 	if isGroup {
 		group := s.Groups.SearchByNickName(1, nickname).First()
 		if group == nil {
-			return "", errors.New("doGetIdByNickname failed: group not found")
+			return "", fmt.Errorf("doGetIdByNickname failed: %w", ErrGroupNotFound)
 		}
 		return group.AvatarID(), nil
 	} else {
 		friend := s.Friends.SearchByNickName(1, nickname).First()
 		if friend == nil {
-			return "", errors.New("doGetIdByNickname failed: friend not found")
+			return "", fmt.Errorf("doGetIdByNickname failed: %w", ErrFriendNotFound)
 		}
 		return friend.AvatarID(), nil
 	}
@@ -271,13 +265,13 @@ func (s *Self) doGetNicknameById(id string, isGroup bool) (string, error) {
 	if isGroup {
 		group := s.Groups.SearchByID(id).First()
 		if group == nil {
-			return "", errors.New("doGetNicknameById failed: group not found")
+			return "", fmt.Errorf("doGetNicknameById failed: %w", ErrGroupNotFound)
 		}
 		return group.NickName, nil
 	} else {
 		friend := s.Friends.SearchByID(id).First()
 		if friend == nil {
-			return "", errors.New("doGetNicknameById failed: friend not found")
+			return "", fmt.Errorf("doGetNicknameById failed: %w", ErrFriendNotFound)
 		}
 		return friend.NickName, nil
 	}

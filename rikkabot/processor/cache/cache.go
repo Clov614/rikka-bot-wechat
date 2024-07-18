@@ -24,6 +24,10 @@ type Cache struct {
 	wg   sync.WaitGroup
 }
 
+var (
+	ErrPluginNotExist = errors.New("plugin not exist")
+)
+
 type cacheExported struct {
 	WhiteUserIdSet  map[string]bool `json:"white_user_id_set"`  // 用户白名单
 	BlackUserIdSet  map[string]bool `json:"black_user_id_set"`  // 用户黑名单
@@ -59,7 +63,6 @@ func (c *Cache) EnablePlugin(pluginName string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if !c.isExistPlugin(pluginName) {
-		ErrPluginNotExist := errors.New("plugin not exist")
 		return fmt.Errorf("%w: %s", ErrPluginNotExist, pluginName)
 	}
 	c.EnablePlugins[pluginName] = true
@@ -71,7 +74,6 @@ func (c *Cache) DisablePlugin(pluginName string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if !c.isExistPlugin(pluginName) {
-		ErrPluginNotExist := errors.New("plugin not exist")
 		return fmt.Errorf("%w: %s", ErrPluginNotExist, pluginName)
 	}
 	c.EnablePlugins[pluginName] = false

@@ -21,6 +21,12 @@ type Adapter struct {
 	done      chan struct{}
 }
 
+var (
+	ErrNotGroupMsg = errors.New("not a group msg")
+	ErrMetaDateNil = errors.New("meta date is nil")
+	ErrRawMSgNil   = errors.New("raw message is nil")
+)
+
 func NewAdapter(openwcBot *openwechat.Bot, selfBot *rikkabot.RikkaBot) *Adapter {
 	common.InitSelf(openwcBot) // 初始化 该用户数据（朋友、群组）
 	selfBot.SetSelf(common.GetSelf())
@@ -105,8 +111,7 @@ func (md *MetaData) GetGroupNickname() string {
 // GetGroupMemberIdByNickname 获取群成员的user_id根据nickname
 func (md *MetaData) GetGroupMemberIdByNickname(nickname string) (string, error) {
 	if !md.RawMsg.IsSendByGroup() { // 不是群组消息，无法获取群成员id
-		err := errors.New("not a group msg, cannot get member id")
-		return "", fmt.Errorf("%w", err)
+		return "", fmt.Errorf("cannot get member id, %w", ErrNotGroupMsg)
 	}
 	member, ok := md.GroupMember.GetByNickName(nickname)
 	if !ok && member == nil {
@@ -245,15 +250,13 @@ func (a *Adapter) receiveMsg(msg *openwechat.Message) {
 func (a *Adapter) sendMsg(sendMsg *message.Message) error {
 	if sendMsg.MetaData == nil {
 		logging.Debug("MetaData is nil", map[string]interface{}{"sendMsg": sendMsg})
-		err := errors.New("MetaData is nil, can't send msg")
-		return fmt.Errorf("sendMsg err: %w", err)
+		return fmt.Errorf("can't send msg, sendMsg err: %w", ErrMetaDateNil)
 	}
 	<-sendMsg.MetaData.(*MetaData).delayToken // 需要延迟随机时间后，才能发送消息
 	rawMsg, ok := sendMsg.MetaData.GetRawMsg().(*openwechat.Message)
 	if !ok {
 		logging.Debug("get metaData.rawMsg failed", map[string]interface{}{"sendMsg": sendMsg})
-		err := errors.New("get metaData.rawMsg failed")
-		return err
+		return fmt.Errorf("get metaData.rawMsg failed, err: %w", ErrRawMSgNil)
 	}
 	switch sendMsg.Msgtype {
 	case message.MsgTypeText:
