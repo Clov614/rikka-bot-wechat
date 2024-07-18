@@ -105,7 +105,8 @@ func (md *MetaData) GetGroupNickname() string {
 // GetGroupMemberIdByNickname 获取群成员的user_id根据nickname
 func (md *MetaData) GetGroupMemberIdByNickname(nickname string) (string, error) {
 	if !md.RawMsg.IsSendByGroup() { // 不是群组消息，无法获取群成员id
-		return "", fmt.Errorf("%w", errors.New("not a group msg, cannot get member id"))
+		err := errors.New("not a group msg, cannot get member id")
+		return "", fmt.Errorf("%w", err)
 	}
 	member, ok := md.GroupMember.GetByNickName(nickname)
 	if !ok && member == nil {
@@ -244,13 +245,15 @@ func (a *Adapter) receiveMsg(msg *openwechat.Message) {
 func (a *Adapter) sendMsg(sendMsg *message.Message) error {
 	if sendMsg.MetaData == nil {
 		logging.Debug("MetaData is nil", map[string]interface{}{"sendMsg": sendMsg})
-		return errors.New("sendMsg err: MetaData is nil, can't send msg")
+		err := errors.New("MetaData is nil, can't send msg")
+		return fmt.Errorf("sendMsg err: %w", err)
 	}
 	<-sendMsg.MetaData.(*MetaData).delayToken // 需要延迟随机时间后，才能发送消息
 	rawMsg, ok := sendMsg.MetaData.GetRawMsg().(*openwechat.Message)
 	if !ok {
 		logging.Debug("get metaData.rawMsg failed", map[string]interface{}{"sendMsg": sendMsg})
-		return errors.New("get metaData.rawMsg failed")
+		err := errors.New("get metaData.rawMsg failed")
+		return err
 	}
 	switch sendMsg.Msgtype {
 	case message.MsgTypeText:
