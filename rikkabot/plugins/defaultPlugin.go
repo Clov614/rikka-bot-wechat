@@ -1,3 +1,4 @@
+// Package plugins
 // @Author Clover
 // @Data 2024/7/6 下午11:21:00
 // @Desc 系统自带的插件
@@ -18,7 +19,7 @@ func init() {
 		ExecOrder: []string{"add whitelist", "加入白名单"}}
 
 	// 注册插件
-	register.RegisterPlugin("admin_whitelist_add", &testPlugin.OnceDialog)
+	register.RegistPlugin("admin_whitelist_add", &testPlugin.OnceDialog)
 
 	testLongDialogPlugin()
 }
@@ -72,5 +73,5 @@ func testLongDialogPlugin() {
 		}
 	}
 
-	register.RegisterPlugin("long_dialog_plugin_test", &testLongPlugin)
+	register.RegistPlugin("long_dialog_plugin_test", &testLongPlugin)
 }

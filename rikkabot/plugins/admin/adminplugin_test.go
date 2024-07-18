@@ -8,6 +8,7 @@ import (
 	"github.com/eatmoreapple/openwechat"
 	"testing"
 	"wechat-demo/rikkabot/common"
+	"wechat-demo/rikkabot/logging"
 	"wechat-demo/rikkabot/message"
 	"wechat-demo/rikkabot/processor"
 )
@@ -29,9 +30,7 @@ func TestAdminPlugin(t *testing.T) {
 	// 测试群组：813467281
 
 	const (
-		nickname      = "Rikka"
-		nicknamelower = "rikka"
-		othernickname = "erqegdasag"
+		nickname = "Rikka"
 	)
 
 	tests := []struct {
@@ -58,7 +57,6 @@ func TestAdminPlugin(t *testing.T) {
 			}
 		}
 	}
-	bot.Exit()
 }
 
 func getOpenBot() *openwechat.Bot {
@@ -69,7 +67,12 @@ func getOpenBot() *openwechat.Bot {
 
 	// 登陆
 	reloadStorage := openwechat.NewFileHotReloadStorage("storage.json")
-	defer reloadStorage.Close()
+	defer func() {
+		err := reloadStorage.Close()
+		if err != nil {
+			logging.Fatal("reload storage err", 1)
+		}
+	}()
 	println("请在手机中确认登录")
 	if err := bot.PushLogin(reloadStorage, openwechat.NewRetryLoginOption()); err != nil {
 		println(fmt.Println(err))

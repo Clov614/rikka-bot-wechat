@@ -1,3 +1,4 @@
+// Package processor
 // @Author Clover
 // @Data 2024/7/6 下午8:24:00
 // @Desc 全局处理器
@@ -5,6 +6,7 @@ package processor
 
 import (
 	"sync"
+	"wechat-demo/rikkabot/logging"
 	"wechat-demo/rikkabot/message"
 	_ "wechat-demo/rikkabot/plugins"
 	"wechat-demo/rikkabot/processor/cache"
@@ -56,7 +58,9 @@ func (p *Processor) Close() {
 		close(p.done)
 	}
 	<-p.closeToken
+	logging.Info("all the long conn in pool closed")
 	p.Cache.Close() // 关闭缓存
+	logging.Info("processor closed")
 }
 
 // 处理器分发消息，并触发方法，管理长对话

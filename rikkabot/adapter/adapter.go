@@ -9,6 +9,7 @@ import (
 	"time"
 	"wechat-demo/rikkabot"
 	"wechat-demo/rikkabot/common"
+	"wechat-demo/rikkabot/logging"
 
 	"wechat-demo/rikkabot/message"
 )
@@ -21,6 +22,7 @@ type Adapter struct {
 
 func NewAdapter(openwcBot *openwechat.Bot, selfBot *rikkabot.RikkaBot) *Adapter {
 	common.InitSelf(openwcBot) // 初始化 该用户数据（朋友、群组）
+	selfBot.SetSelf(common.GetSelf())
 	return &Adapter{openwcBot: openwcBot, selfBot: selfBot, done: make(chan struct{})}
 }
 
@@ -37,7 +39,10 @@ func (a *Adapter) HandleCovert() {
 			case respMsg := <-respMsgRecvChan:
 				//rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 				//time.Sleep(time.Duration((rnd.Intn(1000) + 1000)) * time.Millisecond) // sui
-				a.sendMsg(respMsg) // todo 错误处理
+				err := a.sendMsg(respMsg)
+				if err != nil {
+					logging.ErrorWithErr(err, "sendMsg fail skip send")
+				}
 			}
 		}
 	}()
@@ -69,12 +74,16 @@ func (md *MetaData) GetISelf() interface{} {
 	return md.Self
 }
 
-// 获取消息发送者昵称
+// GetMsgSenderNickname 获取消息发送者昵称
 func (md *MetaData) GetMsgSenderNickname() string {
 	sender, _ := md.RawMsg.Sender()
 	if sender.IsGroup() { // 获取群组内真实发送者
 		senderInGroup, _ := md.RawMsg.SenderInGroup()
-		senderInGroup.Detail()
+		err := senderInGroup.Detail()
+		if err != nil {
+			logging.ErrorWithErr(err, "GetMsgSenderNickname fail, get sender detail fail")
+			return ""
+		}
 		return senderInGroup.NickName
 	}
 	if sender == nil {
@@ -83,7 +92,7 @@ func (md *MetaData) GetMsgSenderNickname() string {
 	return sender.NickName
 }
 
-// 获取群组消息的群名
+// GetGroupNickname 获取群组消息的群名
 func (md *MetaData) GetGroupNickname() string {
 	if !md.RawMsg.IsSendByGroup() {
 		return ""
@@ -92,7 +101,7 @@ func (md *MetaData) GetGroupNickname() string {
 	return sender.NickName
 }
 
-// 获取群成员的user_id根据nickname
+// GetGroupMemberIdByNickname 获取群成员的user_id根据nickname
 func (md *MetaData) GetGroupMemberIdByNickname(nickname string) (string, error) {
 	if !md.RawMsg.IsSendByGroup() { // 不是群组消息，无法获取群成员id
 		return "", fmt.Errorf("not a group msg, cannot get member id")
@@ -107,7 +116,7 @@ func (md *MetaData) GetGroupMemberIdByNickname(nickname string) (string, error) 
 
 func (md *MetaData) runDelayTimer(delayMin int, delayMax int) {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-	time.Sleep(time.Duration((rnd.Intn(1000*delayMax-1000*delayMin) + 1000*delayMin)) * time.Millisecond)
+	time.Sleep(time.Duration(rnd.Intn(1000*delayMax-1000*delayMin)+1000*delayMin) * time.Millisecond)
 	close(md.delayToken)
 }
 
@@ -148,8 +157,14 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 		if senderInGroup == nil {
 			return nil
 		}
-		senderInGroup.Detail() // 忽略错误
-		SenderId = senderInGroup.AvatarID()
+		err := senderInGroup.Detail()
+		if err != nil {
+			logging.ErrorWithErr(err, "GetMsgSenderNickname fail, get sender detail fail")
+
+		} else {
+			SenderId = senderInGroup.AvatarID()
+		}
+
 		GroupId = sender.AvatarID() // GroupSenderID
 		ReceiveId = receiver.AvatarID()
 
@@ -205,7 +220,10 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 func handleSpecialRaw(msg *openwechat.Message) []byte {
 	if msg.MsgType == openwechat.MsgTypeImage {
 		var buf bytes.Buffer
-		msg.SaveFile(&buf) // 图片转为正确 []byte
+		err := msg.SaveFile(&buf) // 图片转为正确 []byte
+		if err != nil {
+			logging.ErrorWithErr(err, "SaveFile fail")
+		}
 		return buf.Bytes()
 	}
 	return msg.Raw
@@ -233,9 +251,17 @@ func (a *Adapter) sendMsg(sendMsg *message.Message) error {
 	}
 	switch sendMsg.Msgtype {
 	case message.MsgTypeText:
-		rawMsg.ReplyText(sendMsg.Content)
+		replyText, err := rawMsg.ReplyText(sendMsg.Content)
+		if err != nil {
+			logging.ErrorWithErr(err, "SendMsg fail", map[string]interface{}{"replyText": replyText})
+		}
 	case message.MsgTypeImage:
-		rawMsg.ReplyImage(bytes.NewReader(sendMsg.Raw))
+		replyImage, err := rawMsg.ReplyImage(bytes.NewReader(sendMsg.Raw))
+		if err != nil {
+			logging.ErrorWithErr(err, "SendMsg fail", map[string]interface{}{"replyImage": replyImage})
+		}
+	default:
+		logging.Warn("unknown msgType do not handle send")
 	}
 	return nil // todo 完善错误处理
 }

@@ -1,3 +1,4 @@
+// Package configutil
 // @Author Clover
 // @Data 2024/7/6 下午3:51:00
 // @Desc
@@ -11,14 +12,14 @@ import (
 	"path/filepath"
 )
 
-// 保存配置文件为 yml
+// Save 保存配置文件为 yml
 func Save(config interface{}, path string, filename string) error {
-	encoder := encoder.NewEncoder(config, encoder.WithComments(encoder.CommentsOnHead))
-	encode, _ := encoder.Encode() // ignore err
+	newEncoder := encoder.NewEncoder(config, encoder.WithComments(encoder.CommentsOnHead))
+	encode, _ := newEncoder.Encode() // ignore err
 	return SaveConfig(encode, path, filename)
 }
 
-// 读取yml配置文件
+// Load 读取yml配置文件
 func Load(config interface{}, path string, filename string) error {
 	return LoadConfig(config, path, filename)
 }

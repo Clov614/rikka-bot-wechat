@@ -1,3 +1,4 @@
+// Package plugin_admin
 // @Author Clover
 // @Data 2024/7/15 下午4:59:00
 // @Desc 管理员默认方法
@@ -175,14 +176,14 @@ func registAdminPlugin() {
 		onceDialog.SendText(recvmsg.MetaData, reply) // send msg
 	}
 
-	register.RegisterPlugin(defaultAdminControl, adminPlugin.onceDialog)
+	register.RegistPlugin(defaultAdminControl, adminPlugin.onceDialog)
 }
 
 func isChoice(cotent string, prefix string) bool {
 	return msgutil.HasPrefix(cotent, prefix, true)
 }
 
-// 管理员模块
+// AdminPlugin 管理员模块
 type AdminPlugin struct {
 	onceDialog *control.OnceDialog
 	cache      *cache.Cache
@@ -439,8 +440,8 @@ func (a AdminPlugin) showBlackUser() (reply string) {
 	return buf.String()
 }
 
-type nicknameFunc func(a AdminPlugin, nickname string) (reply string)
-type msgnicknameFunc func(a AdminPlugin, msg message.Message, nickname string) (reply string)
+//type nicknameFunc func(a AdminPlugin, nickname string) (reply string)
+//type msgnicknameFunc func(a AdminPlugin, msg message.Message, nickname string) (reply string)
 
 // 闭包以捕获接收者
 func addAdmin(a AdminPlugin, nickname string) (reply string) {

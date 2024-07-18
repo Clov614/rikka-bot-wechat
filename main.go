@@ -2,14 +2,21 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"github.com/eatmoreapple/openwechat"
 	"os"
 	"wechat-demo/rikkabot"
 	"wechat-demo/rikkabot/adapter"
+	"wechat-demo/rikkabot/logging"
 )
 
 func main() {
+	defer func() {
+		if r := recover(); r != nil {
+			logging.Close() // 保存日志
+			logging.Fatal("Recovered from panic", 1, map[string]interface{}{"panic": r})
+		}
+	}()
+
 	bot := openwechat.DefaultBot(openwechat.Desktop)
 
 	// 注册登陆二维码回调
@@ -17,10 +24,15 @@ func main() {
 
 	// 登陆
 	reloadStorage := openwechat.NewFileHotReloadStorage("storage.json")
-	defer reloadStorage.Close()
+	defer func() {
+		err := reloadStorage.Close()
+		if err != nil {
+			logging.Fatal("get reload storage err", 1, map[string]interface{}{"err": err})
+		}
+	}()
 	println("请在手机中确认登录")
 	if err := bot.PushLogin(reloadStorage, openwechat.NewRetryLoginOption()); err != nil {
-		println(fmt.Println(err))
+		logging.Error("bot.PushLogin() error", map[string]interface{}{"openwechat bot error": err.Error()})
 		return
 	}
 
@@ -44,7 +56,8 @@ func main() {
 	}()
 
 	// 阻塞主goroutine, 直到发生异常或者用户主动退出
-	rbot.Block()
-	bot.Block()
-
+	err := rbot.Block()
+	if err != nil {
+		logging.Warn("rikka bot.Block() error", map[string]interface{}{"err": err.Error()})
+	}
 }

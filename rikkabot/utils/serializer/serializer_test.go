@@ -35,7 +35,7 @@ func TestSave(t *testing.T) {
 	}
 
 	type testType string
-	var ts []testType = []testType{"测试值", "测试值01", "测试值02", "\"测试值03\""}
+	var ts = []testType{"测试值", "测试值01", "测试值02", "\"测试值03\""}
 	if err = Save("", "", ts); err != nil {
 		t.Error(err)
 	}
@@ -43,7 +43,7 @@ func TestSave(t *testing.T) {
 
 func TestNormalTypeNil(t *testing.T) {
 	type testType string
-	var ts []testType = []testType{"测试值", "测试值01", "测试值02", "\"测试值03\""}
+	var ts = []testType{"测试值", "测试值01", "测试值02", "\"测试值03\""}
 	if err := Save("", "", ts); err != nil {
 		t.Error(err)
 	}

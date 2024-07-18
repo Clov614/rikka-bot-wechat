@@ -1,3 +1,4 @@
+// Package message
 // @Author Clover
 // @Data 2024/7/7 下午1:09:00
 // @Desc rikkaMsg
@@ -10,7 +11,7 @@ const (
 	MsgTypeImage
 	MsgTypeVoice
 	MsgTypeVideo
-	MsgTypeFile
+	//MsgTypeFile todo 待完善消息类型
 )
 
 type MsgMetaType int

@@ -6,11 +6,12 @@ package adapter
 import (
 	"fmt"
 	"github.com/eatmoreapple/openwechat"
+	"wechat-demo/rikkabot/logging"
 )
 
-var Covert = (*Adapter).covert
-
-var SendMsg = (*Adapter).sendMsg
+//var Covert = (*Adapter).covert
+//
+//var SendMsg = (*Adapter).sendMsg
 
 var HandleCovert = func(a *Adapter) {
 	a.openwcBot.MessageHandler = func(msg *openwechat.Message) {
@@ -26,7 +27,10 @@ var HandleCovert = func(a *Adapter) {
 			case respMsg := <-respMsgRecvChan:
 				//rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 				//time.Sleep(time.Duration((rnd.Intn(1000) + 1000)) * time.Millisecond)
-				a.sendMsg(respMsg) // todo 错误处理
+				err := a.sendMsg(respMsg)
+				if err != nil {
+					logging.ErrorWithErr(err, "sendMsg fail skip send")
+				}
 			}
 		}
 	}()

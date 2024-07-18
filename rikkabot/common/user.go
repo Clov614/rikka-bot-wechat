@@ -1,3 +1,4 @@
+// Package common
 // @Author Clover
 // @Data 2024/7/14 下午10:45:00
 // @Desc 对openwechat用户相关操作的进一步封装

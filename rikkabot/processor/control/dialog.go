@@ -1,3 +1,4 @@
+// Package control
 // @Author Clover
 // @Data 2024/7/8 下午9:41:00
 // @Desc 对话控制-普通对话-长对话
@@ -20,7 +21,7 @@ type Dialog struct {
 	ProcessRules *ProcessRules           // 触发规则
 	sendMsg      chan<- *message.Message // 发送消息通道
 	recvMsg      chan message.Message    // 接收消息通道
-	// deprecated
+	// HandleFunc is unrecommended: using OnceDialog or LongDialog corresponding method
 	HandleFunc func() // 对话逻辑方法
 
 	MsgBuf bytes.Buffer // 消息构建缓冲
@@ -48,7 +49,7 @@ func (d *Dialog) SendText(meta message.IMeta, sendtext string) {
 }
 
 func (d *Dialog) SendImage(meta message.IMeta, imgData []byte) {
-	sendMsg := message.Message{Msgtype: message.MsgTypeImage, MetaData: meta, Raw: []byte(imgData)}
+	sendMsg := message.Message{Msgtype: message.MsgTypeImage, MetaData: meta, Raw: imgData}
 	d.sendMessage(&sendMsg)
 }
 

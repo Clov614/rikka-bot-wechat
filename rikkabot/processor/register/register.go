@@ -1,4 +1,4 @@
-// @Author Clover
+// Package register @Author Clover
 // @Data 2024/7/6 下午8:28:00
 // @Desc 注册 插件、模块，供处理器使用
 package register
@@ -54,7 +54,7 @@ func (p *PluginRegister) GetPluginMap() map[string]IPlugin {
 var pluginPool *PluginRegister
 
 // 注册对话插件
-func RegisterPlugin(name string, plugin IPlugin) {
+func RegistPlugin(name string, plugin IPlugin) {
 	pluginPool.Regist(name, plugin)
 }
 

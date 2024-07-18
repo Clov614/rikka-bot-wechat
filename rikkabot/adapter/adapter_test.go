@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 	"wechat-demo/rikkabot"
+	"wechat-demo/rikkabot/logging"
 	"wechat-demo/rikkabot/message"
 	"wechat-demo/rikkabot/utils/serializer"
 )
@@ -58,7 +59,12 @@ func TestGetMsgJson(t *testing.T) {
 
 	// 登陆
 	reloadStorage := openwechat.NewFileHotReloadStorage("storage.json")
-	defer reloadStorage.Close()
+	defer func() {
+		err := reloadStorage.Close()
+		if err != nil {
+			t.Logf("err: %v", err)
+		}
+	}()
 	if err := bot.PushLogin(reloadStorage, openwechat.NewRetryLoginOption()); err != nil {
 		t.Error(err)
 		return
@@ -76,7 +82,10 @@ func TestGetMsgJson(t *testing.T) {
 	}
 
 	// 阻塞主goroutine, 直到发生异常或者用户主动退出
-	bot.Block()
+	err = bot.Block()
+	if err != nil {
+		t.Error(err)
+	}
 	fmt.Println("hello")
 	// Output: hello
 }
@@ -130,7 +139,6 @@ func GetmsgAtAnalysis(a *Adapter, done chan struct{}) error {
 			fmt.Printf("rawMsg: %#v\n", rawMsg)
 		}
 	}
-	return nil
 }
 
 // 测试各种消息的唯一ID
@@ -156,7 +164,6 @@ func GetUserId(a *Adapter, done chan struct{}) error {
 			}
 		}
 	}
-	return nil
 }
 
 func echo(a *Adapter, done chan struct{}) error {
@@ -175,7 +182,6 @@ func echo(a *Adapter, done chan struct{}) error {
 			}
 		}
 	}
-	return nil
 }
 
 func doubleEcho(a *Adapter, done chan struct{}) error {
@@ -196,7 +202,6 @@ func doubleEcho(a *Adapter, done chan struct{}) error {
 			}
 		}
 	}
-	return nil
 }
 
 // todo test 主动发送消息测试 （获取发送者id -> 获取发送者对象（friend），发送）
@@ -217,7 +222,6 @@ func doubleEchoActive(a *Adapter, done chan struct{}) error {
 			}
 		}
 	}
-	return nil
 }
 
 func imgEcho(a *Adapter, done chan struct{}) error {
@@ -230,14 +234,16 @@ func imgEcho(a *Adapter, done chan struct{}) error {
 
 			if rikkaMsg.Msgtype == message.MsgTypeImage {
 				msg := rikkaMsg.MetaData.GetRawMsg().(*openwechat.Message)
-				msg.SaveFileToLocal("./test/testImg.jpg")
+				err := msg.SaveFileToLocal("./test/testImg.jpg")
+				if err != nil {
+					logging.Warn("save img file to local fail", map[string]interface{}{"err": err.Error()})
+				}
 				a.selfBot.GetRespMsgSendChan() <- rikkaMsg
 
 			}
 
 		}
 	}
-	return nil
 }
 
 func runBase(t *testing.T, testfunc func(*Adapter, chan struct{}) error) {
@@ -250,7 +256,12 @@ func runBase(t *testing.T, testfunc func(*Adapter, chan struct{}) error) {
 
 	// 登陆
 	reloadStorage := openwechat.NewFileHotReloadStorage("storage.json")
-	defer reloadStorage.Close()
+	defer func() {
+		err := reloadStorage.Close()
+		if err != nil {
+			t.Logf("err: %v", err)
+		}
+	}()
 	if err := bot.PushLogin(reloadStorage, openwechat.NewRetryLoginOption()); err != nil {
 		t.Error(err)
 		return
@@ -283,7 +294,10 @@ func runBase(t *testing.T, testfunc func(*Adapter, chan struct{}) error) {
 	}
 
 	// 阻塞主goroutine, 直到发生异常或者用户主动退出
-	bot.Block()
+	err = bot.Block()
+	if err != nil {
+		t.Logf("err: %v", err)
+	}
 	fmt.Println("hello")
 	// Output: hello
 }
@@ -294,7 +308,7 @@ func TestDelaytime(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 		startTime := time.Now()
-		time.Sleep(time.Duration((rnd.Intn(1000*delayMax-1000*delayMin) + 1000*delayMin)) * time.Millisecond)
+		time.Sleep(time.Duration(rnd.Intn(1000*delayMax-1000*delayMin)+1000*delayMin) * time.Millisecond)
 		fmt.Printf("delay %v\n", time.Now().Sub(startTime))
 	}
 }

@@ -1,3 +1,4 @@
+// Package cache
 // @Author Clover
 // @Data 2024/7/7 下午10:17:00
 // @Desc
@@ -5,6 +6,7 @@ package cache
 
 import (
 	"wechat-demo/rikkabot/common"
+	"wechat-demo/rikkabot/logging"
 	"wechat-demo/rikkabot/message"
 	"wechat-demo/rikkabot/processor/control"
 	"wechat-demo/rikkabot/utils/msgutil"
@@ -32,7 +34,6 @@ func (c *Cache) IsHandle(rules *control.ProcessRules, msg message.Message) (mess
 	whiteGroupFlag := !rules.CheckWhiteGroup
 	blackGroupFlag := !rules.CheckBlackGroup
 	execOrderFlag := false
-	atMeFlag := true // todo 待完善 （尚不明确如何判断艾特自己）
 	enableMsgFlag := false
 	costomTriggerFlag := false
 
@@ -95,11 +96,13 @@ func (c *Cache) IsHandle(rules *control.ProcessRules, msg message.Message) (mess
 
 	case message.MsgTypeImage:
 		// 暂不处理
+	default:
+		logging.Warn("unhandled default case, unsupported message type for now")
 
 	}
 
 	firstFlags := calledMeFlag && adminFlag && whiteUserFlag && whiteGroupFlag && blackUserFlag && blackGroupFlag
-	return msg, firstFlags && atMeFlag && enableMsgFlag && costomTriggerFlag && execOrderFlag && enableGroupFlag
+	return msg, firstFlags && enableMsgFlag && costomTriggerFlag && execOrderFlag && enableGroupFlag
 }
 
 // 判断消息发送者是否为管理员

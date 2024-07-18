@@ -1,4 +1,4 @@
-// @Author Clover
+// Package serializer @Author Clover
 // @Data 2024/7/5 下午5:45:00
 // @Desc 串行化器
 package serializer
