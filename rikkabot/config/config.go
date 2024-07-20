@@ -15,8 +15,28 @@ type CommonConfig struct {
 	Botname            string `comment:"The Robot Name default to \"rikka\""`
 	AnswerDelayRandMin int    `comment:"The Random Delay Random Min default to 1"`
 	AnswerDelayRandMax int    `comment:"The Random Delay Random Max default to 3"`
+	// OneBot settings
+	// http 正向 HTTP API配置
+	HttpServer HttpServerConfig `comment:"Http server config" yaml:"http_server"`
+	// http 上报器
+	HttpPost        []HttpPostConfig `comment:"Http post addres" yaml:"http_post,omitempty"`
+	EnableHeartBeat bool             `comment:"Enable Heart Beat" yaml:"enable_heart_beat"`
+	Interval        int64            `comment:"The Heart Beat Interval" yaml:"heart_beat_interval"`
 	// todo 其他设置项
 	PluginConfig map[string]interface{} `comment:"插件的设置" yaml:"plugin_config"`
+}
+
+// HttpServerConfig http 正向 HTTP API配置
+type HttpServerConfig struct {
+	HttpAddress string `comment:"The Robot HTTP Address default to http://127.0.0.1:8080" yaml:"http_address"`
+	AccessToken string `comment:"The Robot Access Token" yaml:"access_token"`
+}
+
+// HttpPostConfig http 上报器配置
+type HttpPostConfig struct {
+	Url        string `comment:"The http post URL" yaml:"url"`
+	Token      string `comment:"The http post Access Token" yaml:"access_token"`
+	MaxRetries int    `comment:"The maximum number of retries" yaml:"max_retries"`
 }
 
 // todo 动态设置项的注册以及持久化管理
@@ -26,6 +46,10 @@ const (
 	defaultBotname            = "rikka"
 	defaultAnswerDelayRandMin = 1
 	defaultAnswerDelayRandMax = 3
+	defaultHttpAdress         = "http://127.0.0.1:8080"
+	defaultAccessToken        = "rikka-bot"
+	defaultHeartBeat          = true // 默认开启心跳
+	defaultInterval           = 5
 )
 
 var config = CommonConfig{
@@ -33,6 +57,14 @@ var config = CommonConfig{
 	Botname:            defaultBotname,
 	AnswerDelayRandMin: defaultAnswerDelayRandMin,
 	AnswerDelayRandMax: defaultAnswerDelayRandMax,
+	// OneBot
+	HttpServer: HttpServerConfig{
+		HttpAddress: defaultHttpAdress,
+		AccessToken: defaultAccessToken,
+	},
+	//HttpPost:        make([]HttpPostConfig, 1),
+	EnableHeartBeat: defaultHeartBeat,
+	Interval:        defaultInterval,
 	// 其他设置项
 	PluginConfig: make(map[string]interface{}),
 }
