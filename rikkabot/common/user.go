@@ -113,15 +113,15 @@ func (s *Self) SendImg2FriendById(avatarId string, img io.Reader) error {
 	return nil
 }
 
-// SendFile2FriendByAvatarId 根据好友id发送文件
-func (s *Self) SendFile2FriendByAvatarId(avatarId string, file io.Reader) error {
+// SendFile2FriendById 根据好友id发送文件
+func (s *Self) SendFile2FriendById(avatarId string, file io.Reader) error {
 	friend := s.Friends.SearchByID(avatarId).First()
 	if friend == nil {
-		return fmt.Errorf("SendFile2FriendByAvatarId failed: %w", ErrFriendNotFound)
+		return fmt.Errorf("SendFile2FriendById failed: %w", ErrFriendNotFound)
 	}
 	_, err := friend.SendFile(file)
 	if err != nil {
-		return fmt.Errorf("SendFile2FriendByAvatarId failed: %w", err)
+		return fmt.Errorf("SendFile2FriendById failed: %w", err)
 	}
 	return nil
 }
@@ -167,6 +167,72 @@ func (s *Self) SendFile2GroupByNickname(nickname string, file io.Reader) error {
 		return fmt.Errorf("SendFile2GroupByNickname failed: %w", err)
 	}
 	return nil
+}
+
+func (s *Self) SendText2GroupById(id string, text string) error {
+	grouper := s.Groups.SearchByID(id).First()
+	if grouper == nil {
+		return fmt.Errorf("SendText2GroupById failed: %w", ErrGroupNotFound)
+	}
+	_, err := grouper.SendText(text)
+	if err != nil {
+		return fmt.Errorf("SendText2GroupById failed: %w", err)
+	}
+	return nil
+}
+
+func (s *Self) SendImg2GroupById(id string, img io.Reader) error {
+	grouper := s.Groups.SearchByID(id).First()
+	if grouper == nil {
+		return fmt.Errorf("SendText2GroupById failed: %w", ErrGroupNotFound)
+	}
+	_, err := grouper.SendImage(img)
+	if err != nil {
+		return fmt.Errorf("SendText2GroupById failed: %w", err)
+	}
+	return nil
+}
+
+func (s *Self) SendFile2GroupById(id string, file io.Reader) error {
+	grouper := s.Groups.SearchByID(id).First()
+	if grouper == nil {
+		return fmt.Errorf("SendFile2GroupById failed: %w", ErrGroupNotFound)
+	}
+	_, err := grouper.SendFile(file)
+	if err != nil {
+		return fmt.Errorf("SendFile2GroupById failed: %w", err)
+	}
+	return nil
+}
+
+func (s *Self) SendTextById(id string, text string, isGroup bool) error {
+	var err error
+	if isGroup {
+		err = s.SendText2GroupById(id, text)
+	} else {
+		err = s.SendText2FriendById(id, text)
+	}
+	return err
+}
+
+func (s *Self) SendImgById(id string, img io.Reader, isGroup bool) error {
+	var err error
+	if isGroup {
+		err = s.SendImg2GroupById(id, img)
+	} else {
+		err = s.SendImg2FriendById(id, img)
+	}
+	return err
+}
+
+func (s *Self) SendFileById(id string, file io.Reader, isGroup bool) error {
+	var err error
+	if isGroup {
+		err = s.SendFile2GroupById(id, file)
+	} else {
+		err = s.SendFile2FriendById(id, file)
+	}
+	return err
 }
 
 // AddFriendInGroupByNickname 拉好友进群

@@ -6,6 +6,8 @@ package plugins
 
 import (
 	"fmt"
+	"wechat-demo/rikkabot/common"
+	"wechat-demo/rikkabot/logging"
 	"wechat-demo/rikkabot/message"
 	_ "wechat-demo/rikkabot/plugins/admin" // 需要副作用 init注册方法
 	"wechat-demo/rikkabot/processor/control"
@@ -35,6 +37,7 @@ type LongDialogPlugin struct {
 }
 
 func testLongDialogPlugin() {
+	var self *common.Self = common.GetSelf()
 	testLongPlugin := LongDialogPlugin{}
 	testLongPlugin.PluginName = "长对话测试"
 	testLongPlugin.ProcessRules = &control.ProcessRules{IsCallMe: true, IsAdmin: false, EnableGroup: true,
@@ -45,10 +48,20 @@ func testLongDialogPlugin() {
 		context := firstMsg.Content
 		if context != "" {
 			msgBuf.WriteString(fmt.Sprintf("回复长对话消息 + %s,\n", context))
-			testLongPlugin.SendText(firstMsg.MetaData, msgBuf.String())
 			msgBuf.Reset() // 清空构建的消息
 			msgBuf.WriteString("接下来请发送 42+2等于多少")
-			testLongPlugin.SendText(firstMsg.MetaData, msgBuf.String())
+			var sendId string
+			var err error
+			if firstMsg.IsGroup {
+				sendId = firstMsg.GroupId
+				err = self.SendText2GroupById(sendId, msgBuf.String())
+			} else {
+				sendId = firstMsg.SenderId
+				self.SendText2FriendById(sendId, msgBuf.String())
+			}
+			if err != nil {
+				logging.ErrorWithErr(err, "send message oneboterr")
+			}
 			msgBuf.Reset()
 		} else {
 			msgBuf.WriteString("长对话测试开始")
