@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"github.com/eatmoreapple/openwechat"
+	"github.com/rs/zerolog"
 	"os"
 	"wechat-demo/rikkabot"
 	"wechat-demo/rikkabot/adapter"
@@ -10,6 +12,16 @@ import (
 )
 
 func main() {
+
+	// 是否开启调试模式
+	debugflag := flag.Bool("debug", false, "debug mode")
+	flag.Parse()
+	if *debugflag {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	} else {
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			logging.Close() // 保存日志

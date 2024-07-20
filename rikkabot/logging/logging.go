@@ -5,7 +5,6 @@
 package logging
 
 import (
-	"flag"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"os"
@@ -18,8 +17,6 @@ var (
 )
 
 func init() {
-	debugflag := flag.Bool("debug", false, "debug mode")
-	flag.Parse()
 
 	zerolog.TimeFieldFormat = "2006-01-02 15:04:05"
 	zerolog.MultiLevelWriter(zerolog.ConsoleWriter{Out: os.Stderr})
@@ -30,11 +27,6 @@ func init() {
 	multi := zerolog.MultiLevelWriter(zerolog.ConsoleWriter{Out: os.Stderr}, logfile)
 
 	log.Logger = zerolog.New(multi).With().Timestamp().Logger()
-	if *debugflag {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	} else {
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	}
 }
 
 // Close 关闭日志文件
