@@ -32,7 +32,7 @@ func SaveConfig(data []byte, path string, filename string) error {
 		return fmt.Errorf("error path load: %w", err)
 	}
 	err = os.WriteFile(path, data, 0644)
-	return fmt.Errorf("error save config: %w", err)
+	return nil
 }
 
 func LoadConfig(v interface{}, path string, filename string) error {
@@ -45,7 +45,7 @@ func LoadConfig(v interface{}, path string, filename string) error {
 		return fmt.Errorf("error loading config file: %w", err)
 	}
 	err = yaml.Unmarshal(data, v)
-	return fmt.Errorf("error loading config file: %w", err)
+	return nil
 }
 
 func getPath(path string, filename string, iswrite bool) (string, error) {
