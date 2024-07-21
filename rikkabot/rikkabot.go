@@ -4,21 +4,30 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"wechat-demo/rikkabot/common"
 	"wechat-demo/rikkabot/config"
 	"wechat-demo/rikkabot/logging"
 	"wechat-demo/rikkabot/message"
+	"wechat-demo/rikkabot/onebot/dto/event"
 	"wechat-demo/rikkabot/processor"
 )
 
 type RikkaBot struct {
-	ctx       context.Context
-	cancel    func()
-	self      *common.Self
-	sendMsg   chan *message.Message
-	recvMsg   chan *message.Message
-	Config    *config.CommonConfig
-	Processor *processor.Processor // todo 待完善 待确认
+	ctx     context.Context
+	cancel  func()
+	self    *common.Self
+	sendMsg chan *message.Message
+	recvMsg chan *message.Message
+	Config  *config.CommonConfig
+
+	EnableProcess bool // 是否处理消息
+	Processor     *processor.Processor
+
+	enableEventHandle bool // 是否开启事件处理
+	EventPool         *event.EventPool
+	EventFuncs        []func(event event.IEvent)
+	mu                sync.Mutex
 
 	err error
 }
@@ -31,13 +40,16 @@ var DefaultBot *RikkaBot
 
 func init() {
 	ctx, cancel := context.WithCancel(context.Background())
+	cfg := config.GetConfig()
 	DefaultBot = &RikkaBot{
-		ctx:       ctx,
-		cancel:    cancel,
-		sendMsg:   make(chan *message.Message),
-		recvMsg:   make(chan *message.Message),
-		Processor: processor.NewProcessor(),
-		Config:    config.GetConfig(),
+		ctx:        ctx,
+		cancel:     cancel,
+		sendMsg:    make(chan *message.Message),
+		recvMsg:    make(chan *message.Message),
+		Processor:  processor.NewProcessor(),
+		Config:     cfg,
+		EventPool:  event.NewEventPool(cfg.HttpServer.EventBufferSize),
+		EventFuncs: make([]func(event event.IEvent), 0),
 	}
 }
 
@@ -58,6 +70,43 @@ func GetBot(botname string) (*RikkaBot, error) {
 	return DefaultBot, nil
 }
 
+func (r *RikkaBot) OnEventPush(f func(event event.IEvent)) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.EventFuncs = append(r.EventFuncs, f)
+}
+
+func (r *RikkaBot) GetEventFuncs() []func(event event.IEvent) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.EventFuncs
+}
+
+func (r *RikkaBot) StartHandleEvent() {
+	r.enableEventHandle = true
+	logging.Info("开始处理事件")
+	r.EventPool.StartProcessing(r.GetEventFuncs()...)
+}
+
+func (r *RikkaBot) DispatchMsgEvent(rikkaMsg message.Message) {
+	if !r.enableEventHandle {
+		return // 不处理分发消息
+	}
+	var detailType string
+	if rikkaMsg.IsGroup {
+		detailType = "group"
+	} else if rikkaMsg.IsFriend {
+		detailType = "private"
+	}
+	msgEvent := event.MsgEvent{}
+	msgEvent.InitEvent("message", detailType, "")
+	msgEvent.InitMsgEvent(rikkaMsg)
+	err := r.EventPool.AddEvent(msgEvent) // ignore err
+	if err != nil {
+		logging.Warn(fmt.Sprintf("事件池警告 %w", err))
+	}
+}
+
 func (r *RikkaBot) SetSelf(self *common.Self) {
 	r.self = self
 }
@@ -66,6 +115,7 @@ func (r *RikkaBot) SetSelf(self *common.Self) {
 func (r *RikkaBot) Start() {
 	logging.Info("rikka bot start")
 	go r.Processor.DispatchMsg(r.recvMsg, r.sendMsg)
+	r.EnableProcess = true // 防止生产者阻塞
 }
 
 // Exit 主动退出 rikkabot

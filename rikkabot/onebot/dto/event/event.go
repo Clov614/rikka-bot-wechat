@@ -6,6 +6,8 @@ package event
 
 import (
 	"fmt"
+	"github.com/google/uuid"
+	"math"
 	"sync"
 	"time"
 	"wechat-demo/rikkabot/message"
@@ -21,6 +23,14 @@ type Event struct {
 	SubType    string  `json:"sub_type"`
 }
 
+func (e *Event) InitEvent(etype string, detailType string, subType string) {
+	e.Id = uuid.New().String()
+	e.Time = getTimeUnix()
+	e.Type = etype
+	e.DetailType = detailType
+	e.SubType = subType
+}
+
 type Self struct {
 	PlatForm string `json:"plat_form"`
 	UserId   string `json:"user_id"`
@@ -30,6 +40,11 @@ type Self struct {
 type MsgEvent struct {
 	Event
 	Message []message.Message `json:"message"`
+}
+
+func (m *MsgEvent) InitMsgEvent(msgs ...message.Message) *MsgEvent {
+	m.Message = msgs
+	return m
 }
 
 // HeartBeatEvent 心跳事件 (type: meta)
@@ -150,4 +165,9 @@ func (ep *EventPool) Close() {
 		close(ep.Events)
 	})
 	ep.wg.Wait()
+}
+
+func getTimeUnix() float64 {
+	currentTime := float64(time.Now().UnixNano()) / 1e9
+	return math.Round(currentTime*1e6) / 1e6
 }

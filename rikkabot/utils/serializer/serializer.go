@@ -22,12 +22,18 @@ type serializer struct{}
 
 func (s serializer) serialize(v interface{}) ([]byte, error) {
 	marshal, err := json.Marshal(v)
-	return marshal, fmt.Errorf("serializer Error: %w", err)
+	if err != nil {
+		return nil, fmt.Errorf("serializer Error: %w", err)
+	}
+	return marshal, nil
 }
 
 func (s serializer) unserialize(data []byte, v interface{}) error {
 	err := json.Unmarshal(data, v)
-	return fmt.Errorf("unserializer Error: %w", err)
+	if err != nil {
+		return fmt.Errorf("unserializer Error: %w", err)
+	}
+	return nil
 }
 
 // Save certain types of temporary json file
@@ -43,7 +49,7 @@ func Save(path string, filename string, v interface{}) error {
 		return err
 	}
 	err = os.WriteFile(path, data, 0644)
-	return fmt.Errorf("error serializing: %w", err)
+	return nil
 }
 
 // Load certain types by json file

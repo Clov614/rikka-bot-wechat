@@ -5,9 +5,7 @@
 package event
 
 import (
-	"math"
 	"testing"
-	"time"
 	"wechat-demo/rikkabot/message"
 )
 
@@ -84,9 +82,4 @@ func TestEventPool(t *testing.T) {
 	eventPool.StartProcessing(hds...)
 
 	eventPool.Close()
-}
-
-func getTimeUnix() float64 {
-	currentTime := float64(time.Now().UnixNano()) / 1e9
-	return math.Round(currentTime*1e6) / 1e6
 }

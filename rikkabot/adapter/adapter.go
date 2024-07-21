@@ -140,6 +140,8 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 		rikkaMsgType = message.MsgTypeVoice
 	case openwechat.MsgTypeVideo:
 		rikkaMsgType = message.MsgTypeVideo
+	default:
+		return nil // 忽略未知的消息种类
 	}
 
 	self, _ := a.openwcBot.GetCurrentUser() // ignore err
@@ -244,7 +246,11 @@ func (a *Adapter) receiveMsg(msg *openwechat.Message) {
 	if selfMsg == nil {
 		return
 	}
-	a.selfBot.GetReqMsgSendChan() <- selfMsg
+	copyMsg := *selfMsg
+	a.selfBot.DispatchMsgEvent(copyMsg) // 存入事件池
+	if a.selfBot.EnableProcess {        // 判断是否启动了处理器（防止没有消费者阻塞在此）
+		a.selfBot.GetReqMsgSendChan() <- selfMsg
+	}
 }
 
 func (a *Adapter) sendMsg(sendMsg *message.Message) error {

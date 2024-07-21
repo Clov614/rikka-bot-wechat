@@ -1,8 +1,8 @@
-// Package http
+// Package httpapi
 // @Author Clover
 // @Data 2024/7/20 下午9:37:00
 // @Desc http and http webhook
-package http
+package httpapi
 
 import (
 	"bytes"
@@ -13,6 +13,7 @@ import (
 	"io"
 	"net/http"
 	"time"
+	"wechat-demo/rikkabot"
 	"wechat-demo/rikkabot/logging"
 	"wechat-demo/rikkabot/onebot/dto/event"
 	"wechat-demo/rikkabot/onebot/oneboterr"
@@ -30,15 +31,32 @@ func (s *HttpServer) Run() {
 
 // HttpClient 反向http
 type HttpClient struct {
-	secret          string
-	postUrl         string
-	timeout         int32
-	client          *http.Client
-	MaxRetries      uint64
-	RetriesInterval uint64
+	secret     string
+	postUrl    string
+	timeout    int
+	client     *http.Client
+	MaxRetries int
+	bot        *rikkabot.RikkaBot
 }
 
-func (c *HttpClient) Run() {
+// RunHttp 启动 http、http上报器
+func RunHttp(rbot *rikkabot.RikkaBot) {
+
+	// http server
+
+	// http上报器
+	for _, post := range rbot.Config.HttpPost {
+		HttpClient{
+			secret:     post.Secret,
+			postUrl:    post.Url,
+			timeout:    post.TimeOut,
+			MaxRetries: post.MaxRetries,
+			bot:        rbot,
+		}.Run()
+	}
+}
+
+func (c HttpClient) Run() {
 	if c.timeout < 5 {
 		c.timeout = 5
 	}
@@ -47,11 +65,12 @@ func (c *HttpClient) Run() {
 		Timeout: time.Duration(c.timeout) * time.Second,
 	}
 	logging.Info(fmt.Sprintf("Http Post 上报器已启动！%s", c.postUrl))
-	// todo 添加 handler
+	// 注册事件处理
+	c.bot.OnEventPush(c.HandlerPostEvent)
 }
 
 // HandlerPostEvent 处理 post 事件
-func (c *HttpClient) HandlerPostEvent(event event.Event) {
+func (c *HttpClient) HandlerPostEvent(event event.IEvent) {
 
 	eventJSON, _ := json.Marshal(event)
 
@@ -65,6 +84,9 @@ func (c *HttpClient) HandlerPostEvent(event event.Event) {
 	resp, err := c.client.Do(req)
 	if err != nil {
 		logHttpPostError(event, err, "request post failed")
+	}
+	if resp == nil || resp.Body == nil {
+		logging.Fatal("Http上报器连接错误", 3, map[string]interface{}{"err": err})
 	}
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
@@ -83,7 +105,7 @@ func (c *HttpClient) HandlerPostEvent(event event.Event) {
 	logging.Debug(fmt.Sprintf("response body: %s", string(body)), map[string]interface{}{"event": event})
 }
 
-func logHttpPostError(event event.Event, err error, msg string) {
+func logHttpPostError(event event.IEvent, err error, msg string) {
 	err = fmt.Errorf("%w %w", oneboterr.ErrHttpPost, err)
 	logging.ErrorWithErr(err, msg, map[string]interface{}{"event": event})
 }
