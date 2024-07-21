@@ -11,6 +11,8 @@ import (
 	"wechat-demo/rikkabot/message"
 )
 
+type IEvent interface{}
+
 type Event struct {
 	Id         string  `json:"id"`
 	Time       float64 `json:"time"`
@@ -61,11 +63,20 @@ type ActionResponse struct {
 	Echo    `json:"echo,omitempty"`
 }
 
+type IEventPool interface {
+	AddEvent(event Event) error
+	GetEvent() (Event, error)
+	StartProcessing(handlers ...func(event Event))
+	Close()
+}
+
 // EventPool 事件池
 type EventPool struct {
 	PoolSize int64
-	Events   chan Event
+	Events   chan IEvent
 	once     sync.Once
+	wg       sync.WaitGroup
+	quit     chan struct{}
 }
 
 const (
@@ -79,12 +90,13 @@ func NewEventPool(poolSize int64) *EventPool {
 	}
 	return &EventPool{
 		PoolSize: poolSize,
-		Events:   make(chan Event, poolSize),
+		Events:   make(chan IEvent, poolSize),
+		quit:     make(chan struct{}),
 	}
 }
 
 // AddEvent 添加事件
-func (ep *EventPool) AddEvent(event Event) error {
+func (ep *EventPool) AddEvent(event IEvent) error {
 	select {
 	case ep.Events <- event:
 		return nil
@@ -94,7 +106,7 @@ func (ep *EventPool) AddEvent(event Event) error {
 }
 
 // GetEvent 获取事件
-func (ep *EventPool) GetEvent() (Event, error) {
+func (ep *EventPool) GetEvent() (IEvent, error) {
 	select {
 	case event := <-ep.Events:
 		return event, nil
@@ -104,16 +116,27 @@ func (ep *EventPool) GetEvent() (Event, error) {
 }
 
 // StartProcessing starts processing events from pool
-func (ep *EventPool) StartProcessing(handlers ...func(event Event)) {
+func (ep *EventPool) StartProcessing(handlers ...func(event IEvent)) {
+	ep.wg.Add(1)
 	go func() {
+		defer ep.wg.Done()
 		for {
-			event, err := ep.GetEvent()
-			if err != nil {
-				time.Sleep(time.Millisecond * 100) // Wait and retry if no events
-				continue
-			}
-			for _, handler := range handlers {
-				handler(event)
+			select {
+			case <-ep.quit:
+				return
+			default:
+				event, err := ep.GetEvent()
+				if err != nil || event == nil {
+					time.Sleep(time.Millisecond * 100) // Wait and retry if no events
+					continue
+				}
+				for _, handler := range handlers {
+					ep.wg.Add(1)
+					go func(h func(event IEvent), e IEvent) {
+						defer ep.wg.Done()
+						h(e)
+					}(handler, event)
+				}
 			}
 		}
 	}()
@@ -121,7 +144,10 @@ func (ep *EventPool) StartProcessing(handlers ...func(event Event)) {
 
 // Close closes the event pool
 func (ep *EventPool) Close() {
+	time.Sleep(1 * time.Second)
 	ep.once.Do(func() {
+		close(ep.quit)
 		close(ep.Events)
 	})
+	ep.wg.Wait()
 }

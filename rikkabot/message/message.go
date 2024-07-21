@@ -36,7 +36,7 @@ type Message struct {
 	IsSystem        bool     `json:"is_system"`          // 是否为系统消息
 
 	//Self      ISelf              `json:"raw_msg"` // 原先平台对应对象
-	ReplyFunc func(msg *Message) `json:"-"` // todo 回复消息的方法
+	//ReplyFunc func(msg *Message) `json:"-"` // todo 回复消息的方法
 }
 
 type IMeta interface {
