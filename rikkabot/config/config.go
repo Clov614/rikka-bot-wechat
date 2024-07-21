@@ -1,7 +1,7 @@
 // Package config
 // @Author Clover
 // @Data 2024/7/6 下午3:28:00
-// @Desc
+// @Desc 全局设置、并管理设置的周期持久化
 package config
 
 import (
@@ -19,7 +19,7 @@ type CommonConfig struct {
 	// http 正向 HTTP API配置
 	HttpServer HttpServerConfig `comment:"Http server config" yaml:"http_server"`
 	// http 上报器
-	HttpPost        []HttpPostConfig `comment:"Http post addres" yaml:"http_post,omitempty"`
+	HttpPost        []HttpPostConfig `comment:"Http 上报器，如不需要请注释掉" yaml:"http_post,omitempty"`
 	EnableHeartBeat bool             `comment:"Enable Heart Beat" yaml:"enable_heart_beat"`
 	Interval        int64            `comment:"The Heart Beat Interval" yaml:"heart_beat_interval"`
 	// todo 其他设置项
@@ -28,15 +28,18 @@ type CommonConfig struct {
 
 // HttpServerConfig http 正向 HTTP API配置
 type HttpServerConfig struct {
-	HttpAddress string `comment:"The Robot HTTP Address default to http://127.0.0.1:8080" yaml:"http_address"`
-	AccessToken string `comment:"The Robot Access Token" yaml:"access_token"`
+	HttpAddress     string `comment:"The Robot HTTP Address default to http://127.0.0.1:8080" yaml:"http_address"`
+	AccessToken     string `comment:"The Robot Access Token" yaml:"access_token"`
+	EventEnabled    bool   `comment:"是否启用 get_latest_events 元动作" yaml:"event_enabled"`
+	EventBufferSize int64  `comment:"事件缓冲区大小，超过该大小将会丢弃最旧的事件，0 表示不限大小" yaml:"event_buffer_size"`
 }
 
 // HttpPostConfig http 上报器配置
 type HttpPostConfig struct {
-	Url        string `comment:"The http post URL" yaml:"url"`
-	Token      string `comment:"The http post Access Token" yaml:"access_token"`
+	Url        string `comment:"The httpapi post URL" yaml:"url"`
+	Secret     string `comment:"The httpapi post Access Token" yaml:"secret"`
 	MaxRetries int    `comment:"The maximum number of retries" yaml:"max_retries"`
+	TimeOut    int    `comment:"上报请求超时时间" yaml:"time_out"`
 }
 
 // todo 动态设置项的注册以及持久化管理
@@ -62,7 +65,7 @@ var config = CommonConfig{
 		HttpAddress: defaultHttpAdress,
 		AccessToken: defaultAccessToken,
 	},
-	//HttpPost:        make([]HttpPostConfig, 1),
+	HttpPost:        make([]HttpPostConfig, 1),
 	EnableHeartBeat: defaultHeartBeat,
 	Interval:        defaultInterval,
 	// 其他设置项
