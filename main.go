@@ -50,7 +50,7 @@ func main() {
 	bot.UUIDCallback = func(uuid string) {
 		url := openwechat.GetQrcodeUrl(uuid)
 		rbot.SetloginUrl(url)
-		println("登录地址: ", url)
+		logging.Warn("登录地址: " + url)
 		if *isPrintQr {
 			consoleQrCodeand(uuid)
 		}
@@ -72,7 +72,7 @@ func main() {
 			logging.Fatal("get reload storage err", 1, map[string]interface{}{"err": err})
 		}
 	}()
-	println("请在手机中确认登录 or 扫码登录")
+	logging.Warn("请在手机中确认登录 or 扫码登录")
 	if err := bot.PushLogin(reloadStorage, openwechat.NewRetryLoginOption()); err != nil {
 		logging.Error("bot.PushLogin() error", map[string]interface{}{"openwechat bot error": err.Error()})
 		return
