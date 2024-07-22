@@ -28,7 +28,7 @@ type CommonConfig struct {
 
 // HttpServerConfig http 正向 HTTP API配置
 type HttpServerConfig struct {
-	HttpAddress     string `comment:"The Robot HTTP Address default to http://127.0.0.1:8080" yaml:"http_address"`
+	HttpAddress     string `comment:"The Robot HTTP Address default to http://127.0.0.1:10614" yaml:"http_address"`
 	AccessToken     string `comment:"The Robot Access Token" yaml:"access_token"`
 	EventEnabled    bool   `comment:"是否启用 get_latest_events 元动作" yaml:"event_enabled"`
 	EventBufferSize int64  `comment:"事件缓冲区大小，超过该大小将会丢弃最旧的事件，0 表示不限大小" yaml:"event_buffer_size"`
@@ -49,7 +49,7 @@ const (
 	defaultBotname            = "rikka"
 	defaultAnswerDelayRandMin = 1
 	defaultAnswerDelayRandMax = 3
-	defaultHttpAdress         = "http://127.0.0.1:8080"
+	defaultHttpAdress         = "http://127.0.0.1:10614"
 	defaultAccessToken        = "rikka-bot"
 	defaultHeartBeat          = true // 默认开启心跳
 	defaultInterval           = 5

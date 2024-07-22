@@ -15,6 +15,8 @@ func main() {
 
 	// 是否开启调试模式
 	debugflag := flag.Bool("debug", false, "debug mode")
+	// 是否开启 http服务 todo 完善http开闭逻辑
+	//httpMode := flag.Bool("http", false, "http mode")
 	flag.Parse()
 	if *debugflag {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)

@@ -1,6 +1,7 @@
 package rikkabot
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -34,6 +35,7 @@ type RikkaBot struct {
 
 var (
 	ErrInvalidCall = errors.New("invalid bot call")
+	ErrSendMsg     = errors.New("send message error")
 )
 
 var DefaultBot *RikkaBot
@@ -158,3 +160,28 @@ func (r *RikkaBot) GetRespMsgRecvChan() <-chan *message.Message {
 }
 
 //endregion
+
+// todo 发送消息回调消息id 并保存sendmsg，提供过期控制、根据id查询发送的消息
+// SendMsg 统一发送消息接口 消息类型 是否群组 发送数据 群/好友 id
+func (r *RikkaBot) SendMsg(msgType message.MsgType, isGroup bool, data any, sendId string) error {
+	var err error
+	switch msgType {
+	case message.MsgTypeText:
+		s, ok := data.(string)
+		if !ok {
+			return fmt.Errorf("`SendMsg of text` must be a string: %w", ErrSendMsg)
+		}
+		err = r.self.SendTextById(sendId, s, isGroup)
+	case message.MsgTypeImage:
+		d, ok := data.([]byte)
+		if !ok {
+			return fmt.Errorf("`SendMsg of image` must be a []byte: %w", ErrSendMsg)
+		}
+		var buf bytes.Buffer
+		buf.Write(d)
+		err = r.self.SendImgById(sendId, &buf, isGroup)
+	default:
+		err = fmt.Errorf("`SendMsg of type` must be either text or image: %w", ErrSendMsg)
+	}
+	return err
+}

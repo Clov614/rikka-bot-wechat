@@ -7,6 +7,7 @@ package event
 import (
 	"testing"
 	"wechat-demo/rikkabot/message"
+	"wechat-demo/rikkabot/utils/timeutil"
 )
 
 import "github.com/google/uuid"
@@ -17,7 +18,7 @@ func TestEventPool(t *testing.T) {
 	event := MsgEvent{
 		Event: Event{
 			Id:         uuid.New().String(),
-			Time:       getTimeUnix(),
+			Time:       timeutil.GetTimeUnix(),
 			Type:       "message",
 			DetailType: "private",
 			SubType:    "",

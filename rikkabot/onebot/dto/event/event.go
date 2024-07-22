@@ -7,10 +7,10 @@ package event
 import (
 	"fmt"
 	"github.com/google/uuid"
-	"math"
 	"sync"
 	"time"
 	"wechat-demo/rikkabot/message"
+	"wechat-demo/rikkabot/utils/timeutil"
 )
 
 type IEvent interface{}
@@ -25,7 +25,7 @@ type Event struct {
 
 func (e *Event) InitEvent(etype string, detailType string, subType string) {
 	e.Id = uuid.New().String()
-	e.Time = getTimeUnix()
+	e.Time = timeutil.GetTimeUnix()
 	e.Type = etype
 	e.DetailType = detailType
 	e.SubType = subType
@@ -76,6 +76,11 @@ type ActionResponse struct {
 	Data    interface{} `json:"data"`    // 动作响应消息
 	Message string      `json:"message"` // 错误信息
 	Echo    `json:"echo,omitempty"`
+}
+
+type MsgRespData struct {
+	Time      float64 `json:"time"`
+	MessageId string  `json:"message_id"`
 }
 
 type IEventPool interface {
@@ -165,9 +170,4 @@ func (ep *EventPool) Close() {
 		close(ep.Events)
 	})
 	ep.wg.Wait()
-}
-
-func getTimeUnix() float64 {
-	currentTime := float64(time.Now().UnixNano()) / 1e9
-	return math.Round(currentTime*1e6) / 1e6
 }
