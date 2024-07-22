@@ -63,11 +63,18 @@ type StateEvent struct {
 
 type Echo string
 
-type ActionRequest struct {
-	Action string         `json:"action"` // 动作名称
-	Params map[string]any `json:"params"` // 动作参数
+type ActionRequest[T SendMsgParams | any] struct {
+	Action string `json:"action"` // 动作名称
+	Params T      `json:"params"` // 动作参数
 	Echo   `json:"echo,omitempty"`
 	//Self   `json:"self,omitempty"`
+}
+
+type SendMsgParams struct {
+	DetailType string          `json:"detail_type"`
+	MsgType    message.MsgType `json:"msg_type"`
+	SendId     string          `json:"send_id"`
+	Message    any             `json:"message"`
 }
 
 type ActionResponse struct {

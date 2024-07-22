@@ -20,7 +20,6 @@ import (
 	"time"
 	"wechat-demo/rikkabot"
 	"wechat-demo/rikkabot/logging"
-	"wechat-demo/rikkabot/message"
 	"wechat-demo/rikkabot/onebot/dto/event"
 	"wechat-demo/rikkabot/onebot/oneboterr"
 	"wechat-demo/rikkabot/utils/timeutil"
@@ -89,7 +88,7 @@ func (s HttpServer) globalHandler() gin.HandlerFunc {
 
 		logging.Debug("鉴权成功", map[string]interface{}{"path": c.Request.URL.Path})
 
-		var req event.ActionRequest
+		var req event.ActionRequest[event.SendMsgParams]
 		var resp event.ActionResponse
 
 		// 检查路径和处理对应的请求
@@ -118,40 +117,27 @@ func (s HttpServer) globalHandler() gin.HandlerFunc {
 					oneboterr.UNSUPPORTED_ACTION, failedStatus)
 				return
 			}
-			// 获取params
-			detailType, ok := req.Params["detail_type"].(string)
-			if !ok {
-				retErr(c, "[params 应为 字典类型] 缺失字段: detail_type 区分发送的类型，可选: <private、group>",
-					oneboterr.BAD_PARAME, failedStatus)
-				return
+			// 校验params
+			if req.Params.DetailType == "" {
+				retErr(c, "params.detail_type 为空 请携带其并赋予（群组/个人） group private", oneboterr.BAD_PARAME, failedStatus)
 			}
-			sendId, ok := req.Params["send_id"].(string)
-			if !ok {
-				retErr(c, "[params 应为 字典类型] 缺失字段: send_id 发送对象的唯一标识（发送给好友为senderId、群组为groupId）",
+			if req.Params.Message == nil {
+				retErr(c, "params.message 为空 请携带发送的消息数据(string、[]byte) 图片消息支持传入string链接",
 					oneboterr.BAD_PARAME, failedStatus)
-				return
-			}
-			msgType, ok := req.Params["msg_type"]
-			if !ok {
-				retErr(c, "[params 应为 字典类型] 缺失字段: msg_type 消息类型 int类型（text: 0、image: 1）",
-					oneboterr.BAD_PARAME, failedStatus)
-				return
-			}
-			data, ok := req.Params["message"]
-			if !ok {
-				retErr(c, "[params 应为 字典类型] 缺失字段: message 具体消息（文本为string、图片为[]byte）",
-					oneboterr.BAD_PARAME, failedStatus)
-				return
 			}
 			var isGroup bool
-			if detailType == "group" {
+			if req.Params.DetailType == "group" {
 				isGroup = true
+			} else if req.Params.DetailType == "private" {
+				isGroup = false
+			} else {
+				retErr(c, "params.detail_type 只支持 group private 两种消息类型", oneboterr.BAD_PARAME, failedStatus)
 			}
 
-			err := s.bot.SendMsg(message.MsgType(msgType.(int)), isGroup, data, sendId)
+			err := s.bot.SendMsg(req.Params.MsgType, isGroup, req.Params.Message, req.Params.SendId)
 			if err != nil {
 				logging.Error("Http server 发送消息错误", map[string]interface{}{"err": err})
-				retErr(c, fmt.Sprintf("发送消息错误"), oneboterr.INTERNAL_HANDLER_ERROR, failedStatus)
+				retErr(c, fmt.Sprintf("发送消息错误 err: %s", err), oneboterr.INTERNAL_HANDLER_ERROR, failedStatus)
 				return
 			}
 			msgRespData := event.MsgRespData{
