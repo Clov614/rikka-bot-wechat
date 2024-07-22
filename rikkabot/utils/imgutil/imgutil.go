@@ -1,7 +1,7 @@
 // Package imgutil
 // @Author Clover
 // @Data 2024/7/22 下午1:53:00
-// @Desc
+// @Desc 图片处理工具类
 package imgutil
 
 import (
