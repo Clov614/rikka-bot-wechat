@@ -5,7 +5,9 @@
 package config
 
 import (
+	"errors"
 	"fmt"
+	"os"
 	"wechat-demo/rikkabot/logging"
 	"wechat-demo/rikkabot/utils/configutil"
 )
@@ -13,8 +15,8 @@ import (
 type CommonConfig struct {
 	Symbol             string `comment:"The Robot Prefix default to ‘/’ "`
 	Botname            string `comment:"The Robot Name default to \"rikka\""`
-	AnswerDelayRandMin int    `comment:"The Random Delay Random Min default to 1"`
-	AnswerDelayRandMax int    `comment:"The Random Delay Random Max default to 3"`
+	AnswerDelayRandMin int    `comment:"The Random Delay Random Min default to 1" yaml:"answer_delay_rand_min"`
+	AnswerDelayRandMax int    `comment:"The Random Delay Random Max default to 3" yaml:"answer_delay_rand_max"`
 	// OneBot settings
 	// http 正向 HTTP API配置
 	HttpServer HttpServerConfig `comment:"Http server config" yaml:"http_server"`
@@ -110,6 +112,9 @@ var defaultSaveFileName = "config.yaml"
 func init() {
 	err := configutil.Load(&config, defaultPath, defaultSaveFileName)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			err = configutil.Save(&config, defaultPath, defaultSaveFileName)
+		}
 		logging.ErrorWithErr(err, "error load config")
 	}
 	config.verifiability() // 校验设置项是否合规
