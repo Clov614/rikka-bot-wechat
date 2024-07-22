@@ -235,7 +235,7 @@ func handleSpecialRaw(msg *openwechat.Message) []byte {
 		}
 		return buf.Bytes()
 	}
-	return msg.Raw
+	return nil
 }
 
 // @Author By Clover 2024/7/5 下午5:28:00
