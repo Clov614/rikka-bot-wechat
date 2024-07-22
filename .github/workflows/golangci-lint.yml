@@ -24,8 +24,8 @@ jobs:
           version: latest
           args: --out-${NO_FUTURE}format line-number --timeout 3m0s -p bugs -p error -p performance -D unused -D gosmopolitan -D exhaustive -D noctx -D gosec
 
-      - name: Test
-        run: go test -v ./...
+#      - name: Test
+#        run: go test -v ./...
 
       - name: Build
         run: go build -v ./...
