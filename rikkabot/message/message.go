@@ -20,7 +20,7 @@ type MsgMetaType int
 
 type Message struct {
 	Msgtype         MsgType  `json:"msg_type"`
-	MetaData        IMeta    `json:"meta_data"` // todo 元数据 （封装关于Sender Receiver Self 的 数据/调用）
+	MetaData        IMeta    `json:"-"` // `json:"meta_data"` todo 元数据 （封装关于Sender Receiver Self 的 数据/调用）
 	Raw             []byte   `json:"-"`
 	RawContent      string   `json:"-"`
 	Content         string   `json:"content"`            // 消息内容

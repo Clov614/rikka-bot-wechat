@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"sync"
 	"wechat-demo/rikkabot/common"
 	"wechat-demo/rikkabot/config"
@@ -13,15 +14,17 @@ import (
 	"wechat-demo/rikkabot/onebot/dto/event"
 	"wechat-demo/rikkabot/processor"
 	"wechat-demo/rikkabot/utils/imgutil"
+	"wechat-demo/rikkabot/utils/timeutil"
 )
 
 type RikkaBot struct {
-	ctx     context.Context
-	cancel  func()
-	self    *common.Self
-	sendMsg chan *message.Message
-	recvMsg chan *message.Message
-	Config  *config.CommonConfig
+	ctx      context.Context
+	cancel   func()
+	self     *common.Self
+	sendMsg  chan *message.Message
+	recvMsg  chan *message.Message
+	Config   *config.CommonConfig
+	loginUrl string // 登录链接
 
 	EnableProcess bool // 是否处理消息
 	Processor     *processor.Processor
@@ -72,6 +75,40 @@ func GetBot(botname string) (*RikkaBot, error) {
 		return nil, fmt.Errorf("error update bot config: %w", err)
 	}
 	return DefaultBot, nil
+}
+
+func (r *RikkaBot) GetloginUrl() string {
+	return r.loginUrl
+}
+
+func (r *RikkaBot) SetloginUrl(url string) {
+	r.loginUrl = url
+}
+
+func (r *RikkaBot) PushLoginNoticeEvent() {
+	loginUrl := r.GetloginUrl()
+	if loginUrl == "" { // 没有回调不需要处理
+		return
+	}
+	// 构造 notice—event
+	type LoginType struct {
+		LoginUrl string `json:"login_url"`
+	}
+	var loginData LoginType
+	loginData.LoginUrl = loginUrl
+	e := event.Event{
+		Id:         uuid.New().String(),
+		Time:       timeutil.GetTimeUnix(),
+		Type:       "notice",
+		DetailType: "login_callback",
+		SubType:    "",
+	}
+	noticeEvent := event.NoticeEvent[LoginType]{}
+	initNoticeEvent := noticeEvent.InitNoticeEvent(e, loginData)
+	err := r.EventPool.AddEvent(*initNoticeEvent)
+	if err != nil {
+		logging.Warn("登录回调消息事件错误", map[string]interface{}{"err": err})
+	}
 }
 
 func (r *RikkaBot) OnEventPush(f func(event event.IEvent)) {
