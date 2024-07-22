@@ -320,12 +320,7 @@ func (c HttpClient) HandlerPostEvent(event event.IEvent) {
 	if resp == nil || resp.Body == nil {
 		logging.Fatal("Http上报器连接错误", 3, map[string]interface{}{"err": err})
 	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			logging.ErrorWithErr(err, "close body failed")
-		}
-	}(resp.Body)
+	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logHttpPostError(event, err, "response body read failed")
