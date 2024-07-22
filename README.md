@@ -34,6 +34,9 @@
 5. - [ ] corn定时任务
 6. - [x] OneBot 标准客户端
 
+![cmd_run](/docs/img/product.png)
+![http_post](/docs/img/product01.png)
+
 ## 机器人快速开始
 
 前往 [Release](https://github.com/Clov614/rikka-bot-wechat/releases) 页面下载对应系统版本的可执行文件
