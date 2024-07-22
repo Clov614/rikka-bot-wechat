@@ -5,6 +5,7 @@
 package imgutil
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -25,7 +26,10 @@ func isURL(path string) bool {
 
 // fetchFromURL fetches the content from the URL
 func fetchFromURL(url string) ([]byte, error) {
-	resp, err := http.Get(url)
+	// 跳过 TLS 验证
+	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+	client := &http.Client{Transport: tr}
+	resp, err := client.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("fetchFromURL: http.Get(%q): %w", url, err)
 	}
