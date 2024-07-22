@@ -32,6 +32,11 @@ type HttpServer struct {
 	bot         *rikkabot.RikkaBot
 }
 
+const (
+	failedStatus  = "failed"
+	successStatus = "ok"
+)
+
 // Run HttpServer
 func (s HttpServer) Run() {
 
@@ -87,83 +92,130 @@ func (s HttpServer) globalHandler() gin.HandlerFunc {
 		}
 
 		logging.Debug("鉴权成功", map[string]interface{}{"path": c.Request.URL.Path})
-
-		var req event.ActionRequest[event.SendMsgParams]
-		var resp event.ActionResponse
-
 		// 检查路径和处理对应的请求
-		if c.Request.URL.Path == "/send_message" {
-			if c.Request.Method == http.MethodGet {
-				// 从URL查询解析参数
-
-				if err := c.ShouldBindQuery(&req); err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-					return
-				}
-			} else if c.Request.Method == http.MethodPost {
-				if err := c.ShouldBind(&req); err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-					return
-				}
-			}
-
-			logging.Debug("请求参数", map[string]interface{}{"action_request": req})
-
-			// 处理发送消息
-			const failedStatus = "failed"
-			const successStatus = "ok"
-			if req.Action != "send_message" { // 判断 action
-				retErr(c, "/send_message 端点只处理 action: send_message",
-					oneboterr.UNSUPPORTED_ACTION, failedStatus)
-				return
-			}
-			// 校验params
-			if req.Params.DetailType == "" {
-				retErr(c, "params.detail_type 为空 请携带其并赋予（群组/个人） group private", oneboterr.BAD_PARAME, failedStatus)
-			}
-			if req.Params.Message == nil {
-				retErr(c, "params.message 为空 请携带发送的消息数据(string、[]byte) 图片消息支持传入string链接",
-					oneboterr.BAD_PARAME, failedStatus)
-			}
-			var isGroup bool
-			if req.Params.DetailType == "group" {
-				isGroup = true
-			} else if req.Params.DetailType == "private" {
-				isGroup = false
-			} else {
-				retErr(c, "params.detail_type 只支持 group private 两种消息类型", oneboterr.BAD_PARAME, failedStatus)
-			}
-
-			err := s.bot.SendMsg(req.Params.MsgType, isGroup, req.Params.Message, req.Params.SendId)
-			if err != nil {
-				logging.Error("Http server 发送消息错误", map[string]interface{}{"err": err})
-				retErr(c, fmt.Sprintf("发送消息错误 err: %s", err), oneboterr.INTERNAL_HANDLER_ERROR, failedStatus)
-				return
-			}
-			msgRespData := event.MsgRespData{
-				Time:      timeutil.GetTimeUnix(),
-				MessageId: "尚未实现返回send_msg_id，后续实现(撤回消息功能需要)", // todo
-			}
-
-			resp.Echo = req.Echo
-			resp.Retcode = oneboterr.OK
-			resp.Status = successStatus
-			resp.Data = msgRespData
-
-			respData, err := json.Marshal(resp)
-			if err != nil {
-				logging.Error("marshal response failed", map[string]interface{}{"err": err})
-				retErr(c, "marshal response failed", oneboterr.INTERNAL_HANDLER_ERROR, failedStatus)
-				return
-			}
-
-			// 返回处理结果
-			c.Header("Content-Type", "application/json")
-			logging.Info(fmt.Sprintf("发送成功回执: %+v", string(respData)))
-			c.String(http.StatusOK, string(respData)) // 返回json字符串
+		switch c.Request.URL.Path {
+		case "/send_message": // 发送消息
+			s.handleSendMsg(c)
+		case "/login_callback": // 获取登录回调
+			s.handleLoginUrl(c)
 		}
 
 	}
+}
+
+func (s HttpServer) handleLoginUrl(c *gin.Context) {
+	var req event.ActionRequest[any]
+	var resp event.ActionResponse
+	if c.Request.Method == http.MethodGet {
+		// 从URL查询解析参数
+
+		if err := c.ShouldBindQuery(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+	} else if c.Request.Method == http.MethodPost {
+		if err := c.ShouldBind(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+	}
+	logging.Debug("请求参数", map[string]interface{}{"action_request": req})
+	if req.Action != "login_callback" {
+		retErr(c, "/login_callback 端点只处理 action: login_callback",
+			oneboterr.UNSUPPORTED_ACTION, failedStatus)
+		return
+	}
+	var retData struct {
+		Type string `json:"type"`
+		Data string `json:"data"`
+	}
+	retData.Type = "url"
+	retData.Data = s.bot.GetloginUrl()
+	resp.Retcode = oneboterr.OK
+	resp.Status = successStatus
+	resp.Data = retData
+	respData, err := json.Marshal(resp)
+	if err != nil {
+		logging.Error("marshal response failed", map[string]interface{}{"err": err})
+		retErr(c, "marshal response failed", oneboterr.INTERNAL_HANDLER_ERROR, failedStatus)
+		return
+	}
+
+	c.Header("Content-Type", "application/json")
+	logging.Info(fmt.Sprintf("发送成功回执: %+v", string(respData)))
+	c.String(http.StatusOK, string(respData)) // 返回json字符串
+}
+
+func (s HttpServer) handleSendMsg(c *gin.Context) {
+	var req event.ActionRequest[event.SendMsgParams]
+	var resp event.ActionResponse
+	if c.Request.Method == http.MethodGet {
+		// 从URL查询解析参数
+
+		if err := c.ShouldBindQuery(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+	} else if c.Request.Method == http.MethodPost {
+		if err := c.ShouldBind(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	logging.Debug("请求参数", map[string]interface{}{"action_request": req})
+
+	// 处理发送消息
+
+	if req.Action != "send_message" { // 判断 action
+		retErr(c, "/send_message 端点只处理 action: send_message",
+			oneboterr.UNSUPPORTED_ACTION, failedStatus)
+		return
+	}
+	// 校验params
+	if req.Params.DetailType == "" {
+		retErr(c, "params.detail_type 为空 请携带其并赋予（群组/个人） group private", oneboterr.BAD_PARAME, failedStatus)
+	}
+	if req.Params.Message == nil {
+		retErr(c, "params.message 为空 请携带发送的消息数据(string、[]byte) 图片消息支持传入string链接",
+			oneboterr.BAD_PARAME, failedStatus)
+	}
+	var isGroup bool
+	if req.Params.DetailType == "group" {
+		isGroup = true
+	} else if req.Params.DetailType == "private" {
+		isGroup = false
+	} else {
+		retErr(c, "params.detail_type 只支持 group private 两种消息类型", oneboterr.BAD_PARAME, failedStatus)
+	}
+
+	err := s.bot.SendMsg(req.Params.MsgType, isGroup, req.Params.Message, req.Params.SendId)
+	if err != nil {
+		logging.Error("Http server 发送消息错误", map[string]interface{}{"err": err})
+		retErr(c, fmt.Sprintf("发送消息错误 err: %s", err), oneboterr.INTERNAL_HANDLER_ERROR, failedStatus)
+		return
+	}
+	msgRespData := event.MsgRespData{
+		Time:      timeutil.GetTimeUnix(),
+		MessageId: "尚未实现返回send_msg_id，后续实现(撤回消息功能需要)", // todo
+	}
+
+	resp.Echo = req.Echo
+	resp.Retcode = oneboterr.OK
+	resp.Status = successStatus
+	resp.Data = msgRespData
+
+	respData, err := json.Marshal(resp)
+	if err != nil {
+		logging.Error("marshal response failed", map[string]interface{}{"err": err})
+		retErr(c, "marshal response failed", oneboterr.INTERNAL_HANDLER_ERROR, failedStatus)
+		return
+	}
+
+	// 返回处理结果
+	c.Header("Content-Type", "application/json")
+	logging.Info(fmt.Sprintf("发送成功回执: %+v", string(respData)))
+	c.String(http.StatusOK, string(respData)) // 返回json字符串
 }
 
 // 处理错误并返回 json
