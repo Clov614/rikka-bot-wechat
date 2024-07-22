@@ -41,6 +41,16 @@ Http post 上报`onebot_event`
 ### 关于设置
 
 ```yaml
+# Http server config
+http_server:
+  # The Robot HTTP Address default to http://127.0.0.1:10614
+  http_address: http://127.0.0.1:10614
+  # 接口鉴权
+  access_token: rikka-bot
+  # 是否启用 get_latest_events 元动作 todo 尚未实现
+  event_enabled: false
+  # 事件缓冲区大小，超过该大小将会丢弃最旧的事件，0 表示不限大小
+  event_buffer_size: 0
 # Http 上报器，如不需要请注释掉
 http_post:
     - # The httpapi post URL
@@ -57,7 +67,7 @@ http_post:
       # The httpapi post Access Token
       secret: ""
       # The maximum number of retries
-      max_retries: 3
+      max_retries: 3 # todo 尚未实现(默认就好不用管)
       # 上报请求超时时间
       time_out: 5
 # 是否开启心跳
