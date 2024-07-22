@@ -12,6 +12,19 @@
 [![](https://img.shields.io/github/license/Clov614/rikka-bot-wechat)](https://github.com/Clov614/rikka-bot-wechat/blob/main/LICENSE "许可协议")
 </div>
 
+## [OneBot V12 标准](https://12.onebot.dev/)
+
+- [x] HTTP
+- [x] Http WebHook
+- [ ] 正向WebSocket
+- [ ] 反向WebSocket
+
+### OneBot客户端快速使用
+
+1. 前往 [Release](https://github.com/Clov614/rikka-bot-wechat/releases) 页面下载对应系统版本的可执行文件
+
+2. [查看配置和启动说明](docs/onebot/README.md)
+
 ## 功能介绍
 
 1. - [x] 支持规则校验
@@ -19,9 +32,9 @@
 3. - [x] 插件化调用对话（普通对话/长对话）
 4. - [x] 权限管理
 5. - [ ] corn定时任务
-6. - [ ] 正向http
+6. - [x] OneBot 标准客户端
 
-## 快速开始
+## 机器人快速开始
 
 前往 [Release](https://github.com/Clov614/rikka-bot-wechat/releases) 页面下载对应系统版本的可执行文件
 
