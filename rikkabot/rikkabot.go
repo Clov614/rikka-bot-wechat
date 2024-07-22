@@ -12,6 +12,7 @@ import (
 	"wechat-demo/rikkabot/message"
 	"wechat-demo/rikkabot/onebot/dto/event"
 	"wechat-demo/rikkabot/processor"
+	"wechat-demo/rikkabot/utils/imgutil"
 )
 
 type RikkaBot struct {
@@ -36,6 +37,7 @@ type RikkaBot struct {
 var (
 	ErrInvalidCall = errors.New("invalid bot call")
 	ErrSendMsg     = errors.New("send message error")
+	ErrFetchImg    = errors.New("fetch image error")
 )
 
 var DefaultBot *RikkaBot
@@ -174,8 +176,13 @@ func (r *RikkaBot) SendMsg(msgType message.MsgType, isGroup bool, data any, send
 		err = r.self.SendTextById(sendId, s, isGroup)
 	case message.MsgTypeImage:
 		d, ok := data.([]byte)
-		if !ok {
-			return fmt.Errorf("`SendMsg of image` must be a []byte: %w", ErrSendMsg)
+		if !ok { // 断言失败，传入的是路径，请求即可
+			path := data.(string)
+			d, err = imgutil.ImgFetch(path)
+			if err != nil {
+				err = fmt.Errorf("%w 从路径 %s 中获取路径发送错误 %w", ErrFetchImg, path, err)
+				return err
+			}
 		}
 		var buf bytes.Buffer
 		buf.Write(d)
