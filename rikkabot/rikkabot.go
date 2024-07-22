@@ -144,7 +144,7 @@ func (r *RikkaBot) DispatchMsgEvent(rikkaMsg message.Message) {
 	msgEvent.InitMsgEvent(rikkaMsg)
 	err := r.EventPool.AddEvent(msgEvent) // ignore err
 	if err != nil {
-		logging.Warn(fmt.Sprintf("事件池警告 %w", err))
+		logging.Warn(fmt.Sprintf("事件池警告 %s", err))
 	}
 }
 

@@ -344,6 +344,6 @@ func encrypt(secret string) string {
 	key := []byte(secret)
 	hash := sha256.New()
 	hash.Write(key)
-	bytes := hash.Sum(nil)
-	return hex.EncodeToString(bytes)
+	secreted := hash.Sum(nil)
+	return hex.EncodeToString(secreted)
 }

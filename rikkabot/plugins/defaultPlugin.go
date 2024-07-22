@@ -57,7 +57,7 @@ func testLongDialogPlugin() {
 				err = self.SendText2GroupById(sendId, msgBuf.String())
 			} else {
 				sendId = firstMsg.SenderId
-				self.SendText2FriendById(sendId, msgBuf.String())
+				err = self.SendText2FriendById(sendId, msgBuf.String())
 			}
 			if err != nil {
 				logging.ErrorWithErr(err, "send message oneboterr")
