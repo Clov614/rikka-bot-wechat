@@ -5,12 +5,17 @@
 package event
 
 import (
-	"fmt"
+	"errors"
 	"github.com/google/uuid"
 	"sync"
 	"time"
 	"wechat-demo/rikkabot/message"
 	"wechat-demo/rikkabot/utils/timeutil"
+)
+
+var (
+	ErrEventPoolFull = errors.New("EventPool is full")
+	ErrNoEventIn     = errors.New("no events in pool")
 )
 
 type IEvent interface{}
@@ -111,7 +116,7 @@ func (ep *EventPool) AddEvent(event IEvent) error {
 	case ep.Events <- event:
 		return nil
 	default:
-		return fmt.Errorf("EventPool is full")
+		return ErrEventPoolFull
 	}
 }
 
@@ -121,7 +126,7 @@ func (ep *EventPool) GetEvent() (IEvent, error) {
 	case event := <-ep.Events:
 		return event, nil
 	default:
-		return Event{}, fmt.Errorf("no events in pool")
+		return Event{}, ErrNoEventIn
 	}
 }
 

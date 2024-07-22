@@ -49,6 +49,9 @@ func Save(path string, filename string, v interface{}) error {
 		return err
 	}
 	err = os.WriteFile(path, data, 0644)
+	if err != nil {
+		return fmt.Errorf("save Error: %w", err)
+	}
 	return nil
 }
 

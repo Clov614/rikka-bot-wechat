@@ -268,7 +268,7 @@ func (c HttpClient) Run() {
 	c.client = &http.Client{
 		Timeout: time.Duration(c.timeout) * time.Second,
 	}
-	logging.Info(fmt.Sprintf("Http Post 上报器已启动！%s", c.postUrl))
+	logging.Info("Http Post 上报器已启动！" + c.postUrl)
 	// 注册事件处理
 	c.bot.OnEventPush(c.HandlerPostEvent)
 }
@@ -301,14 +301,17 @@ func HandlerHeartBeat(bot *rikkabot.RikkaBot) {
 // HandlerPostEvent 处理 post 事件
 func (c HttpClient) HandlerPostEvent(event event.IEvent) {
 	// todo 失败的请求根据 MaxRetries 重试
-	eventJSON, _ := json.Marshal(event)
+	eventJSON, err := json.Marshal(event)
+	if err != nil {
+		logging.Error("marshal event failed", map[string]interface{}{"err": err})
+	}
 
 	req, err := http.NewRequest("POST", c.postUrl, bytes.NewBuffer(eventJSON))
 	if err != nil {
 		logHttpPostError(event, err, "request create failed")
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", encrypt(c.secret)))
+	req.Header.Set("Authorization", "Bearer "+encrypt(c.secret))
 
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -331,7 +334,7 @@ func (c HttpClient) HandlerPostEvent(event event.IEvent) {
 		logHttpPostError(event, nil, "response status code not 200")
 	}
 
-	logging.Debug(fmt.Sprintf("response body: %s", string(body)), map[string]interface{}{"event": event})
+	logging.Debug("response body: "+string(body), map[string]interface{}{"event": event})
 }
 
 func logHttpPostError(event event.IEvent, err error, msg string) {

@@ -5,6 +5,7 @@
 package imgutil
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -26,18 +27,26 @@ func isURL(path string) bool {
 func fetchFromURL(url string) ([]byte, error) {
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fetchFromURL: http.Get(%q): %w", url, err)
 	}
 	defer resp.Body.Close()
-	return io.ReadAll(resp.Body)
+	bytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("fetchFromURL: resp.Body.ReadAll(): %w", err)
+	}
+	return bytes, nil
 }
 
 // fetchFromFile fetches the content from the file
 func fetchFromFile(filePath string) ([]byte, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fetchFromFile: os.Open(%q): %w", filePath, err)
 	}
 	defer file.Close()
-	return io.ReadAll(file)
+	bytes, err := io.ReadAll(file)
+	if err != nil {
+		return nil, fmt.Errorf("fetchFromFile: io.ReadAll(file): %w", err)
+	}
+	return bytes, nil
 }
