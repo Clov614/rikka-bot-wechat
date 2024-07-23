@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
@@ -234,6 +235,8 @@ type HttpClient struct {
 	timeout    int
 	client     *http.Client
 	MaxRetries int
+	InitDelay  time.Duration // 最初的重试间隔
+	MaxDelay   time.Duration // 最大重试间隔
 	bot        *rikkabot.RikkaBot
 }
 
@@ -254,6 +257,8 @@ func RunHttp(rbot *rikkabot.RikkaBot) {
 			postUrl:    post.Url,
 			timeout:    post.TimeOut,
 			MaxRetries: post.MaxRetries,
+			InitDelay:  1500 * time.Millisecond,
+			MaxDelay:   8 * time.Second,
 			bot:        rbot,
 		}.Run()
 	}
@@ -300,27 +305,51 @@ func HandlerHeartBeat(bot *rikkabot.RikkaBot) {
 
 // HandlerPostEvent 处理 post 事件
 func (c HttpClient) HandlerPostEvent(event event.IEvent) {
+	var err error
 	// todo 失败的请求根据 MaxRetries 重试
 	eventJSON, err := json.Marshal(event)
 	if err != nil {
 		logging.Error("marshal event failed", map[string]interface{}{"err": err})
 	}
+	var req *http.Request
+	var resp *http.Response
+	for i := 0; i <= c.MaxRetries; i++ {
+		req, err = http.NewRequest("POST", c.postUrl, bytes.NewBuffer(eventJSON))
+		if err != nil {
+			logHttpPostError(event, err, "request create failed")
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+encrypt(c.secret))
 
-	req, err := http.NewRequest("POST", c.postUrl, bytes.NewBuffer(eventJSON))
-	if err != nil {
-		logHttpPostError(event, err, "request create failed")
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+encrypt(c.secret))
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		logHttpPostError(event, err, "request post failed")
-	}
-	if resp == nil || resp.Body == nil {
-		logging.Fatal("Http上报器连接错误", 3, map[string]interface{}{"err": err})
+		resp, err = c.client.Do(req) // nolint:bodyclose
+		if err == nil && resp != nil && resp.StatusCode == 200 {
+			break
+		}
+		if i < c.MaxRetries {
+			logging.Warn(fmt.Sprintf("上报 Event 数据到 %v 失败， 将进行第 %d 次重试", c.postUrl, i+1),
+				map[string]interface{}{"err": err})
+		} else {
+			logging.Warn(fmt.Sprintf("上报 Event 到 %v 失败, 停止上报：已达重试上限", c.postUrl),
+				map[string]interface{}{"err": err, "event": event})
+			return
+		}
+		delay := c.InitDelay << i
+		if delay > c.MaxDelay {
+			delay = c.MaxDelay
+		}
+		// 添加随机抖动
+		jitter := time.Duration(rand.Int63n(int64(delay) / 2))
+		delay += jitter
+		time.Sleep(delay)
 	}
 	defer resp.Body.Close()
+
+	logging.Debug("上报Event数据到 "+c.postUrl, map[string]interface{}{"event": event})
+	if resp.Body == nil {
+		logging.Warn("返回Body数据为空", map[string]interface{}{"err": err})
+		return
+	}
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logHttpPostError(event, err, "response body read failed")

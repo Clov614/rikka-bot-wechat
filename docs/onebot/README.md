@@ -67,7 +67,7 @@ http_post:
       # The httpapi post Access Token
       secret: ""
       # The maximum number of retries
-      max_retries: 3 # todo 尚未实现(默认就好不用管)
+      max_retries: 3
       # 上报请求超时时间
       time_out: 5
 # 是否开启心跳
