@@ -5,8 +5,8 @@
 package secretutil
 
 import (
-	"fmt"
 	"hash/fnv"
+	"strconv"
 )
 
 // generateFixedLengthID 生成固定长度的唯一标识符
@@ -16,7 +16,7 @@ func generateFixedLengthID(data string, length int) string {
 	sum := hash.Sum64()
 
 	// 转换为十六进制字符串
-	hexStr := fmt.Sprintf("%x", sum)
+	hexStr := strconv.FormatUint(sum, 16)
 
 	// 如果字符串长度不够，填充 '0'
 	for len(hexStr) < length {

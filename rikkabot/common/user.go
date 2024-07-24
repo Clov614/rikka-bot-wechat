@@ -508,7 +508,7 @@ func (s *Self) SendTextByUuid(uuid string, text string, isGroup bool) error {
 			err = s.doSendTextByUuid(uuid, text, isGroup)
 		}
 	}
-	return err
+	return fmt.Errorf("send err %w", err)
 }
 
 func (s *Self) doSendTextByUuid(uuid string, text string, isGroup bool) error {
@@ -548,7 +548,7 @@ func (s *Self) SendImgByUuid(uuid string, img io.Reader, isGroup bool) error {
 			err = s.doSendImgByUuid(uuid, img, isGroup)
 		}
 	}
-	return err
+	return fmt.Errorf("send err %w", err)
 }
 
 func (s *Self) doSendImgByUuid(uuid string, img io.Reader, isGroup bool) error {
@@ -585,8 +585,9 @@ func IsUuidValid(uuid string) bool {
 // GetUuidById 根据 用户id获取uuid
 func (s *Self) GetUuidById(id string, isGroup bool) (string, error) {
 	if isGroup {
+		var group *openwechat.User
 		s.mu.RLock()
-		group := s.MyGroups.SearchById(id)
+		group = s.MyGroups.SearchById(id)
 		s.mu.RUnlock()
 		if group == nil { // 尝试更新群组信息后再次获取
 			s.UpdateGroups()
