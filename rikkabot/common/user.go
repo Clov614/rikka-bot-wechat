@@ -496,6 +496,7 @@ func (s *Self) SetGroupUid(group *openwechat.Group, g *openwechat.User) {
 }
 
 // SendTextByUuid 根据uuid 发送文字
+// nolint:wrapcheck
 func (s *Self) SendTextByUuid(uuid string, text string, isGroup bool) error {
 	var err error
 	err = s.doSendTextByUuid(uuid, text, isGroup)
@@ -520,6 +521,7 @@ func (s *Self) SendTextByUuid(uuid string, text string, isGroup bool) error {
 	return nil
 }
 
+// nolint:wrapcheck
 func (s *Self) doSendTextByUuid(uuid string, text string, isGroup bool) error {
 	// todo 重构 回调消息id 支持撤回
 	if isGroup {
@@ -545,6 +547,7 @@ func (s *Self) doSendTextByUuid(uuid string, text string, isGroup bool) error {
 }
 
 // SendImgByUuid 根据uuid 发送图片
+// nolint:wrapcheck
 func (s *Self) SendImgByUuid(uuid string, img io.Reader, isGroup bool) error {
 	var err error
 	err = s.doSendImgByUuid(uuid, img, isGroup)
@@ -570,6 +573,7 @@ func (s *Self) SendImgByUuid(uuid string, img io.Reader, isGroup bool) error {
 	return nil
 }
 
+// nolint:wrapcheck
 func (s *Self) doSendImgByUuid(uuid string, img io.Reader, isGroup bool) error {
 	if isGroup {
 		group, ok := s.UidGroupDict[uuid]
