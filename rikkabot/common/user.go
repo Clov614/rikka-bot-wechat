@@ -497,7 +497,8 @@ func (s *Self) SetGroupUid(group *openwechat.Group, g *openwechat.User) {
 
 // SendTextByUuid 根据uuid 发送文字
 func (s *Self) SendTextByUuid(uuid string, text string, isGroup bool) error {
-	err := s.doSendTextByUuid(uuid, text, isGroup)
+	var err error
+	err = s.doSendTextByUuid(uuid, text, isGroup)
 	if err != nil {
 		switch true {
 		case errors.Is(err, ErrGroupNotFound):
@@ -545,7 +546,8 @@ func (s *Self) doSendTextByUuid(uuid string, text string, isGroup bool) error {
 
 // SendImgByUuid 根据uuid 发送图片
 func (s *Self) SendImgByUuid(uuid string, img io.Reader, isGroup bool) error {
-	err := s.doSendImgByUuid(uuid, img, isGroup)
+	var err error
+	err = s.doSendImgByUuid(uuid, img, isGroup)
 	if err != nil {
 		switch true {
 		case errors.Is(err, ErrGroupNotFound):
