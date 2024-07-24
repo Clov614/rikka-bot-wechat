@@ -94,6 +94,17 @@ func Warn(msg string, fields ...map[string]interface{}) {
 	event.Msg(msg)
 }
 
+func WarnWithErr(err error, msg string, fields ...map[string]interface{}) {
+	event := log.Warn()
+	event.Err(err)
+	for _, field := range fields {
+		for k, v := range field {
+			event = event.Interface(k, v)
+		}
+	}
+	event.Msg(msg)
+}
+
 func Fatal(msg string, exitCode int, fields ...map[string]interface{}) {
 	event := log.Fatal()
 	for _, field := range fields {

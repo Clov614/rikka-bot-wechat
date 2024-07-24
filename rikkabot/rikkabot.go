@@ -107,7 +107,7 @@ func (r *RikkaBot) PushLoginNoticeEvent() {
 	initNoticeEvent := noticeEvent.InitNoticeEvent(e, loginData)
 	err := r.EventPool.AddEvent(*initNoticeEvent)
 	if err != nil {
-		logging.Warn("登录回调消息事件错误", map[string]interface{}{"err": err})
+		logging.WarnWithErr(err, "登录回调消息事件错误")
 	}
 }
 

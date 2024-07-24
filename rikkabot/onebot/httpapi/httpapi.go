@@ -69,12 +69,14 @@ func (s HttpServer) Run() {
 	// 启动
 	parsedURL, err := url.Parse(s.HttpAddr)
 	if err != nil {
-		logging.Fatal("启动正向http致命错误!请检查地址是否正确", 4, map[string]interface{}{"err": err})
+		log.Debug().Err(err).Msg("启动正向http致命错误!请检查地址是否正确")
+		logging.Fatal("启动正向http致命错误!请检查地址是否正确", 4)
 	}
 	go func() {
 		err = r.Run(parsedURL.Host)
 		if err != nil {
-			logging.Fatal("启动正向http致命错误!", 4, map[string]interface{}{"err": err})
+			log.Debug().Err(err).Msg("启动正向http致命错误")
+			logging.Fatal("启动正向http致命错误!", 4)
 		}
 	}()
 	logging.Info(fmt.Sprintf("正向http启动成功,监听: %s 端口", s.HttpAddr))
@@ -137,7 +139,7 @@ func (s HttpServer) handleLoginUrl(c *gin.Context) {
 	resp.Data = retData
 	respData, err := json.Marshal(resp)
 	if err != nil {
-		logging.Error("marshal response failed", map[string]interface{}{"err": err})
+		logging.Error("marshal response failed", map[string]interface{}{"err": err.Error()})
 		retErr(c, "marshal response failed", oneboterr.INTERNAL_HANDLER_ERROR, failedStatus)
 		return
 	}
@@ -192,7 +194,8 @@ func (s HttpServer) handleSendMsg(c *gin.Context) {
 
 	err := s.bot.SendMsg(req.Params.MsgType, isGroup, req.Params.Message, req.Params.SendId)
 	if err != nil {
-		logging.Error("Http server 发送消息错误", map[string]interface{}{"err": err})
+		logging.Error("Http server 发送消息错误", map[string]interface{}{"err": err.Error()})
+		logging.Warn("Tips: 如果未找到群聊请检查机器人账号是否将群聊添加至通讯录")
 		retErr(c, fmt.Sprintf("发送消息错误 err: %s", err), oneboterr.INTERNAL_HANDLER_ERROR, failedStatus)
 		return
 	}
@@ -208,7 +211,7 @@ func (s HttpServer) handleSendMsg(c *gin.Context) {
 
 	respData, err := json.Marshal(resp)
 	if err != nil {
-		logging.Error("marshal response failed", map[string]interface{}{"err": err})
+		logging.Error("marshal response failed", map[string]interface{}{"err": err.Error()})
 		retErr(c, "marshal response failed", oneboterr.INTERNAL_HANDLER_ERROR, failedStatus)
 		return
 	}
@@ -306,10 +309,9 @@ func HandlerHeartBeat(bot *rikkabot.RikkaBot) {
 // HandlerPostEvent 处理 post 事件
 func (c HttpClient) HandlerPostEvent(event event.IEvent) {
 	var err error
-	// todo 失败的请求根据 MaxRetries 重试
 	eventJSON, err := json.Marshal(event)
 	if err != nil {
-		logging.Error("marshal event failed", map[string]interface{}{"err": err})
+		logging.ErrorWithErr(err, "marshal event failed")
 	}
 	var req *http.Request
 	var resp *http.Response
@@ -330,7 +332,8 @@ func (c HttpClient) HandlerPostEvent(event event.IEvent) {
 				map[string]interface{}{"err": err})
 		} else {
 			logging.Warn(fmt.Sprintf("上报 Event 到 %v 失败, 停止上报：已达重试上限", c.postUrl),
-				map[string]interface{}{"err": err, "event": event})
+				map[string]interface{}{"err": err})
+			logging.Debug("上报Event上限停止上报", map[string]interface{}{"event": event})
 			return
 		}
 		delay := c.InitDelay << i

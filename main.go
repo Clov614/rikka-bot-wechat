@@ -69,7 +69,7 @@ func main() {
 	defer func() {
 		err := reloadStorage.Close()
 		if err != nil {
-			logging.Fatal("get reload storage err", 1, map[string]interface{}{"err": err})
+			logging.Fatal("get reload storage err", 1, map[string]interface{}{"err": err.Error()})
 		}
 	}()
 	logging.Warn("请在手机中确认登录 or 扫码登录")
@@ -107,7 +107,7 @@ func main() {
 	// 阻塞主goroutine, 直到发生异常或者用户主动退出
 	err := rbot.Block()
 	if err != nil {
-		logging.Warn("rikka bot.Block() error", map[string]interface{}{"err": err.Error()})
+		logging.WarnWithErr(err, "rikka bot.Block() error")
 	}
 }
 

@@ -7,6 +7,7 @@ package httpapi
 import (
 	"github.com/eatmoreapple/openwechat"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"testing"
 	"wechat-demo/rikkabot"
 	"wechat-demo/rikkabot/adapter"
@@ -27,7 +28,8 @@ func TestHttpPost(t *testing.T) {
 	defer func() {
 		err := reloadStorage.Close()
 		if err != nil {
-			logging.Fatal("get reload storage err", 1, map[string]interface{}{"err": err})
+			log.Debug().Err(err).Msg("get reload storage err")
+			logging.Fatal("get reload storage err", 1)
 		}
 	}()
 	println("请在手机中确认登录")
@@ -48,6 +50,6 @@ func TestHttpPost(t *testing.T) {
 	// 阻塞主goroutine, 直到发生异常或者用户主动退出
 	err := rbot.Block()
 	if err != nil {
-		logging.Warn("rikka bot.Block() error", map[string]interface{}{"err": err.Error()})
+		logging.WarnWithErr(err, "rikka bot.Block() error")
 	}
 }

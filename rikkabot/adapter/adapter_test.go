@@ -236,7 +236,7 @@ func imgEcho(a *Adapter, done chan struct{}) error {
 				msg := rikkaMsg.MetaData.GetRawMsg().(*openwechat.Message)
 				err := msg.SaveFileToLocal("./test/testImg.jpg")
 				if err != nil {
-					logging.Warn("save img file to local fail", map[string]interface{}{"err": err.Error()})
+					logging.WarnWithErr(err, "save img file to local fail")
 				}
 				a.selfBot.GetRespMsgSendChan() <- rikkaMsg
 
