@@ -503,12 +503,20 @@ func (s *Self) SendTextByUuid(uuid string, text string, isGroup bool) error {
 		case errors.Is(err, ErrGroupNotFound):
 			s.UpdateGroups() // 尝试更新群组后再重发一次
 			err = s.doSendTextByUuid(uuid, text, isGroup)
+			if err != nil {
+				return fmt.Errorf("second attempt after group update failed: %w", err)
+			}
 		case errors.Is(err, ErrFriendNotFound):
 			s.UpdateFriends()
 			err = s.doSendTextByUuid(uuid, text, isGroup)
+			if err != nil {
+				return fmt.Errorf("second attempt after friend update failed: %w", err)
+			}
+		default:
+			return fmt.Errorf("sendTextByUuid failed with unexpected error: %w", err)
 		}
 	}
-	return fmt.Errorf("send err %w", err)
+	return nil
 }
 
 func (s *Self) doSendTextByUuid(uuid string, text string, isGroup bool) error {
@@ -543,12 +551,21 @@ func (s *Self) SendImgByUuid(uuid string, img io.Reader, isGroup bool) error {
 		case errors.Is(err, ErrGroupNotFound):
 			s.UpdateGroups() // 尝试更新群组后再重发一次
 			err = s.doSendImgByUuid(uuid, img, isGroup)
+			if err != nil {
+				return fmt.Errorf("second attempt after group update failed: %w", err)
+			}
 		case errors.Is(err, ErrFriendNotFound):
 			s.UpdateFriends()
 			err = s.doSendImgByUuid(uuid, img, isGroup)
+			if err != nil {
+				return fmt.Errorf("second attempt after friend update failed: %w", err)
+			}
+		default:
+			return fmt.Errorf("sendTextByUuid failed with unexpected error: %w", err)
 		}
+
 	}
-	return fmt.Errorf("send err %w", err)
+	return nil
 }
 
 func (s *Self) doSendImgByUuid(uuid string, img io.Reader, isGroup bool) error {
@@ -592,11 +609,15 @@ func (s *Self) GetUuidById(id string, isGroup bool) (string, error) {
 		if group == nil { // 尝试更新群组信息后再次获取
 			s.UpdateGroups()
 			group = s.MyGroups.SearchById(id)
-			logging.WarnWithErr(ErrGroupNotFound, "GetUuidById failed 请检查是否机器人群聊未加入通信录")
-			return "", fmt.Errorf("GetUuidById failed: %w", ErrGroupNotFound)
+			if group == nil {
+				logging.WarnWithErr(ErrGroupNotFound, "GetUuidById failed 请检查是否机器人群聊未加入通信录")
+				return "", fmt.Errorf("GetUuidById failed: %w", ErrGroupNotFound)
+			}
 		}
 		return secretutil.GenerateUnitId(group.RemarkName), nil
 	}
+
+	// 好友逻辑
 	friend := s.MyFriends.SearchById(id)
 	if friend == nil {
 		s.UpdateFriends()
