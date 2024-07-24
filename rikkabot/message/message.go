@@ -24,6 +24,7 @@ type Message struct {
 	Raw             []byte   `json:"Raw"`
 	RawContent      string   `json:"RawContent"`
 	Content         string   `json:"content"`            // 消息内容
+	Uuid            string   `json:"uuid"`               // 用户唯一标识
 	GroupId         string   `json:"group_id"`           // 唯一标识
 	SenderId        string   `json:"sender_id"`          // 唯一标识
 	ReceiverId      string   `json:"receiver_id"`        // 唯一标识

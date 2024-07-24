@@ -11,7 +11,6 @@ import (
 	"wechat-demo/rikkabot"
 	"wechat-demo/rikkabot/common"
 	"wechat-demo/rikkabot/logging"
-
 	"wechat-demo/rikkabot/message"
 )
 
@@ -129,6 +128,7 @@ func (md *MetaData) runDelayTimer(delayMin int, delayMax int) {
 
 //</editor-fold>
 
+// covert 消息转换处理
 func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 	var rikkaMsgType message.MsgType
 	switch msg.MsgType {
@@ -150,8 +150,10 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 	rikkacfg := a.selfBot.Config
 	go metaData.runDelayTimer(rikkacfg.AnswerDelayRandMin, rikkacfg.AnswerDelayRandMax) // 消息随机延迟
 
+	rself := common.GetSelf() // 获取rikka的self对象
 	// 获取 ID
 	isSendByGroup := msg.IsSendByGroup()
+	uuid := ""
 	GroupId := ""
 	ReceiveId := ""
 	SenderId := ""
@@ -160,6 +162,7 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 	var isAtMe = false
 	var groupNameList []string
 	var groupAtNameList []string
+	var uuiderr error
 
 	if isSendByGroup {
 		senderInGroup, _ := msg.SenderInGroup() // ignore err
@@ -202,10 +205,17 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 				isAtMe = match[1] == self.NickName // 是否艾特自己
 			}
 		}
+		// 获取uuid
+		uuid, uuiderr = rself.GetUuidById(GroupId, isSendByGroup)
 
 	} else {
 		SenderId = sender.AvatarID()
 		ReceiveId = receiver.AvatarID()
+		// 获取uuid
+		uuid, uuiderr = rself.GetUuidById(SenderId, isSendByGroup)
+	}
+	if uuiderr != nil {
+		logging.WarnWithErr(uuiderr, "GetUUID Failed")
 	}
 
 	return &message.Message{
@@ -214,6 +224,7 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 		Raw:             handleSpecialRaw(msg),
 		RawContent:      msg.RawContent,
 		Content:         msg.Content,
+		Uuid:            uuid, // 通过备注名获取的唯一用户标识
 		GroupId:         GroupId,
 		SenderId:        SenderId,
 		ReceiverId:      ReceiveId,
@@ -234,6 +245,8 @@ func handleSpecialRaw(msg *openwechat.Message) []byte {
 			logging.ErrorWithErr(err, "SaveFile fail")
 		}
 		return buf.Bytes()
+	} else if msg.MsgType == openwechat.MsgTypeText {
+		return nil
 	}
 	return nil
 }

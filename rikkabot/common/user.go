@@ -9,16 +9,31 @@ import (
 	"fmt"
 	"github.com/eatmoreapple/openwechat"
 	"io"
+	"sync"
+	"wechat-demo/rikkabot/logging"
+	"wechat-demo/rikkabot/utils/secretutil"
 )
 
 type Self struct {
-	self       *openwechat.Self
-	Groups     *openwechat.Groups
-	Friends    *openwechat.Friends
+	self    *openwechat.Self
+	Groups  openwechat.Groups
+	Friends openwechat.Friends
+	MyGroups
+	MyFriends
 	FileHelper *openwechat.Friend
+	*UidDict
+	mu sync.RWMutex
 }
 
-var self Self
+type MyGroups []*openwechat.User
+type MyFriends []*openwechat.User
+
+type UidDict struct {
+	UidGroupDict  map[string]*openwechat.Group
+	UidFriendDict map[string]*openwechat.Friend
+}
+
+var self *Self
 
 var (
 	ErrFriendNotFound = errors.New("friend not found")
@@ -26,7 +41,7 @@ var (
 )
 
 func GetSelf() *Self {
-	return &self
+	return self
 }
 
 func InitSelf(bot *openwechat.Bot) {
@@ -34,12 +49,70 @@ func InitSelf(bot *openwechat.Bot) {
 	friends, _ := bself.Friends()    // ignore err
 	groups, _ := bself.Groups()      // ignore err
 	helper := bself.FileHelper()
-	self = Self{
+	self = &Self{
 		self:       bself,
-		Groups:     &groups,
-		Friends:    &friends,
+		Groups:     groups,
+		Friends:    friends,
 		FileHelper: helper,
+		UidDict: &UidDict{
+			UidGroupDict:  make(map[string]*openwechat.Group, groups.Count()),
+			UidFriendDict: make(map[string]*openwechat.Friend, friends.Count())},
 	}
+	// 初始化备份好友群聊
+	self.updateMyGroups()
+	self.updateMyFriends()
+	// 初始化 uid 缓存
+	self.UpdateFriendRemarkname()
+	self.UpdateGroupRemarkname()
+
+	logging.Info(fmt.Sprintf("初始话用户数据成功！加载到的用户共有 %d 条，群聊共有 %d 条。", friends.Count(), groups.Count()))
+	logging.Debug("初始化用户数据", map[string]interface{}{"self": self})
+}
+
+// updateMyGroups 更新备份群组
+func (s *Self) updateMyGroups() {
+	s.MyGroups = make([]*openwechat.User, 0, s.Groups.Count())
+	for _, group := range s.Groups {
+		copyGroup := *group.User
+		s.MyGroups = append(s.MyGroups, &copyGroup)
+	}
+}
+
+// updateMyFriends 更新备份好友
+func (s *Self) updateMyFriends() {
+	s.MyFriends = make([]*openwechat.User, 0, s.Friends.Count())
+	for _, friend := range s.Friends {
+		copyUser := *friend.User
+		s.MyFriends = append(s.MyFriends, &copyUser)
+	}
+}
+
+// UpdateGroups 更新群组
+func (s *Self) UpdateGroups() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var err error
+	s.Groups, err = s.self.Groups(true)
+	if err != nil {
+		logging.WarnWithErr(err, "更新群组失败")
+		return
+	}
+	s.updateMyGroups()
+	s.UpdateGroupRemarkname() // 更新备注信息以及 uid缓存
+}
+
+// UpdateFriends 更新好友
+func (s *Self) UpdateFriends() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var err error
+	s.Friends, err = s.self.Friends(true)
+	if err != nil {
+		logging.WarnWithErr(err, "更新好友失败")
+		return
+	}
+	s.updateMyFriends()
+	s.UpdateFriendRemarkname() // 更新备注信息以及 uid缓存
 }
 
 // SendText2FriendByNickname 根据好友名称发送文字
@@ -212,6 +285,15 @@ func (s *Self) SendTextById(id string, text string, isGroup bool) error {
 	} else {
 		err = s.SendText2FriendById(id, text)
 	}
+	// 如果找不到群组或用户，更新后重试一次
+	if err != nil && errors.Is(err, ErrFriendNotFound) {
+		s.UpdateFriends()
+		err = s.SendText2FriendById(id, text)
+	} else if err != nil && errors.Is(err, ErrGroupNotFound) {
+		s.UpdateGroups()
+		err = s.SendText2GroupById(id, text)
+	}
+
 	return err
 }
 
@@ -259,7 +341,7 @@ func (s *Self) GetGroupnameList() []string {
 	groupcnt := s.Groups.Count()
 	groupnames := make([]string, groupcnt)
 	for i := 0; i < groupcnt; i++ {
-		groupnames[i] = (*s.Groups)[i].NickName
+		groupnames[i] = s.Groups[i].NickName
 	}
 	return groupnames
 }
@@ -269,7 +351,7 @@ func (s *Self) GetFriendsList() []string {
 	friendcnt := s.Friends.Count()
 	friendnames := make([]string, friendcnt)
 	for i := 0; i < friendcnt; i++ {
-		friendnames[i] = (*s.Friends)[i].NickName
+		friendnames[i] = s.Friends[i].NickName
 	}
 	return friendnames
 }
@@ -341,4 +423,202 @@ func (s *Self) doGetNicknameById(id string, isGroup bool) (string, error) {
 		}
 		return friend.NickName, nil
 	}
+}
+
+// UpdateGroupRemarkname 根据群名称更新备注群名 无法备注，用本地存储
+// 如果已有备注名则忽略
+// 重复的备注名则增加序号区分
+func (s *Self) UpdateGroupRemarkname() {
+	var remarkSet = make(map[string]int)
+	for _, group := range s.MyGroups {
+		if group.RemarkName == "" { // 没有备注名，自动备注为群名
+			newRemark := group.NickName
+			cnt := remarkSet[newRemark]
+			if cnt > 0 { // 备注名称存在重复
+				newRemark = fmt.Sprintf("%s%d", newRemark, cnt)
+			}
+			remarkSet[newRemark] = cnt + 1
+			group.RemarkName = newRemark
+		}
+		g := s.Groups.Search(1, func(g *openwechat.Group) bool {
+			if g.AvatarID() == group.AvatarID() {
+				return true
+			}
+			if g.RemarkName == group.RemarkName {
+				return true
+			}
+			if g.NickName == group.NickName {
+				return true
+			}
+			return false
+		}).First()
+		s.SetGroupUid(g, group) // 缓存uid对应群聊
+	}
+}
+
+// UpdateFriendRemarkname 根据用户名称更新用户备注
+func (s *Self) UpdateFriendRemarkname() {
+	var remarkSet = make(map[string]int)
+	for _, friend := range s.MyFriends {
+		if friend.RemarkName == "" {
+			newRemark := friend.NickName
+			cnt := remarkSet[newRemark]
+			if cnt > 0 {
+				friend.RemarkName = fmt.Sprintf("%s%d", newRemark, cnt)
+			}
+			friend.RemarkName = newRemark
+			remarkSet[newRemark] = cnt + 1
+		}
+		f := s.Friends.Search(1, func(f *openwechat.Friend) bool {
+			if f.AvatarID() == friend.AvatarID() {
+				return true
+			}
+			if f.RemarkName == friend.RemarkName {
+				return true
+			}
+			if f.NickName == friend.NickName {
+				return true
+			}
+			return false
+		}).First()
+		s.SetFriendUid(f, friend) // 缓存uid对应用户
+	}
+}
+
+func (s *Self) SetFriendUid(friend *openwechat.Friend, f *openwechat.User) {
+	uid := secretutil.GenerateUnitId(f.RemarkName)
+	s.UidFriendDict[uid] = friend
+}
+
+func (s *Self) SetGroupUid(group *openwechat.Group, g *openwechat.User) {
+	uid := secretutil.GenerateUnitId(g.RemarkName)
+	s.UidGroupDict[uid] = group
+}
+
+// SendTextByUuid 根据uuid 发送文字
+func (s *Self) SendTextByUuid(uuid string, text string, isGroup bool) error {
+	err := s.doSendTextByUuid(uuid, text, isGroup)
+	if err != nil {
+		switch true {
+		case errors.Is(err, ErrGroupNotFound):
+			s.UpdateGroups() // 尝试更新群组后再重发一次
+			err = s.doSendTextByUuid(uuid, text, isGroup)
+		case errors.Is(err, ErrFriendNotFound):
+			s.UpdateFriends()
+			err = s.doSendTextByUuid(uuid, text, isGroup)
+		}
+	}
+	return err
+}
+
+func (s *Self) doSendTextByUuid(uuid string, text string, isGroup bool) error {
+	// todo 重构 回调消息id 支持撤回
+	if isGroup {
+		group, ok := s.UidGroupDict[uuid]
+		if !ok {
+			return fmt.Errorf("sendTextByUuid failed: %w", ErrGroupNotFound)
+		}
+		_, err := group.SendText(text)
+		if err != nil {
+			return fmt.Errorf("sendTextByUuid openwechat failed: %w", err)
+		}
+	} else {
+		friend, ok := s.UidFriendDict[uuid]
+		if !ok {
+			return fmt.Errorf("sendTextByUuid failed: %w", ErrFriendNotFound)
+		}
+		_, err := friend.SendText(text)
+		if err != nil {
+			return fmt.Errorf("sendTextByUuid openwechat failed: %w", err)
+		}
+	}
+	return nil
+}
+
+// SendImgByUuid 根据uuid 发送图片
+func (s *Self) SendImgByUuid(uuid string, img io.Reader, isGroup bool) error {
+	err := s.doSendImgByUuid(uuid, img, isGroup)
+	if err != nil {
+		switch true {
+		case errors.Is(err, ErrGroupNotFound):
+			s.UpdateGroups() // 尝试更新群组后再重发一次
+			err = s.doSendImgByUuid(uuid, img, isGroup)
+		case errors.Is(err, ErrFriendNotFound):
+			s.UpdateFriends()
+			err = s.doSendImgByUuid(uuid, img, isGroup)
+		}
+	}
+	return err
+}
+
+func (s *Self) doSendImgByUuid(uuid string, img io.Reader, isGroup bool) error {
+	if isGroup {
+		group, ok := s.UidGroupDict[uuid]
+		if !ok {
+			return fmt.Errorf("sendImgByUuid failed: %w", ErrGroupNotFound)
+		}
+		_, err := group.SendImage(img)
+		if err != nil {
+			return fmt.Errorf("sendImgByUuid openwechat failed: %w", err)
+		}
+	} else {
+		friend, ok := s.UidFriendDict[uuid]
+		if !ok {
+			return fmt.Errorf("sendImgByUuid failed: %w", ErrFriendNotFound)
+		}
+		_, err := friend.SendImage(img)
+		if err != nil {
+			return fmt.Errorf("sendImgByUuid openwechat failed: %w", err)
+		}
+	}
+	return nil
+}
+
+// IsUuidValid 是否为uuid
+func IsUuidValid(uuid string) bool {
+	if len(uuid) != 16 {
+		return false
+	}
+	return true
+}
+
+// GetUuidById 根据 用户id获取uuid
+func (s *Self) GetUuidById(id string, isGroup bool) (string, error) {
+	if isGroup {
+		s.mu.RLock()
+		group := s.MyGroups.SearchById(id)
+		s.mu.RUnlock()
+		if group == nil { // 尝试更新群组信息后再次获取
+			s.UpdateGroups()
+			group = s.MyGroups.SearchById(id)
+			logging.WarnWithErr(ErrGroupNotFound, "GetUuidById failed 请检查是否机器人群聊未加入通信录")
+			return "", fmt.Errorf("GetUuidById failed: %w", ErrGroupNotFound)
+		}
+		return secretutil.GenerateUnitId(group.RemarkName), nil
+	}
+	friend := s.MyFriends.SearchById(id)
+	if friend == nil {
+		s.UpdateFriends()
+		friend = s.MyFriends.SearchById(id)
+
+	}
+	return secretutil.GenerateUnitId(friend.RemarkName), nil
+}
+
+func (mf MyFriends) SearchById(id string) *openwechat.User {
+	for _, friend := range mf {
+		if friend.AvatarID() == id {
+			return friend
+		}
+	}
+	return nil
+}
+
+func (mg MyGroups) SearchById(id string) *openwechat.User {
+	for _, g := range mg {
+		if g.AvatarID() == id {
+			return g
+		}
+	}
+	return nil
 }

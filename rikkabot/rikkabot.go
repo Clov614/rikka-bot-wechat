@@ -200,15 +200,19 @@ func (r *RikkaBot) GetRespMsgRecvChan() <-chan *message.Message {
 
 //endregion
 
-// todo 发送消息回调消息id 并保存sendmsg，提供过期控制、根据id查询发送的消息
 // SendMsg 统一发送消息接口 消息类型 是否群组 发送数据 群/好友 id
 func (r *RikkaBot) SendMsg(msgType message.MsgType, isGroup bool, data any, sendId string) error {
+	// todo 发送消息回调消息id 并保存sendmsg，提供过期控制、根据id查询发送的消息
 	var err error
 	switch msgType {
 	case message.MsgTypeText:
 		s, ok := data.(string)
 		if !ok {
 			return fmt.Errorf("`SendMsg of text` must be a string: %w", ErrSendMsg)
+		}
+		if common.IsUuidValid(sendId) { // 支持 uuid为sendId 发送消息
+			err = r.self.SendTextByUuid(sendId, s, isGroup)
+			return err
 		}
 		err = r.self.SendTextById(sendId, s, isGroup)
 	case message.MsgTypeImage:
@@ -223,6 +227,10 @@ func (r *RikkaBot) SendMsg(msgType message.MsgType, isGroup bool, data any, send
 		}
 		var buf bytes.Buffer
 		buf.Write(d)
+		if common.IsUuidValid(sendId) { // 支持 uuid为sendId 发送消息
+			err = r.self.SendImgByUuid(sendId, &buf, isGroup)
+			return err
+		}
 		err = r.self.SendImgById(sendId, &buf, isGroup)
 	default:
 		err = fmt.Errorf("`SendMsg of type` must be either text or image: %w", ErrSendMsg)
