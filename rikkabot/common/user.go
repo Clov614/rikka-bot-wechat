@@ -29,15 +29,19 @@ type MyGroups []*openwechat.User
 type MyFriends []*openwechat.User
 
 type UidDict struct {
-	UidGroupDict  map[string]*openwechat.Group
-	UidFriendDict map[string]*openwechat.Friend
+	UidGroupDict       map[string]*openwechat.Group
+	UidFriendDict      map[string]*openwechat.Friend
+	UidGroupNotUnique  map[string]bool
+	UidFriendNotUnique map[string]bool
 }
 
 var self *Self
 
 var (
-	ErrFriendNotFound = errors.New("friend not found")
-	ErrGroupNotFound  = errors.New("group not found")
+	ErrFriendNotFound  = errors.New("friend not found")
+	ErrGroupNotFound   = errors.New("group not found")
+	ErrGroupNotUnique  = errors.New("group not unique")
+	ErrFriendNotUnique = errors.New("friend not unique")
 )
 
 func GetSelf() *Self {
@@ -429,13 +433,23 @@ func (s *Self) doGetNicknameById(id string, isGroup bool) (string, error) {
 // 如果已有备注名则忽略
 // 重复的备注名则增加序号区分
 func (s *Self) UpdateGroupRemarkname() {
+	// 清空uid映射
+	s.UidGroupDict = make(map[string]*openwechat.Group, s.Groups.Count())
+	s.UidGroupNotUnique = make(map[string]bool, s.Groups.Count())
 	var remarkSet = make(map[string]int)
 	for _, group := range s.MyGroups {
 		if group.RemarkName == "" { // 没有备注名，自动备注为群名
 			newRemark := group.NickName
 			cnt := remarkSet[newRemark]
+			uuid := secretutil.GenerateUnitId(newRemark)
 			if cnt > 0 { // 备注名称存在重复
-				newRemark = fmt.Sprintf("%s%d", newRemark, cnt)
+				// 不注册并删除重复条uuid-group
+				if _, ok := s.UidGroupDict[uuid]; ok {
+					delete(s.UidGroupDict, uuid)
+				}
+				// 并且注册为重复uuid，提醒应用端
+				s.UidGroupNotUnique[uuid] = true
+				continue
 			}
 			remarkSet[newRemark] = cnt + 1
 			group.RemarkName = newRemark
@@ -458,13 +472,23 @@ func (s *Self) UpdateGroupRemarkname() {
 
 // UpdateFriendRemarkname 根据用户名称更新用户备注
 func (s *Self) UpdateFriendRemarkname() {
+	// 清空uid映射
+	s.UidFriendDict = make(map[string]*openwechat.Friend, s.Friends.Count())
+	s.UidFriendNotUnique = make(map[string]bool, s.Friends.Count())
 	var remarkSet = make(map[string]int)
 	for _, friend := range s.MyFriends {
 		if friend.RemarkName == "" {
 			newRemark := friend.NickName
 			cnt := remarkSet[newRemark]
-			if cnt > 0 {
-				friend.RemarkName = fmt.Sprintf("%s%d", newRemark, cnt)
+			uuid := secretutil.GenerateUnitId(newRemark)
+			if cnt > 0 { // 备注名称存在重复
+				// 不注册并删除重复条uuid-group
+				if _, ok := s.UidFriendDict[uuid]; ok {
+					delete(s.UidFriendDict, uuid)
+				}
+				// 并且注册为重复uuid，提醒应用端
+				s.UidFriendNotUnique[uuid] = true
+				continue
 			}
 			friend.RemarkName = newRemark
 			remarkSet[newRemark] = cnt + 1
@@ -500,6 +524,12 @@ func (s *Self) SetGroupUid(group *openwechat.Group, g *openwechat.User) {
 func (s *Self) SendTextByUuid(uuid string, text string, isGroup bool) error {
 	var err error
 	err = s.doSendTextByUuid(uuid, text, isGroup)
+	if errors.Is(err, ErrGroupNotUnique) {
+		return fmt.Errorf("sendTextByUuid failed: %w", ErrGroupNotUnique)
+	}
+	if errors.Is(err, ErrFriendNotUnique) {
+		return fmt.Errorf("sendTextByUuid failed: %w", ErrFriendNotUnique)
+	}
 	if err != nil {
 		switch true {
 		case errors.Is(err, ErrGroupNotFound):
@@ -525,6 +555,10 @@ func (s *Self) SendTextByUuid(uuid string, text string, isGroup bool) error {
 func (s *Self) doSendTextByUuid(uuid string, text string, isGroup bool) error {
 	// todo 重构 回调消息id 支持撤回
 	if isGroup {
+		// 判断是否为重复uuid
+		if s.UidGroupNotUnique[uuid] {
+			return fmt.Errorf("sendTextByUuid failed: %w", ErrGroupNotUnique)
+		}
 		group, ok := s.UidGroupDict[uuid]
 		if !ok {
 			return fmt.Errorf("sendTextByUuid failed: %w", ErrGroupNotFound)
@@ -534,6 +568,10 @@ func (s *Self) doSendTextByUuid(uuid string, text string, isGroup bool) error {
 			return fmt.Errorf("sendTextByUuid openwechat failed: %w", err)
 		}
 	} else {
+		// 判断是否为重复uuid
+		if s.UidFriendNotUnique[uuid] {
+			return fmt.Errorf("sendTextByUuid failed: %w", ErrFriendNotUnique)
+		}
 		friend, ok := s.UidFriendDict[uuid]
 		if !ok {
 			return fmt.Errorf("sendTextByUuid failed: %w", ErrFriendNotFound)
@@ -551,6 +589,12 @@ func (s *Self) doSendTextByUuid(uuid string, text string, isGroup bool) error {
 func (s *Self) SendImgByUuid(uuid string, img io.Reader, isGroup bool) error {
 	var err error
 	err = s.doSendImgByUuid(uuid, img, isGroup)
+	if errors.Is(err, ErrGroupNotUnique) {
+		return fmt.Errorf("sendTextByUuid failed: %w", ErrGroupNotUnique)
+	}
+	if errors.Is(err, ErrFriendNotUnique) {
+		return fmt.Errorf("sendTextByUuid failed: %w", ErrFriendNotUnique)
+	}
 	if err != nil {
 		switch true {
 		case errors.Is(err, ErrGroupNotFound):
@@ -576,6 +620,10 @@ func (s *Self) SendImgByUuid(uuid string, img io.Reader, isGroup bool) error {
 // nolint:wrapcheck
 func (s *Self) doSendImgByUuid(uuid string, img io.Reader, isGroup bool) error {
 	if isGroup {
+		// 判断是否为重复uuid
+		if s.UidGroupNotUnique[uuid] {
+			return fmt.Errorf("sendTextByUuid failed: %w", ErrGroupNotUnique)
+		}
 		group, ok := s.UidGroupDict[uuid]
 		if !ok {
 			return fmt.Errorf("sendImgByUuid failed: %w", ErrGroupNotFound)
@@ -585,6 +633,10 @@ func (s *Self) doSendImgByUuid(uuid string, img io.Reader, isGroup bool) error {
 			return fmt.Errorf("sendImgByUuid openwechat failed: %w", err)
 		}
 	} else {
+		// 判断是否为重复uuid
+		if s.UidFriendNotUnique[uuid] {
+			return fmt.Errorf("sendTextByUuid failed: %w", ErrFriendNotUnique)
+		}
 		friend, ok := s.UidFriendDict[uuid]
 		if !ok {
 			return fmt.Errorf("sendImgByUuid failed: %w", ErrFriendNotFound)
@@ -606,31 +658,12 @@ func IsUuidValid(uuid string) bool {
 }
 
 // GetUuidById 根据 用户id获取uuid
-func (s *Self) GetUuidById(id string, isGroup bool) (string, error) {
-	if isGroup {
-		var group *openwechat.User
-		s.mu.RLock()
-		group = s.MyGroups.SearchById(id)
-		s.mu.RUnlock()
-		if group == nil { // 尝试更新群组信息后再次获取
-			s.UpdateGroups()
-			group = s.MyGroups.SearchById(id)
-			if group == nil {
-				logging.WarnWithErr(ErrGroupNotFound, "GetUuidById failed 请检查是否机器人群聊未加入通信录")
-				return "", fmt.Errorf("GetUuidById failed: %w", ErrGroupNotFound)
-			}
-		}
-		return secretutil.GenerateUnitId(group.RemarkName), nil
+func (s *Self) GetUuidById(user *openwechat.User) string {
+	remarkName := user.RemarkName
+	if remarkName == "" {
+		return secretutil.GenerateUnitId(user.NickName)
 	}
-
-	// 好友逻辑
-	friend := s.MyFriends.SearchById(id)
-	if friend == nil {
-		s.UpdateFriends()
-		friend = s.MyFriends.SearchById(id)
-
-	}
-	return secretutil.GenerateUnitId(friend.RemarkName), nil
+	return secretutil.GenerateUnitId(remarkName)
 }
 
 func (mf MyFriends) SearchById(id string) *openwechat.User {

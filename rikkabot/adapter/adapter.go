@@ -162,7 +162,9 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 	var isAtMe = false
 	var groupNameList []string
 	var groupAtNameList []string
-	var uuiderr error
+
+	// 获取uuid
+	uuid = rself.GetUuidById(sender)
 
 	if isSendByGroup {
 		senderInGroup, _ := msg.SenderInGroup() // ignore err
@@ -183,6 +185,7 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 		// 自己发送的ID群号跟接收者号反转
 		if msg.IsSendBySelf() {
 			GroupId, ReceiveId = ReceiveId, SenderId
+			uuid = rself.GetUuidById(receiver) // uuid 改为接收者获取
 		}
 		// 获取群成员的用户名
 		group, ok := sender.AsGroup()
@@ -205,17 +208,10 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 				isAtMe = match[1] == self.NickName // 是否艾特自己
 			}
 		}
-		// 获取uuid
-		uuid, uuiderr = rself.GetUuidById(GroupId, isSendByGroup)
 
 	} else {
 		SenderId = sender.AvatarID()
 		ReceiveId = receiver.AvatarID()
-		// 获取uuid
-		uuid, uuiderr = rself.GetUuidById(SenderId, isSendByGroup)
-	}
-	if uuiderr != nil {
-		logging.WarnWithErr(uuiderr, "GetUUID Failed")
 	}
 
 	return &message.Message{
