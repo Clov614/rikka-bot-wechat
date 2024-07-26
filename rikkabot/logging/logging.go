@@ -178,7 +178,7 @@ func validLogPath(path string, isCreate bool) (bool, error) {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		if isCreate {
 			if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-				return false, fmt.Errorf("error creating log directory: %v", err)
+				return false, fmt.Errorf("error creating log directory: %w", err)
 			}
 		}
 	}

@@ -204,6 +204,7 @@ func (r *RikkaBot) GetRespMsgRecvChan() <-chan *message.Message {
 //endregion
 
 // SendMsg 统一发送消息接口 消息类型 是否群组 发送数据 群/好友 id
+// nolint
 func (r *RikkaBot) SendMsg(msgType message.MsgType, isGroup bool, data any, sendId string) error {
 	// todo 发送消息回调消息id 并保存sendmsg，提供过期控制、根据id查询发送的消息
 	var err error
