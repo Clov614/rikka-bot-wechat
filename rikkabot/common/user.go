@@ -298,7 +298,7 @@ func (s *Self) SendTextById(id string, text string, isGroup bool) error {
 		err = s.SendText2GroupById(id, text)
 	}
 
-	return err
+	return fmt.Errorf("SendTextById failed: %w", err)
 }
 
 func (s *Self) SendImgById(id string, img io.Reader, isGroup bool) error {
@@ -308,7 +308,7 @@ func (s *Self) SendImgById(id string, img io.Reader, isGroup bool) error {
 	} else {
 		err = s.SendImg2FriendById(id, img)
 	}
-	return err
+	return fmt.Errorf("SendImgById failed: %w", err)
 }
 
 func (s *Self) SendFileById(id string, file io.Reader, isGroup bool) error {
@@ -318,7 +318,7 @@ func (s *Self) SendFileById(id string, file io.Reader, isGroup bool) error {
 	} else {
 		err = s.SendFile2FriendById(id, file)
 	}
-	return err
+	return fmt.Errorf("SendFileById failed: %w", err)
 }
 
 // AddFriendInGroupByNickname 拉好友进群
@@ -657,13 +657,29 @@ func IsUuidValid(uuid string) bool {
 	return true
 }
 
+const (
+	UUID_NOT_UNIQUE_INGROUPS  = "That uuid is not unique in groups! Error!"
+	UUID_NOT_UNIQUE_INFRIENDS = "That uuid is not unique in friends! Error!"
+)
+
 // GetUuidById 根据 用户id获取uuid
-func (s *Self) GetUuidById(user *openwechat.User) string {
+func (s *Self) GetUuidById(user *openwechat.User, isGroup bool) string {
 	remarkName := user.RemarkName
+	var uuid = secretutil.GenerateUnitId(remarkName)
 	if remarkName == "" {
-		return secretutil.GenerateUnitId(user.NickName)
+		uuid = secretutil.GenerateUnitId(user.NickName)
 	}
-	return secretutil.GenerateUnitId(remarkName)
+	// 校验是否为重复uuid
+	if isGroup {
+		if s.UidGroupNotUnique[uuid] {
+			uuid = UUID_NOT_UNIQUE_INGROUPS
+		}
+	} else {
+		if s.UidFriendNotUnique[uuid] {
+			uuid = UUID_NOT_UNIQUE_INFRIENDS
+		}
+	}
+	return uuid
 }
 
 func (mf MyFriends) SearchById(id string) *openwechat.User {

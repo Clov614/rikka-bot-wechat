@@ -164,7 +164,7 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 	var groupAtNameList []string
 
 	// 获取uuid
-	uuid = rself.GetUuidById(sender)
+	uuid = rself.GetUuidById(sender, isSendByGroup)
 
 	if isSendByGroup {
 		senderInGroup, _ := msg.SenderInGroup() // ignore err
@@ -185,7 +185,7 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 		// 自己发送的ID群号跟接收者号反转
 		if msg.IsSendBySelf() {
 			GroupId, ReceiveId = ReceiveId, SenderId
-			uuid = rself.GetUuidById(receiver) // uuid 改为接收者获取
+			uuid = rself.GetUuidById(receiver, isSendByGroup) // uuid 改为接收者获取
 		}
 		// 获取群成员的用户名
 		group, ok := sender.AsGroup()
