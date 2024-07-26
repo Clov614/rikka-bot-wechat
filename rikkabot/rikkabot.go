@@ -48,6 +48,9 @@ var DefaultBot *RikkaBot
 func init() {
 	ctx, cancel := context.WithCancel(context.Background())
 	cfg := config.GetConfig()
+	// 启动日志检测模块
+	go logging.MonitorLogSize(int64(cfg.LogMaxSize) * 1024 * 1024)
+	// 初始化
 	DefaultBot = &RikkaBot{
 		ctx:        ctx,
 		cancel:     cancel,

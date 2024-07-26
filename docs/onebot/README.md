@@ -38,6 +38,13 @@ Http post 上报`onebot_event`
 > [!TIP]
 > 事件的格式 请参考  [事件](https://12.onebot.dev/connect/data-protocol/event/)
 
+> [!IMPORTANT]
+> 可以使用 `uuid` 作为发送消息的 `send_id` (Http正向中的端点: [send_message](https://apifox.com/apidoc/shared-a79a48e7-1352-483b-b9fc-3268bf88ae0d/api-197448307))
+> 
+> 需要注意的是，在消息事件中，一旦`uuid`返回不唯一，证明机器人账号好友或群聊重名(好友可以通过更改备注，群聊通过修改群名，使得uuid重新唯一)
+> 
+> `uuid`返回的不唯一代码: `That uuid is not unique in friends/groups! Error!`
+
 ### 关于设置
 
 ```yaml
