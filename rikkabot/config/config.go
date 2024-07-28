@@ -18,6 +18,8 @@ type CommonConfig struct {
 	AnswerDelayRandMin int    `comment:"The Random Delay Random Min default to 1" yaml:"answer_delay_rand_min"`
 	AnswerDelayRandMax int    `comment:"The Random Delay Random Max default to 3" yaml:"answer_delay_rand_max"`
 	LogMaxSize         int    `comment:"The Max Log Size default to 10  means 10MB limit" yaml:"log_max_size,omitempty"`
+	DBDirPath          string `comment:"The Directory Path default to ./data/db" yaml:"db_dir_path,omitempty"`
+	CacheSaveInterval  int    `comment:"缓存数据持久化间隔 单位为秒(默认60秒)" yaml:"cache_save_interval,omitempty"`
 	// OneBot settings
 	// http 正向 HTTP API配置
 	HttpServer HttpServerConfig `comment:"Http server config" yaml:"http_server"`
@@ -57,6 +59,8 @@ const (
 	defaultHeartBeat          = true // 默认开启心跳
 	defaultInterval           = 5
 	defaultLogLimit           = 10
+	defaultDBDirPath          = "./data/db"
+	defaultCacheSaveInterval  = 60
 )
 
 var config = CommonConfig{
@@ -65,6 +69,8 @@ var config = CommonConfig{
 	AnswerDelayRandMin: defaultAnswerDelayRandMin,
 	AnswerDelayRandMax: defaultAnswerDelayRandMax,
 	LogMaxSize:         defaultLogLimit,
+	DBDirPath:          defaultDBDirPath,
+	CacheSaveInterval:  defaultCacheSaveInterval,
 	// OneBot
 	HttpServer: HttpServerConfig{
 		HttpAddress: defaultHttpAdress,

@@ -11,6 +11,7 @@ import (
 	"time"
 	"wechat-demo/rikkabot/config"
 	"wechat-demo/rikkabot/logging"
+	"wechat-demo/rikkabot/manager"
 	"wechat-demo/rikkabot/processor/register"
 	"wechat-demo/rikkabot/utils/serializer"
 )
@@ -281,7 +282,7 @@ func (c *Cache) initEnablePlugins() {
 
 // 定时持久化cache
 func (c *Cache) cycleSave() {
-	ticker := time.NewTicker(1 * time.Minute) // todo 通过设置项，支持外部更改 更新频率
+	ticker := time.NewTicker(time.Duration(c.config.CacheSaveInterval) * time.Second)
 	c.wg.Add(1)
 	go func() {
 		defer ticker.Stop()
@@ -306,7 +307,7 @@ func (c *Cache) Close() {
 
 func (c *Cache) handleSave(firstLoad bool) {
 	c.mu.RLock()
-	err := serializer.Save(cachePath, cacheFilename, cache)
+	err := manager.SaveCache(cache)
 	c.mu.RUnlock()
 	if err != nil {
 		logging.ErrorWithErr(err, "cycle save cache")
@@ -318,7 +319,6 @@ func (c *Cache) handleSave(firstLoad bool) {
 	}
 }
 
-// todo 临时的，为了避免 plugin引用导致注册器无法正确注册，实现将废弃
 var cache *Cache
 
 func initCache() {
@@ -346,7 +346,7 @@ func Init() *Cache {
 	initCache()
 	// 初始化读取 Cache
 	if serializer.IsPathExist(cachePath, cacheFilename) {
-		err := serializer.Load(cachePath, cacheFilename, cache)
+		_, err := manager.LoadCache(cache)
 		if err != nil {
 			fmt.Println("load cache error:", err)
 		}
