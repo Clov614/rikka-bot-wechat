@@ -12,6 +12,7 @@ import (
 	"wechat-demo/rikkabot/message"
 	"wechat-demo/rikkabot/processor/cache"
 	"wechat-demo/rikkabot/processor/control"
+	"wechat-demo/rikkabot/processor/control/dialog"
 	"wechat-demo/rikkabot/processor/register"
 	"wechat-demo/rikkabot/utils/msgutil"
 )
@@ -27,8 +28,7 @@ const (
 // 注册管理员基础功能
 func registAdminPlugin() {
 	adminPlugin := AdminPlugin{
-		onceDialog: &control.OnceDialog{},
-		user:       common.GetSelf(),
+		onceDialog: &dialog.OnceDialog{},
 	}
 	onceDialog := adminPlugin.onceDialog
 	onceDialog.PluginName = "管理员基础功能"
@@ -37,7 +37,10 @@ func registAdminPlugin() {
 
 	onceDialog.Once = func(recvmsg message.Message, sendMsg chan<- *message.Message) {
 		if adminPlugin.cache == nil {
-			adminPlugin.cache = cache.GetCache() // 运行时获取缓存指针
+			adminPlugin.cache = onceDialog.Cache // 运行时获取 缓存指针
+		}
+		if adminPlugin.user == nil {
+			adminPlugin.user = onceDialog.Self // 运行时获取  用户（自身）指针
 		}
 		content := recvmsg.Content
 		content = msgutil.TrimPrefix(content, "admin", false, true)
@@ -185,7 +188,7 @@ func isChoice(cotent string, prefix string) bool {
 
 // AdminPlugin 管理员模块
 type AdminPlugin struct {
-	onceDialog *control.OnceDialog
+	onceDialog *dialog.OnceDialog
 	cache      *cache.Cache
 	user       *common.Self
 }

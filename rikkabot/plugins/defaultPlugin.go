@@ -11,6 +11,7 @@ import (
 	"wechat-demo/rikkabot/message"
 	_ "wechat-demo/rikkabot/plugins/admin" // 需要副作用 init注册方法
 	"wechat-demo/rikkabot/processor/control"
+	"wechat-demo/rikkabot/processor/control/dialog"
 	"wechat-demo/rikkabot/processor/register"
 )
 
@@ -28,12 +29,12 @@ func init() {
 
 // TestPlugin 管理员功能相关
 type TestPlugin struct {
-	control.OnceDialog
+	dialog.OnceDialog
 }
 
 // LongDialogPlugin 长对话测试
 type LongDialogPlugin struct {
-	control.LongDialog
+	dialog.LongDialog
 }
 
 func testLongDialogPlugin() {
