@@ -1,26 +1,41 @@
-// Package control
+// Package dialog
 // @Author Clover
 // @Data 2024/7/8 下午9:41:00
 // @Desc 对话控制-普通对话-长对话
-package control
+package dialog
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"runtime"
 	"sync"
+	"wechat-demo/rikkabot/common"
+	"wechat-demo/rikkabot/logging"
 	"wechat-demo/rikkabot/message"
+	"wechat-demo/rikkabot/processor/cache"
+	"wechat-demo/rikkabot/processor/control"
+)
+
+var (
+	errPluginRunTime = errors.New("plugin run time default err")
 )
 
 type IDialog interface {
 	GetPluginName() string
-	GetProcessRules() *ProcessRules
+	GetProcessRules() *control.ProcessRules
 	RunPlugin(sendChan chan<- *message.Message, receiveChan chan message.Message, done *State)
 }
 
 type Dialog struct {
 	PluginName   string                  // 插件注册名-对应对话对象
-	ProcessRules *ProcessRules           // 触发规则
+	ProcessRules *control.ProcessRules   // 触发规则
 	sendMsg      chan<- *message.Message // 发送消息通道
 	recvMsg      chan message.Message    // 接收消息通道
+	Cache        *cache.Cache
+	Self         *common.Self
 	// HandleFunc is unrecommended: using OnceDialog or LongDialog corresponding method
 	HandleFunc func() // 对话逻辑方法
 
@@ -31,7 +46,7 @@ type Dialog struct {
 func (d *Dialog) GetPluginName() string {
 	return d.PluginName
 }
-func (d *Dialog) GetProcessRules() *ProcessRules {
+func (d *Dialog) GetProcessRules() *control.ProcessRules {
 	return d.ProcessRules
 }
 
@@ -40,6 +55,8 @@ func (d *Dialog) RunPlugin(sendChan chan<- *message.Message, receiveChan chan me
 	defer done.SafeClose()
 	d.sendMsg = sendChan
 	d.recvMsg = receiveChan
+	d.Cache = cache.GetCache()
+	d.Self = common.GetSelf()
 	d.HandleFunc()
 }
 
@@ -67,10 +84,24 @@ type OnceDialog struct {
 }
 
 func (cd *OnceDialog) RunPlugin(sendChan chan<- *message.Message, receiveChan chan message.Message, done *State) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Err(errPluginRunTime).Msg("panic!!! 插件运行错误！")
+			if zerolog.GlobalLevel() == zerolog.DebugLevel { // Debug 模式中
+				// 打印详细错误堆栈
+				buf := make([]byte, 1<<16)
+				runtime.Stack(buf, false)
+				logging.Debug(fmt.Sprintf("plugin run time default err: %s", string(buf)))
+			}
+			// todo 向机器人发送错误提示消息
+		}
+	}()
 	cd.done = done
 	defer done.SafeClose()
 	cd.sendMsg = sendChan
 	cd.recvMsg = receiveChan
+	cd.Cache = cache.GetCache()
+	cd.Self = common.GetSelf()
 	cd.Once(<-cd.recvMsg, cd.sendMsg)
 }
 

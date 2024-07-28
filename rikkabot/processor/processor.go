@@ -10,7 +10,7 @@ import (
 	"wechat-demo/rikkabot/message"
 	_ "wechat-demo/rikkabot/plugins"
 	"wechat-demo/rikkabot/processor/cache"
-	"wechat-demo/rikkabot/processor/control"
+	dpkg "wechat-demo/rikkabot/processor/control/dialog"
 	"wechat-demo/rikkabot/processor/register"
 )
 
@@ -19,7 +19,7 @@ type Processor struct {
 	pluginPool   *register.PluginRegister
 
 	mu           sync.RWMutex
-	longConnPool map[chan message.Message]*control.State // 长连接池（保存消息接收通道）
+	longConnPool map[chan message.Message]*dpkg.State // 长连接池（保存消息接收通道）
 	// todo 方法 消息/群号 锁 保证对话发起者只能拥有一个插件的对话存活
 	// todo 加入done 处理关闭 临时的
 	done       chan struct{}
@@ -30,7 +30,7 @@ func NewProcessor() *Processor {
 	return &Processor{
 		Cache:        cache.Init(),
 		pluginPool:   register.GetPluginPool(),
-		longConnPool: make(map[chan message.Message]*control.State),
+		longConnPool: make(map[chan message.Message]*dpkg.State),
 		done:         make(chan struct{}),
 		closeToken:   make(chan bool, 1),
 	}
@@ -72,11 +72,11 @@ func (p *Processor) DispatchMsg(recvChan chan *message.Message, sendChan chan *m
 			p.broadcastRecv(tempMsg) // 长连接分发消息
 			pluginMap := p.pluginPool.GetPluginMap()
 			for name, plugin := range pluginMap {
-				dialog := plugin.(control.IDialog)
+				dialog := plugin.(dpkg.IDialog)
 				if p.IsEnable(name) { // 是否启用插件
 					if checkedMsg, ok := p.IsHandle(dialog.GetProcessRules(), tempMsg); ok {
 						recvConn := make(chan message.Message, 1)
-						done := control.NewState()
+						done := dpkg.NewState()
 						p.registLongConn(recvConn, done)
 						select { // 发送二手消息
 						case recvConn <- checkedMsg:
@@ -119,16 +119,16 @@ func (p *Processor) broadcastRecv(recvMsg message.Message) {
 	<-p.closeToken
 }
 
-func (p *Processor) registLongConn(recvChan chan message.Message, done *control.State) {
+func (p *Processor) registLongConn(recvChan chan message.Message, done *dpkg.State) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.longConnPool[recvChan] = done
 }
 
-func (p *Processor) getLongconns() map[chan message.Message]*control.State {
+func (p *Processor) getLongconns() map[chan message.Message]*dpkg.State {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
-	copyconnPool := make(map[chan message.Message]*control.State)
+	copyconnPool := make(map[chan message.Message]*dpkg.State)
 	for k, v := range p.longConnPool {
 		copyconnPool[k] = v
 	}

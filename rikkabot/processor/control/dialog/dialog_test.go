@@ -1,7 +1,7 @@
 // @Author Clover
 // @Data 2024/7/8 下午11:42:00
 // @Desc
-package control
+package dialog
 
 import (
 	"testing"

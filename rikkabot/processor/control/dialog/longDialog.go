@@ -1,12 +1,14 @@
-// Package control
+// Package dialog
 // @Author Clover
 // @Data 2024/7/9 上午12:08:00
 // @Desc
-package control
+package dialog
 
 import (
 	"time"
+	"wechat-demo/rikkabot/common"
 	"wechat-demo/rikkabot/message"
+	"wechat-demo/rikkabot/processor/cache"
 )
 
 type LongDialog struct {
@@ -25,6 +27,8 @@ func (ld *LongDialog) RunPlugin(sendChan chan<- *message.Message, receiveChan ch
 	ld.done = done
 	ld.Dialog.sendMsg = sendChan
 	ld.Dialog.recvMsg = receiveChan
+	ld.Cache = cache.GetCache()
+	ld.Self = common.GetSelf()
 	firstMsg := <-receiveChan
 	// 记录 id
 	if firstMsg.IsGroup {
