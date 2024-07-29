@@ -13,13 +13,15 @@ import (
 )
 
 type CommonConfig struct {
-	Symbol             string `comment:"The Robot Prefix default to ‘/’ "`
-	Botname            string `comment:"The Robot Name default to \"rikka\""`
-	AnswerDelayRandMin int    `comment:"The Random Delay Random Min default to 1" yaml:"answer_delay_rand_min"`
-	AnswerDelayRandMax int    `comment:"The Random Delay Random Max default to 3" yaml:"answer_delay_rand_max"`
-	LogMaxSize         int    `comment:"The Max Log Size default to 10  means 10MB limit" yaml:"log_max_size,omitempty"`
-	DBDirPath          string `comment:"The Directory Path default to ./data/db" yaml:"db_dir_path,omitempty"`
-	CacheSaveInterval  int    `comment:"缓存数据持久化间隔 单位为秒(默认60秒)" yaml:"cache_save_interval,omitempty"`
+	Symbol                string `comment:"The Robot Prefix default to ‘/’ "`
+	Botname               string `comment:"The Robot Name default to \"rikka\""`
+	AnswerDelayRandMin    int    `comment:"The Random Delay Random Min default to 1" yaml:"answer_delay_rand_min"`
+	AnswerDelayRandMax    int    `comment:"The Random Delay Random Max default to 3" yaml:"answer_delay_rand_max"`
+	LogMaxSize            int    `comment:"The Max Log Size default to 10  means 10MB limit" yaml:"log_max_size,omitempty"`
+	DBDirPath             string `comment:"The Directory Path default to ./data/db" yaml:"db_dir_path,omitempty"`
+	CacheSaveInterval     int    `comment:"缓存数据持久化间隔 单位为秒(默认60秒)" yaml:"cache_save_interval,omitempty"`
+	ImgValidDuration      int    `comment:"聊天图片缓存有效时间 单位为天(默认7天)" yaml:"img_valid_duration,omitempty"`
+	ImgCacheCheckInterval int    `comment:"聊天图片校验有效间隔 单位为小时(默认24小时)" yaml:"img_cache_check_interval,omitempty"`
 	// OneBot settings
 	// http 正向 HTTP API配置
 	HttpServer HttpServerConfig `comment:"Http server config" yaml:"http_server"`
@@ -50,27 +52,31 @@ type HttpPostConfig struct {
 // todo 动态设置项的注册以及持久化管理
 
 const (
-	defaultSymbol             = "/"
-	defaultBotname            = "rikka"
-	defaultAnswerDelayRandMin = 1
-	defaultAnswerDelayRandMax = 3
-	defaultHttpAdress         = "http://127.0.0.1:10614"
-	defaultAccessToken        = "rikka-bot"
-	defaultHeartBeat          = true // 默认开启心跳
-	defaultInterval           = 5
-	defaultLogLimit           = 10
-	defaultDBDirPath          = "./data/db"
-	defaultCacheSaveInterval  = 60
+	defaultSymbol                = "/"
+	defaultBotname               = "rikka"
+	defaultAnswerDelayRandMin    = 1
+	defaultAnswerDelayRandMax    = 3
+	defaultHttpAdress            = "http://127.0.0.1:10614"
+	defaultAccessToken           = "rikka-bot"
+	defaultHeartBeat             = true // 默认开启心跳
+	defaultInterval              = 5
+	defaultLogLimit              = 10
+	defaultDBDirPath             = "./data/db"
+	defaultCacheSaveInterval     = 60
+	defaultImgValidDuration      = 7  // day
+	defaultImgCacheCheckInterval = 24 // hour
 )
 
 var config = CommonConfig{
-	Symbol:             defaultSymbol,
-	Botname:            defaultBotname,
-	AnswerDelayRandMin: defaultAnswerDelayRandMin,
-	AnswerDelayRandMax: defaultAnswerDelayRandMax,
-	LogMaxSize:         defaultLogLimit,
-	DBDirPath:          defaultDBDirPath,
-	CacheSaveInterval:  defaultCacheSaveInterval,
+	Symbol:                defaultSymbol,
+	Botname:               defaultBotname,
+	AnswerDelayRandMin:    defaultAnswerDelayRandMin,
+	AnswerDelayRandMax:    defaultAnswerDelayRandMax,
+	LogMaxSize:            defaultLogLimit,
+	DBDirPath:             defaultDBDirPath,
+	CacheSaveInterval:     defaultCacheSaveInterval,
+	ImgValidDuration:      defaultImgValidDuration,
+	ImgCacheCheckInterval: defaultImgCacheCheckInterval,
 	// OneBot
 	HttpServer: HttpServerConfig{
 		HttpAddress: defaultHttpAdress,

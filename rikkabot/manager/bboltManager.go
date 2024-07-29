@@ -13,7 +13,9 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 	"wechat-demo/rikkabot/config"
+	"wechat-demo/rikkabot/utils/timeutil"
 )
 
 var (
@@ -24,12 +26,18 @@ var (
 )
 
 var (
-	ErrDefaultDB = errors.New("default db error")
+	ErrDefaultDB          = errors.New("default db error")
+	ErrGetImgBucketByDate = errors.New("get image bucket by date error")
+	ErrGetImgNil          = errors.New("get image nil error in bolt")
 )
 
 const (
 	defaultDBName = "/rikka.db"
+
+	imgBucketName = "chat_image"
 )
+
+var ic *imgCache
 
 func init() {
 	// 初始化bbolt桶
@@ -41,6 +49,24 @@ func init() {
 	if err != nil {
 		log.Fatal().Err(fmt.Errorf("err: %w detail: %w", ErrDefaultDB, err)).Msg("cannot open db")
 	}
+	// 初始化聊天图片桶
+	err = db.Update(func(tx *bbolt.Tx) error {
+		_, e := tx.CreateBucketIfNotExists([]byte(imgBucketName))
+		if e != nil {
+			return fmt.Errorf("创建聊天图片桶失败: %w", e)
+		}
+		return nil
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("cannot init db")
+	}
+	// 初始化图片缓存
+	ic = &imgCache{
+		ImgValidDuration: cfg.ImgValidDuration,      // 图片有效期
+		CheckInterval:    cfg.ImgCacheCheckInterval, // 检查是否过期间隔
+	}
+	// 循环检测图片是否过期
+	go ic.cycleCheckOutDate()
 }
 
 // SaveCache 保存 cache
@@ -84,6 +110,114 @@ func LoadCache(cache any) (any, error) {
 	})
 	return cache, err
 }
+
+// SaveImg uuid: 可置空
+func SaveImg(uuid string, imgData []byte) (imgName string, imgDate string) {
+	var err error
+	imgId := timeutil.GetTimeStamp() + "_" + uuid
+	// 根据当天日期判断桶是否存在，不存在则创建
+	nowDate := timeutil.GetNowDate()
+	err = ic.saveImg(imgId, imgData, nowDate)
+	if err != nil {
+		log.Error().Err(err).Msg(fmt.Sprintf("save img %s err", imgId))
+	}
+	return imgId, nowDate
+}
+
+// GetImg 获取图片 imgId: 由时间戳和uuid拼接 imgDate: 图片创建的日期
+func GetImg(imgId string, imgDate string) (imgData []byte) {
+	var err error
+	imgData, err = ic.getImg(imgId, imgDate)
+	if err != nil {
+		log.Error().Err(err).Msg(fmt.Sprintf("get img %s err", imgId))
+	}
+	return imgData
+}
+
+// imgCache 图片存储相关
+type imgCache struct {
+	ImgValidDuration int // 有效日期单位为天
+	CheckInterval    int // 单位为小时
+}
+
+// saveImg imgId: 外部通过时间戳+uuid拼接而成  nowDate: 当天日期，外部传递
+func (i imgCache) saveImg(imgId string, imgData []byte, nowDate string) error {
+	var err error
+	err = db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte(imgBucketName))
+
+		// 根据当天日期判断桶是否存在，不存在则创建
+		_, e3 := b.CreateBucketIfNotExists([]byte(nowDate))
+
+		if e3 != nil {
+			return fmt.Errorf("create bucket nowDate: %w", e3)
+		}
+		// 获取日期桶（日期桶分类图片，便于循环检查是否过期）
+		dateBucket := b.Bucket([]byte(nowDate))
+		// 存入日期桶
+		e2 := dateBucket.Put([]byte(concatImgId(nowDate, imgId)), imgData)
+		if e2 != nil {
+			return fmt.Errorf("save img: %w", e2)
+		}
+		return nil
+	})
+	return err
+}
+
+// getImg 获取图片
+func (i imgCache) getImg(imgId string, imgDate string) ([]byte, error) {
+	var err error
+	var imgData []byte
+	err = db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte(imgBucketName))
+		// 获取日期对应桶
+		dateBucket := b.Bucket([]byte(imgDate))
+		if dateBucket == nil {
+			return fmt.Errorf("获取该日期%s桶失败: %w", imgDate, ErrGetImgBucketByDate)
+		}
+		data := dateBucket.Get([]byte(concatImgId(imgId, imgDate)))
+		if data == nil {
+			return fmt.Errorf("获取%s的图片为空: %w", imgDate, ErrGetImgNil)
+		}
+		imgData = make([]byte, len(data))
+		copy(imgData, data)
+		return nil
+	})
+	return imgData, err
+}
+
+// cycleCheckOutDate 循环检查图片桶是否过期
+func (i imgCache) cycleCheckOutDate() {
+	var err error
+	err = db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte(imgBucketName))
+		e := b.ForEachBucket(func(k []byte) error {
+			bucketDate := string(k)
+			if timeutil.IsBeforeThatDay(bucketDate, i.ImgValidDuration) {
+				// 过期删除该桶
+				e2 := b.Delete(k)
+				if e2 != nil {
+					return fmt.Errorf("delete bucket: %w", e2)
+				}
+			}
+			return nil
+		})
+		if e != nil {
+			return fmt.Errorf("cycleCheckOutDate: %w", e)
+		}
+		return nil
+	})
+	if err != nil {
+		log.Error().Err(err).Msg("cycleCheckOutDate")
+	}
+	time.Sleep(time.Duration(i.CheckInterval) * time.Second) // todo 测试使用Second，正式发布改为Hour
+}
+
+func concatImgId(nowDate string, imgId string) string {
+	return nowDate + "_" + imgId
+}
+
+// 定时清理图床桶
 
 // CloseDB 关闭数据库
 func CloseDB() {
