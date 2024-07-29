@@ -45,6 +45,9 @@ func init() {
 	mDBPath = cfg.DBDirPath + defaultDBName
 	var err error
 	_, err = validPath(mDBPath, true)
+	if err != nil {
+		log.Fatal().Err(err).Str("path", mDBPath).Msg("validate db path")
+	}
 	db, err = bbolt.Open(mDBPath, 0600, nil)
 	if err != nil {
 		log.Fatal().Err(fmt.Errorf("err: %w detail: %w", ErrDefaultDB, err)).Msg("cannot open db")
@@ -108,7 +111,7 @@ func LoadCache(cache any) (any, error) {
 		}
 		return nil
 	})
-	return cache, err
+	return cache, fmt.Errorf("LoadCache err: %w", err)
 }
 
 // SaveImg uuid: 可置空
@@ -161,7 +164,7 @@ func (i imgCache) saveImg(imgId string, imgData []byte, nowDate string) error {
 		}
 		return nil
 	})
-	return err
+	return fmt.Errorf("save img %s err: %w", imgId, err)
 }
 
 // getImg 获取图片
@@ -183,7 +186,7 @@ func (i imgCache) getImg(imgId string, imgDate string) ([]byte, error) {
 		copy(imgData, data)
 		return nil
 	})
-	return imgData, err
+	return imgData, fmt.Errorf("get img %s err: %w", imgId, err)
 }
 
 // cycleCheckOutDate 循环检查图片桶是否过期
