@@ -7,6 +7,7 @@ package imgutil
 import (
 	"bytes"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -95,6 +96,10 @@ var SignatureMap = map[FileType][][]byte{
 	},
 }
 
+var (
+	ErrUnknowFileType = errors.New("unknown file type")
+)
+
 // DetectFileType 检测文件的字节前缀以确定其类型
 func DetectFileType(data []byte) (FileType, error) {
 	for fileType, signatures := range SignatureMap {
@@ -104,7 +109,7 @@ func DetectFileType(data []byte) (FileType, error) {
 			}
 		}
 	}
-	return "", fmt.Errorf("unknown file type")
+	return "", fmt.Errorf("detectFileType: %w", ErrUnknowFileType)
 }
 
 // GetMimeTypeByFileType 根据 FileType 返回 MIME 类型
