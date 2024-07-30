@@ -103,8 +103,8 @@ heart_beat_interval: 5
       {
         // 消息类型 0: 文本 1: 图片
         "msg_type": 0, 
-        // 如果图片消息则为图片 []bytes (比较冗长，这里不展示)
-        "Raw": "",
+        // 图片url (拼接一下使用，如：http://127.0.0.1:10614/chat_image/2024-07-31/1722358456_8e30abef6dc47bb0.png)
+        "chat_img_url": "/chat_image/2024-07-31/1722358456_8e30abef6dc47bb0.png",
         // 文本内容
         "content": "@clover 呼唤1sdaf",
         // 群聊id
@@ -146,7 +146,7 @@ heart_beat_interval: 5
     "message": [
       {
         "msg_type": 0,
-        "Raw": "",
+        "chat_img_url": "",
         "content": "123",
         // 私聊消息 群id 置空
         "group_id": "",
