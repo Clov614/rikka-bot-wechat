@@ -21,8 +21,10 @@ import (
 	"time"
 	"wechat-demo/rikkabot"
 	"wechat-demo/rikkabot/logging"
+	"wechat-demo/rikkabot/manager"
 	"wechat-demo/rikkabot/onebot/dto/event"
 	"wechat-demo/rikkabot/onebot/oneboterr"
+	"wechat-demo/rikkabot/utils/imgutil"
 	"wechat-demo/rikkabot/utils/timeutil"
 )
 
@@ -96,14 +98,44 @@ func (s HttpServer) globalHandler() gin.HandlerFunc {
 
 		logging.Debug("鉴权成功", map[string]interface{}{"path": c.Request.URL.Path})
 		// 检查路径和处理对应的请求
-		switch c.Request.URL.Path {
-		case "/send_message": // 发送消息
+		path := c.Request.URL.Path
+		switch {
+		case "/send_message" == path: // 发送消息
 			s.handleSendMsg(c)
-		case "/login_callback": // 获取登录回调
+		case "/login_callback" == path: // 获取登录回调
 			s.handleLoginUrl(c)
+		case strings.HasPrefix(path, "/chat_image/"):
+			s.handleChatImage(c, path)
 		}
 
 	}
+}
+
+func (s HttpServer) handleChatImage(c *gin.Context, path string) {
+	// 处理 /chat_image/:date/:imgId 路径
+	parts := strings.Split(path, "/")
+	if len(parts) != 4 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "paths not match"})
+		return
+	}
+	imgDate := parts[2]
+	imgId := parts[3]
+
+	// 获取图片
+	data := manager.GetImg(imgId, imgDate)
+	if data == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "image not found"})
+		return
+	}
+	// 判断 图片类型
+	fileType, err := imgutil.DetectFileType(data)
+	if err != nil {
+		log.Err(err).Msg("cannot detect file type of image")
+		// 使用默认 图片类型 jpeg
+		fileType = imgutil.JPEG
+		//c.JSON(http.StatusInternalServerError, gin.H{"error": "cannot detect file type"})
+	}
+	c.Data(http.StatusOK, imgutil.GetMimeTypeByFileType(fileType), data)
 }
 
 func (s HttpServer) handleLoginUrl(c *gin.Context) {

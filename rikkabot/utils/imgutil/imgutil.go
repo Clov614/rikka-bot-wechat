@@ -5,6 +5,7 @@
 package imgutil
 
 import (
+	"bytes"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -59,4 +60,67 @@ func fetchFromFile(filePath string) ([]byte, error) {
 		return nil, fmt.Errorf("fetchFromFile: io.ReadAll(file): %w", err)
 	}
 	return bytes, nil
+}
+
+// FileType 表示文件类型的枚举
+type FileType string
+
+const (
+	JPEG FileType = "jpg"
+	PNG  FileType = "png"
+	GIF  FileType = "gif"
+	BMP  FileType = "bmp"
+	TIFF FileType = "tiff"
+	// 可以根据需要添加更多类型
+)
+
+// SignatureMap 存储文件签名和对应的文件类型
+var SignatureMap = map[FileType][][]byte{
+	JPEG: {
+		{0xFF, 0xD8, 0xFF},
+	},
+	PNG: {
+		{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A},
+	},
+	GIF: {
+		{0x47, 0x49, 0x46, 0x38, 0x37, 0x61},
+		{0x47, 0x49, 0x46, 0x38, 0x39, 0x61},
+	},
+	BMP: {
+		{0x42, 0x4D},
+	},
+	TIFF: {
+		{0x49, 0x49, 0x2A, 0x00},
+		{0x4D, 0x4D, 0x00, 0x2A},
+	},
+}
+
+// DetectFileType 检测文件的字节前缀以确定其类型
+func DetectFileType(data []byte) (FileType, error) {
+	for fileType, signatures := range SignatureMap {
+		for _, signature := range signatures {
+			if len(data) >= len(signature) && bytes.Equal(data[:len(signature)], signature) {
+				return fileType, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("unknown file type")
+}
+
+// GetMimeTypeByFileType 根据 FileType 返回 MIME 类型
+func GetMimeTypeByFileType(fileType FileType) string {
+	switch fileType {
+	case JPEG:
+		return "image/jpeg"
+	case PNG:
+		return "image/png"
+	case GIF:
+		return "image/gif"
+	case BMP:
+		return "image/bmp"
+	case TIFF:
+		return "image/tiff"
+	default:
+		return "application/octet-stream"
+	}
 }

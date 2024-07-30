@@ -12,9 +12,13 @@ import (
 	"go.etcd.io/bbolt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
+	"wechat-demo/rikkabot/common"
 	"wechat-demo/rikkabot/config"
+	"wechat-demo/rikkabot/logging"
+	"wechat-demo/rikkabot/utils/imgutil"
 	"wechat-demo/rikkabot/utils/timeutil"
 )
 
@@ -111,15 +115,27 @@ func LoadCache(cache any) (any, error) {
 		}
 		return nil
 	})
-	return cache, fmt.Errorf("LoadCache err: %w", err)
+	if err != nil {
+		return nil, fmt.Errorf("load cache: %w", err)
+	}
+	return cache, nil
 }
 
 // SaveImg uuid: 可置空
 func SaveImg(uuid string, imgData []byte) (imgName string, imgDate string) {
+	if uuid == common.UUID_NOT_UNIQUE_INGROUPS || uuid == common.UUID_NOT_UNIQUE_INFRIENDS {
+		uuid = "uuid_not_unit"
+	}
 	var err error
 	imgId := timeutil.GetTimeStamp() + "_" + uuid
 	// 根据当天日期判断桶是否存在，不存在则创建
 	nowDate := timeutil.GetNowDate()
+	// 获取img后缀
+	fileType, err := imgutil.DetectFileType(imgData)
+	if err != nil {
+		log.Warn().Err(err).Msg("detect file type of image err")
+	}
+	imgId = concatEtx(imgId, string(fileType)) // 拼接后缀
 	err = ic.saveImg(imgId, imgData, nowDate)
 	if err != nil {
 		log.Error().Err(err).Msg(fmt.Sprintf("save img %s err", imgId))
@@ -164,7 +180,10 @@ func (i imgCache) saveImg(imgId string, imgData []byte, nowDate string) error {
 		}
 		return nil
 	})
-	return fmt.Errorf("save img %s err: %w", imgId, err)
+	if err != nil {
+		return fmt.Errorf("save img %s err: %w", imgId, err)
+	}
+	return nil
 }
 
 // getImg 获取图片
@@ -178,7 +197,7 @@ func (i imgCache) getImg(imgId string, imgDate string) ([]byte, error) {
 		if dateBucket == nil {
 			return fmt.Errorf("获取该日期%s桶失败: %w", imgDate, ErrGetImgBucketByDate)
 		}
-		data := dateBucket.Get([]byte(concatImgId(imgId, imgDate)))
+		data := dateBucket.Get([]byte(concatImgId(imgDate, imgId)))
 		if data == nil {
 			return fmt.Errorf("获取%s的图片为空: %w", imgDate, ErrGetImgNil)
 		}
@@ -186,11 +205,15 @@ func (i imgCache) getImg(imgId string, imgDate string) ([]byte, error) {
 		copy(imgData, data)
 		return nil
 	})
-	return imgData, fmt.Errorf("get img %s err: %w", imgId, err)
+	if err != nil {
+		return nil, fmt.Errorf("get img %s err: %w", imgId, err)
+	}
+	return imgData, nil
 }
 
 // cycleCheckOutDate 循环检查图片桶是否过期
 func (i imgCache) cycleCheckOutDate() {
+	logging.Warn("循环校验图片是否过期，间隔: " + strconv.Itoa(i.CheckInterval) + " Hour")
 	var err error
 	err = db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(imgBucketName))
@@ -218,6 +241,13 @@ func (i imgCache) cycleCheckOutDate() {
 
 func concatImgId(nowDate string, imgId string) string {
 	return nowDate + "_" + imgId
+}
+
+func concatEtx(key string, etx string) string {
+	if etx == "" {
+		return key
+	}
+	return key + "." + etx
 }
 
 // 定时清理图床桶

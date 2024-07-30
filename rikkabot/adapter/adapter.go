@@ -11,6 +11,7 @@ import (
 	"wechat-demo/rikkabot"
 	"wechat-demo/rikkabot/common"
 	"wechat-demo/rikkabot/logging"
+	"wechat-demo/rikkabot/manager"
 	"wechat-demo/rikkabot/message"
 )
 
@@ -213,13 +214,19 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 		SenderId = sender.AvatarID()
 		ReceiveId = receiver.AvatarID()
 	}
+	imgData := handleSpecialRaw(msg)
+	content := msg.Content
+	if msg.MsgType == openwechat.MsgTypeImage {
+		content = ""
+	}
 
 	return &message.Message{
 		Msgtype:         rikkaMsgType,
 		MetaData:        metaData,
-		Raw:             handleSpecialRaw(msg),
+		Raw:             imgData,
 		RawContent:      msg.RawContent,
-		Content:         msg.Content,
+		ChatImgUrl:      cacheImgCovert2Url(imgData, uuid), // 图片url
+		Content:         content,
 		Uuid:            uuid, // 通过备注名获取的唯一用户标识
 		GroupId:         GroupId,
 		SenderId:        SenderId,
@@ -231,6 +238,16 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 		IsFriend:        msg.IsSendByFriend(),
 		IsMySelf:        msg.IsSendBySelf(), // 是否为自己发送的消息
 	}
+}
+
+func cacheImgCovert2Url(data []byte, uuid string) string {
+	if data == nil || len(data) == 0 {
+		return ""
+	}
+	imgName, nowDate := manager.SaveImg(uuid, data)
+	// 拼装返回url
+	imgUrl := "/chat_image/" + nowDate + "/" + imgName
+	return imgUrl
 }
 
 func handleSpecialRaw(msg *openwechat.Message) []byte {
