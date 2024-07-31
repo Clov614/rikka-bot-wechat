@@ -124,7 +124,7 @@ func LoadCache(cache any) (any, error) {
 // SaveImg uuid: 可置空
 func SaveImg(uuid string, imgData []byte) (imgName string, imgDate string) {
 	if uuid == common.UUID_NOT_UNIQUE_INGROUPS || uuid == common.UUID_NOT_UNIQUE_INFRIENDS {
-		uuid = "uuid_not_unit"
+		uuid = "" // 重复 uuid 置空
 	}
 	var err error
 	imgId := timeutil.GetTimeStamp() + "_" + uuid
@@ -213,30 +213,32 @@ func (i imgCache) getImg(imgId string, imgDate string) ([]byte, error) {
 
 // cycleCheckOutDate 循环检查图片桶是否过期
 func (i imgCache) cycleCheckOutDate() {
-	logging.Warn("循环校验图片是否过期，间隔: " + strconv.Itoa(i.CheckInterval) + " Hour")
-	var err error
-	err = db.View(func(tx *bbolt.Tx) error {
-		b := tx.Bucket([]byte(imgBucketName))
-		e := b.ForEachBucket(func(k []byte) error {
-			bucketDate := string(k)
-			if timeutil.IsBeforeThatDay(bucketDate, i.ImgValidDuration) {
-				// 过期删除该桶
-				e2 := b.Delete(k)
-				if e2 != nil {
-					return fmt.Errorf("delete bucket: %w", e2)
+	for {
+		logging.Warn("循环校验图片是否过期，间隔: " + strconv.Itoa(i.CheckInterval) + " Hour")
+		var err error
+		err = db.View(func(tx *bbolt.Tx) error {
+			b := tx.Bucket([]byte(imgBucketName))
+			e := b.ForEachBucket(func(k []byte) error {
+				bucketDate := string(k)
+				if timeutil.IsBeforeThatDay(bucketDate, i.ImgValidDuration) {
+					// 过期删除该桶
+					e2 := b.Delete(k)
+					if e2 != nil {
+						return fmt.Errorf("delete bucket: %w", e2)
+					}
 				}
+				return nil
+			})
+			if e != nil {
+				return fmt.Errorf("cycleCheckOutDate: %w", e)
 			}
 			return nil
 		})
-		if e != nil {
-			return fmt.Errorf("cycleCheckOutDate: %w", e)
+		if err != nil {
+			log.Error().Err(err).Msg("cycleCheckOutDate")
 		}
-		return nil
-	})
-	if err != nil {
-		log.Error().Err(err).Msg("cycleCheckOutDate")
+		time.Sleep(time.Duration(i.CheckInterval) * time.Hour)
 	}
-	time.Sleep(time.Duration(i.CheckInterval) * time.Second) // todo 测试使用Second，正式发布改为Hour
 }
 
 func concatImgId(nowDate string, imgId string) string {
