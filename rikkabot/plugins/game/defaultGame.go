@@ -214,7 +214,9 @@ func (rrp *russianRoulettePlugin) doPlayerRound(bullet int, player1 string, play
 	rrp.sendText(atText + "你的回合！（可选择: ’射自己‘ 或 ‘射对手’）")
 	done := make(chan struct{})
 	_, b, order := rrp.RecvMessage(&control.ProcessRules{IsAtMe: true, IsCallMe: true, CheckWhiteGroup: true, EnableGroup: true,
-		ExecOrder: append(execShotself, execShotOpponent...)}, done)
+		ExecOrder: append(execShotself, execShotOpponent...), CostomTrigger: func(rikkaMsg message.Message) bool {
+			return rikkaMsg.SenderName == player1
+		}}, done)
 	if !b { // 是否超时
 		rrp.sendText(atText + "30s未作选择，视为弃权")
 		rrp.Winer = player2 // 发起者胜出
