@@ -95,3 +95,8 @@ func GetNicknameByAt(atcontent string) (nickname string) {
 	}
 	return match[0][1]
 }
+
+// AtSomeOne 根据昵称返回艾特文本
+func AtSomeOne(username string) (atText string) {
+	return "@" + username + " "
+}

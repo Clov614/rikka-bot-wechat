@@ -73,8 +73,24 @@ func (d *Dialog) sendMessage(msg *message.Message) {
 	d.sendMsg <- msg
 }
 
-func (d *Dialog) recvMessage() message.Message {
-	return <-d.recvMsg
+func (d *Dialog) RecvMessage(checkRules *control.ProcessRules, done chan struct{}) (message.Message, bool, string) {
+	if done == nil {
+		done = make(chan struct{})
+		defer close(done)
+	}
+	for {
+		select {
+		case msg := <-d.recvMsg:
+			msg, isHandle, order := d.Cache.IsHandle(checkRules, msg)
+			if isHandle {
+				return msg, true, order
+			}
+		case <-done:
+			return message.Message{}, false, ""
+		default:
+
+		}
+	}
 }
 
 type OnceDialog struct {

@@ -9,10 +9,12 @@ import (
 	"wechat-demo/rikkabot/common"
 	"wechat-demo/rikkabot/message"
 	"wechat-demo/rikkabot/processor/cache"
+	"wechat-demo/rikkabot/processor/control"
 )
 
 type LongDialog struct {
 	Dialog
+	filtedRecv <-chan message.Message
 	id         string                                                                                          // 长会话的标识
 	Long       func(firstMsg message.Message, recvMsg <-chan message.Message, sendMsg chan<- *message.Message) // 处理对话实现
 	TimeLimit  time.Duration                                                                                   // 对话超时时间
@@ -44,10 +46,32 @@ func (ld *LongDialog) RunPlugin(sendChan chan<- *message.Message, receiveChan ch
 
 	go ld.timeoutDitecter() // 超时监测
 
+	ld.filtedRecv = ld.RecvMsgFilter()
+
 	go func() {
 		defer ld.done.SafeClose()
-		ld.Long(firstMsg, ld.RecvMsgFilter(), sendChan)
+		ld.Long(firstMsg, ld.filtedRecv, sendChan)
 	}()
+}
+
+func (ld *LongDialog) RecvMessage(checkRules *control.ProcessRules, done chan struct{}) (message.Message, bool, string) {
+	if done == nil {
+		done = make(chan struct{})
+		defer close(done)
+	}
+	for {
+		select {
+		case msg := <-ld.filtedRecv:
+			msg, isHandle, order := ld.Cache.IsHandle(checkRules, msg)
+			if isHandle {
+				return msg, true, order
+			}
+		case <-done:
+			return message.Message{}, false, ""
+		default:
+
+		}
+	}
 }
 
 func (ld *LongDialog) RecvMsgFilter() (filtedRecv chan message.Message) {

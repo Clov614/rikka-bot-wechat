@@ -9,10 +9,12 @@ import (
 	"wechat-demo/rikkabot/common"
 	"wechat-demo/rikkabot/logging"
 	"wechat-demo/rikkabot/message"
-	_ "wechat-demo/rikkabot/plugins/admin" // 需要副作用 init注册方法
 	"wechat-demo/rikkabot/processor/control"
 	"wechat-demo/rikkabot/processor/control/dialog"
 	"wechat-demo/rikkabot/processor/register"
+
+	_ "wechat-demo/rikkabot/plugins/admin" // 需要副作用 init注册方法
+	_ "wechat-demo/rikkabot/plugins/game"  // 需要副作用 init注册方法
 )
 
 func init() {

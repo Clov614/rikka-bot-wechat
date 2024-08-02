@@ -27,7 +27,9 @@ type Message struct {
 	Content         string   `json:"content"`                // 消息内容
 	Uuid            string   `json:"uuid"`                   // 用户唯一标识
 	GroupId         string   `json:"group_id"`               // 唯一标识
+	GroupName       string   `json:"group_name"`             // 群昵称
 	SenderId        string   `json:"sender_id"`              // 唯一标识
+	SenderName      string   `json:"sender_name"`            // 消息发送者用户昵称
 	ReceiverId      string   `json:"receiver_id"`            // 唯一标识
 	GroupNameList   []string `json:"group_name_list"`        // 群组成员的昵称（nickname）
 	GroupAtNameList []string `json:"group_at_name_list"`     // 群组中艾特的成员昵称（nickname）

@@ -74,7 +74,7 @@ func (p *Processor) DispatchMsg(recvChan chan *message.Message, sendChan chan *m
 			for name, plugin := range pluginMap {
 				dialog := plugin.(dpkg.IDialog)
 				if p.IsEnable(name) { // 是否启用插件
-					if checkedMsg, ok := p.IsHandle(dialog.GetProcessRules(), tempMsg); ok {
+					if checkedMsg, ok, _ := p.IsHandle(dialog.GetProcessRules(), tempMsg); ok {
 						recvConn := make(chan message.Message, 1)
 						done := dpkg.NewState()
 						p.registLongConn(recvConn, done)

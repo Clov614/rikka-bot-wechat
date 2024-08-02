@@ -235,7 +235,7 @@ func TestIsHandle(t *testing.T) {
 	cache.AddBlackUserId("813466966")
 
 	for i, test := range tests {
-		_, ok := cache.IsHandle(test.ProcessRules, *test.Message)
+		_, ok, _ := cache.IsHandle(test.ProcessRules, *test.Message)
 		if ok != test.want {
 			t.Errorf("cache.isHandle(%drules) = %v, want %v", i, ok, test.want)
 		}
@@ -275,7 +275,7 @@ func TestAlone(t *testing.T) {
 	Init()
 
 	for i, test := range tests {
-		_, ok := cache.IsHandle(test.ProcessRules, *test.Message)
+		_, ok, _ := cache.IsHandle(test.ProcessRules, *test.Message)
 		if ok != test.want {
 			t.Errorf("cache.isHandle(%drules) = %v, want %v", i, ok, test.want)
 		}

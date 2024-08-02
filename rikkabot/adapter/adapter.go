@@ -159,10 +159,12 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 	ReceiveId := ""
 	SenderId := ""
 	sender, _ := msg.Sender()     // ignore err
-	receiver, _ := msg.Receiver() // ignore erryu
+	receiver, _ := msg.Receiver() // ignore err
 	var isAtMe = false
 	var groupNameList []string
 	var groupAtNameList []string
+	SenderName := sender.NickName
+	GroupName := ""
 
 	// 获取uuid
 	uuid = rself.GetUuidById(sender, isSendByGroup)
@@ -179,7 +181,8 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 		} else {
 			SenderId = senderInGroup.AvatarID()
 		}
-
+		GroupName = sender.NickName
+		SenderName = senderInGroup.NickName
 		GroupId = sender.AvatarID() // GroupSenderID
 		ReceiveId = receiver.AvatarID()
 
@@ -212,7 +215,7 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 
 	} else {
 		SenderId = sender.AvatarID()
-		ReceiveId = receiver.AvatarID()
+		ReceiveId = receiver.AvatarID() // todo 测试中引起错误，待验证
 	}
 	imgData := handleSpecialRaw(msg)
 	content := msg.Content
@@ -229,7 +232,9 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 		Content:         content,
 		Uuid:            uuid, // 通过备注名获取的唯一用户标识
 		GroupId:         GroupId,
+		GroupName:       GroupName,
 		SenderId:        SenderId,
+		SenderName:      SenderName,
 		ReceiverId:      ReceiveId,
 		GroupNameList:   groupNameList,
 		GroupAtNameList: groupAtNameList,

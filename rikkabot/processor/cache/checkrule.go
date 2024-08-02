@@ -20,8 +20,8 @@ func (c *Cache) IsEnable(pluginname string) bool {
 }
 
 // IsHandle 根据处理规则校验是否执行处理 是否触发该方法
-func (c *Cache) IsHandle(rules *control.ProcessRules, msg message.Message) (message.Message, bool) {
-
+func (c *Cache) IsHandle(rules *control.ProcessRules, msg message.Message) (message.Message, bool, string) {
+	var matchOrder string
 	if rules == nil {
 		rules = &control.ProcessRules{}
 	}
@@ -77,6 +77,7 @@ func (c *Cache) IsHandle(rules *control.ProcessRules, msg message.Message) (mess
 			order := ""
 			execOrderFlag, order = msgutil.IsOrder(rules.ExecOrder, msg.Content)
 			msg.Content = msgutil.TrimPrefix(msg.Content, order, true, true)
+			matchOrder = order
 		}
 		if rules.IsAdmin {
 			adminFlag = c.checkAdmin(msg)
@@ -102,7 +103,7 @@ func (c *Cache) IsHandle(rules *control.ProcessRules, msg message.Message) (mess
 	}
 
 	firstFlags := calledMeFlag && adminFlag && whiteUserFlag && whiteGroupFlag && blackUserFlag && blackGroupFlag
-	return msg, firstFlags && enableMsgFlag && costomTriggerFlag && execOrderFlag && enableGroupFlag
+	return msg, firstFlags && enableMsgFlag && costomTriggerFlag && execOrderFlag && enableGroupFlag, matchOrder
 }
 
 // 判断消息发送者是否为管理员
