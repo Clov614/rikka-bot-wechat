@@ -31,6 +31,9 @@ func main() {
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 		gin.SetMode(gin.ReleaseMode)
 	}
+	// 在初始化完成后输出所有缓冲日志
+	logging.Logger.Flush(zerolog.GlobalLevel())
+	logging.Logger.SetActive(false) // 取消缓存，正常日志输出
 
 	defer func() {
 		if r := recover(); r != nil {

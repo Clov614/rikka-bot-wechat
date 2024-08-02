@@ -108,7 +108,7 @@ func (cd *OnceDialog) RunPlugin(sendChan chan<- *message.Message, receiveChan ch
 				// 打印详细错误堆栈
 				buf := make([]byte, 1<<16)
 				runtime.Stack(buf, false)
-				logging.Debug("plugin run time default err: " + string(buf))
+				logging.Debug("plugin run time default err: "+string(buf), nil)
 			}
 			// todo 向机器人发送错误提示消息
 		}
