@@ -118,6 +118,7 @@ func LoadCache(cache any) (any, error) {
 	if err != nil {
 		return nil, fmt.Errorf("load cache: %w", err)
 	}
+	logging.Debug("load cache in rikka.db", map[string]interface{}{"cache": cache})
 	return cache, nil
 }
 

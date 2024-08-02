@@ -350,6 +350,7 @@ func Init() *Cache {
 		if err != nil {
 			fmt.Println("load cache error:", err)
 		}
+		logging.Debug("init read cache", map[string]interface{}{"cache": cache})
 	}
 
 	// 同步新插件或者初始化插件状态
