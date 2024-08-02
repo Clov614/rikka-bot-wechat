@@ -29,7 +29,7 @@ func init() {
 		LongDialog: &dialog.LongDialog{},
 	}
 	rrPlugin.PluginName = "游戏-俄罗斯轮盘"
-	rrPlugin.ProcessRules = &control.ProcessRules{IsAtMe: true, IsCallMe: true, CheckWhiteGroup: true,
+	rrPlugin.ProcessRules = &control.ProcessRules{IsAtMe: true, IsCallMe: true, EnableGroup: true,
 		ExecOrder: []string{"俄罗斯轮盘", "轮盘游戏", "Russian Roulette"}}
 	rrPlugin.Long = func(firstMsg message.Message, recvMsg <-chan message.Message, sendMsg chan<- *message.Message) {
 		if firstMsg.Content == "help" {
@@ -185,7 +185,7 @@ func (rrp *russianRoulettePlugin) waitChallengerAccept() bool {
 		<-timer.C
 		close(done)
 	}()
-	_, b, _ := rrp.RecvMessage(&control.ProcessRules{IsAtMe: true, IsCallMe: true, CheckWhiteGroup: true,
+	_, b, _ := rrp.RecvMessage(&control.ProcessRules{IsAtMe: true, IsCallMe: true, EnableGroup: true,
 		ExecOrder: []string{"接受", "接受挑战", "accept", "ok", "go", "fine"}, CostomTrigger: func(rikkaMsg message.Message) bool {
 			return rikkaMsg.SenderName == rrp.Challenger
 		}}, done)
@@ -215,7 +215,7 @@ func (rrp *russianRoulettePlugin) doPlayerRound(bullet int, player1 string, play
 	atText := msgutil.AtSomeOne(player1)
 	rrp.sendText(atText + "你的回合！（可选择: ’射自己‘ 或 ‘射对手’）")
 	done := make(chan struct{})
-	_, b, order := rrp.RecvMessage(&control.ProcessRules{IsAtMe: true, IsCallMe: true, CheckWhiteGroup: true,
+	_, b, order := rrp.RecvMessage(&control.ProcessRules{IsAtMe: true, IsCallMe: true, EnableGroup: true,
 		ExecOrder: append(execShotself, execShotOpponent...), CostomTrigger: func(rikkaMsg message.Message) bool {
 			return rikkaMsg.SenderName == player1
 		}}, done)
