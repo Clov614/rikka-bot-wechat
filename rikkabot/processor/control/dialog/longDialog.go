@@ -69,7 +69,8 @@ func (ld *LongDialog) RecvMessage(checkRules *control.ProcessRules, done chan st
 		case <-done:
 			return message.Message{}, false, ""
 		default:
-
+			time.Sleep(time.Millisecond * 100) // 适当延迟
+			continue
 		}
 	}
 }

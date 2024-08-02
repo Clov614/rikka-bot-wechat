@@ -21,6 +21,7 @@ import (
 
 var (
 	errGetSettings = errors.New("get russianRoulettePlugin settings in msg err")
+	errParams      = errors.New("get russianRoulettePlugin params in msg err")
 )
 
 func init() {
@@ -140,16 +141,22 @@ func (rrp *russianRoulettePlugin) getTheSettings(text string) error {
 	var settings tsettings
 	spled := strings.Split(text, " ")
 	bnum, err := strconv.Atoi(spled[0])
+	if err != nil {
+		return fmt.Errorf("get bnum err %w %w", errParams, err)
+	}
 	bslot, err := strconv.Atoi(spled[1])
+	if err != nil {
+		return fmt.Errorf("get bslot err %w %w", errParams, err)
+	}
 	challengerATName := spled[2]
 	// 读取挑战者名称
 	if !strings.HasPrefix(challengerATName, "@") {
-		return fmt.Errorf("参数不对，第三个参数为对手艾特，请使用\"<游戏名> help\" 查看帮助信息")
+		return fmt.Errorf("%w 参数不对，第三个参数为对手艾特，请使用\"<游戏名> help\" 查看帮助信息", errParams)
 	}
 	// 读取挑战者名称
 	rrp.Challenger = msgutil.GetNicknameByAt(challengerATName)
 	if len(spled) != 3 {
-		return fmt.Errorf("参数不对，请使用\"<游戏名> help\" 查看帮助信息")
+		return fmt.Errorf("%w 参数不对，请使用\"<游戏名> help\" 查看帮助信息", errParams)
 	}
 	if err != nil {
 		return fmt.Errorf("get russianRoulettePlugin settings err: %w", err)

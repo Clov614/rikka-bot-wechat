@@ -11,6 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"runtime"
 	"sync"
+	"time"
 	"wechat-demo/rikkabot/common"
 	"wechat-demo/rikkabot/logging"
 	"wechat-demo/rikkabot/message"
@@ -88,7 +89,8 @@ func (d *Dialog) RecvMessage(checkRules *control.ProcessRules, done chan struct{
 		case <-done:
 			return message.Message{}, false, ""
 		default:
-
+			time.Sleep(time.Millisecond * 100) // 适当延迟
+			continue
 		}
 	}
 }
