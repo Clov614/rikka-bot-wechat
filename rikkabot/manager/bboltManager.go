@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	mDBPath string
+	mDBPath string // db文件完整路径
 
 	db          *bbolt.DB
 	oncedbclose sync.Once
@@ -48,7 +48,7 @@ func init() {
 	cfg := config.GetConfig()
 	mDBPath = cfg.DBDirPath + defaultDBName
 	var err error
-	_, err = validPath(mDBPath, true)
+	_, err = ValidPath(mDBPath, true)
 	if err != nil {
 		log.Fatal().Err(err).Str("path", mDBPath).Msg("validate db path")
 	}
@@ -262,7 +262,7 @@ func CloseDB() {
 	})
 }
 
-func validPath(path string, isCreate bool) (bool, error) {
+func ValidPath(path string, isCreate bool) (bool, error) {
 	dir := filepath.Dir(path)
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		if isCreate {
@@ -273,3 +273,14 @@ func validPath(path string, isCreate bool) (bool, error) {
 	}
 	return true, nil
 }
+
+//// DbExists 判断db文件是否已经创建
+//func DbExists() bool {
+//	info, err := os.Stat(mDBPath)
+//	if err != nil {
+//		if os.IsNotExist(err) {
+//			return false
+//		}
+//	}
+//	return !info.IsDir()
+//}

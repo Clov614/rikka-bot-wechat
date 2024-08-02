@@ -7,13 +7,13 @@ package cache
 import (
 	"errors"
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"sync"
 	"time"
 	"wechat-demo/rikkabot/config"
 	"wechat-demo/rikkabot/logging"
 	"wechat-demo/rikkabot/manager"
 	"wechat-demo/rikkabot/processor/register"
-	"wechat-demo/rikkabot/utils/serializer"
 )
 
 type Cache struct {
@@ -345,13 +345,11 @@ func GetCache() *Cache {
 func Init() *Cache {
 	initCache()
 	// 初始化读取 Cache
-	if serializer.IsPathExist(cachePath, cacheFilename) {
-		_, err := manager.LoadCache(cache)
-		if err != nil {
-			fmt.Println("load cache error:", err)
-		}
-		logging.Debug("init read cache", map[string]interface{}{"cache": cache})
+	_, err := manager.LoadCache(cache)
+	if err != nil {
+		log.Warn().Err(err).Msg("load cache error")
 	}
+	logging.Debug("init read cache", map[string]interface{}{"cache": cache})
 
 	// 同步新插件或者初始化插件状态
 	cache.initEnablePlugins()
@@ -361,8 +359,3 @@ func Init() *Cache {
 	cache.cycleSave()
 	return cache
 }
-
-const (
-	cachePath     = "./db"
-	cacheFilename = "cache"
-)
