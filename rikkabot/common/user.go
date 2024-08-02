@@ -297,8 +297,11 @@ func (s *Self) SendTextById(id string, text string, isGroup bool) error {
 		s.UpdateGroups()
 		err = s.SendText2GroupById(id, text)
 	}
+	if err != nil {
+		return fmt.Errorf("SendTextById failed: %w", err)
+	}
 
-	return fmt.Errorf("SendTextById failed: %w", err)
+	return nil
 }
 
 func (s *Self) SendImgById(id string, img io.Reader, isGroup bool) error {
@@ -308,7 +311,10 @@ func (s *Self) SendImgById(id string, img io.Reader, isGroup bool) error {
 	} else {
 		err = s.SendImg2FriendById(id, img)
 	}
-	return fmt.Errorf("SendImgById failed: %w", err)
+	if err != nil {
+		return fmt.Errorf("SendImgById failed: %w", err)
+	}
+	return nil
 }
 
 func (s *Self) SendFileById(id string, file io.Reader, isGroup bool) error {
@@ -318,7 +324,10 @@ func (s *Self) SendFileById(id string, file io.Reader, isGroup bool) error {
 	} else {
 		err = s.SendFile2FriendById(id, file)
 	}
-	return fmt.Errorf("SendFileById failed: %w", err)
+	if err != nil {
+		return fmt.Errorf("SendFileById failed: %w", err)
+	}
+	return nil
 }
 
 // AddFriendInGroupByNickname 拉好友进群
