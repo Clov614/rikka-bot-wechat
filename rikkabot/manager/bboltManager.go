@@ -217,13 +217,13 @@ func (i imgCache) cycleCheckOutDate() {
 	for {
 		logging.Warn("循环校验图片是否过期，间隔: " + strconv.Itoa(i.CheckInterval) + " Hour")
 		var err error
-		err = db.View(func(tx *bbolt.Tx) error {
+		err = db.Update(func(tx *bbolt.Tx) error {
 			b := tx.Bucket([]byte(imgBucketName))
 			e := b.ForEachBucket(func(k []byte) error {
 				bucketDate := string(k)
 				if timeutil.IsBeforeThatDay(bucketDate, i.ImgValidDuration) {
 					// 过期删除该桶
-					e2 := b.Delete(k)
+					e2 := b.DeleteBucket(k)
 					if e2 != nil {
 						return fmt.Errorf("delete bucket: %w", e2)
 					}
