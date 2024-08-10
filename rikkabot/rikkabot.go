@@ -88,6 +88,7 @@ func (r *RikkaBot) SetloginUrl(url string) {
 	r.loginUrl = url
 }
 
+// PushLoginNoticeEvent 推送登录事件
 func (r *RikkaBot) PushLoginNoticeEvent() {
 	loginUrl := r.GetloginUrl()
 	if loginUrl == "" { // 没有回调不需要处理
@@ -110,7 +111,32 @@ func (r *RikkaBot) PushLoginNoticeEvent() {
 	initNoticeEvent := noticeEvent.InitNoticeEvent(e, loginData)
 	err := r.EventPool.AddEvent(*initNoticeEvent)
 	if err != nil {
-		logging.WarnWithErr(err, "登录回调消息事件错误")
+		logging.WarnWithErr(err, "推送登录回调事件至事件池错误")
+	}
+}
+
+// PushLogOutNoticeEvent 推送机器人掉线事件
+func (r *RikkaBot) PushLogOutNoticeEvent(code int, msg string) {
+	// 构造 notice—event
+	type LogOutType struct {
+		Code int    `json:"code"`
+		Msg  string `json:"msg"`
+	}
+	var logoutData LogOutType
+	logoutData.Code = code
+	logoutData.Msg = msg
+	e := event.Event{
+		Id:         uuid.New().String(),
+		Time:       timeutil.GetTimeUnix(),
+		Type:       "notice",
+		DetailType: "logout",
+		SubType:    "",
+	}
+	noticeEvent := event.NoticeEvent[LogOutType]{}
+	initNoticeEvent := noticeEvent.InitNoticeEvent(e, logoutData)
+	err := r.EventPool.AddEvent(*initNoticeEvent)
+	if err != nil {
+		logging.WarnWithErr(err, "推送登出事件至事件池错误")
 	}
 }
 
@@ -164,9 +190,18 @@ func (r *RikkaBot) Start() {
 
 // Exit 主动退出 rikkabot
 func (r *RikkaBot) Exit() {
+	logging.Info("rikka bot exited")
 	r.Processor.Close()
 	r.cancel()
+}
+
+// ExitWithErr 异常退出 rikkabot
+func (r *RikkaBot) ExitWithErr(code int, msg string) {
 	logging.Info("rikka bot exited")
+	logging.Error("异常退出")
+	logging.Error(msg, map[string]interface{}{"exit code": code})
+	r.Processor.Close()
+	r.cancel()
 }
 
 // Block 当发生错误，该方法会立即返回，否则会一直阻塞

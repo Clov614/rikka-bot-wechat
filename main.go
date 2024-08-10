@@ -1,14 +1,13 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"github.com/eatmoreapple/openwechat"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 	"github.com/skip2/go-qrcode"
-	"os"
+	"time"
 	"wechat-demo/rikkabot"
 	"wechat-demo/rikkabot/adapter"
 	"wechat-demo/rikkabot/logging"
@@ -97,13 +96,14 @@ func main() {
 	}
 
 	go func() {
-		println("退出请输入q 或者 exit")
-		input := bufio.NewScanner(os.Stdin)
-		for input.Scan() {
-			if input.Text() == "exit" || input.Text() == "quit" || input.Text() == "q" {
-				rbot.Exit()
-				bot.Exit()
+		for {
+			if !bot.Alive() {
+				rbot.PushLogOutNoticeEvent(1101, "open-wechat客户端掉线")
+				time.Sleep(1 * time.Second) // 1s 延迟退出
+				rbot.ExitWithErr(1101, "open-wechat客户端掉线")
+				return
 			}
+			time.Sleep(5 * time.Second)
 		}
 	}()
 
