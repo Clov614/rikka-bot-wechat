@@ -10,6 +10,7 @@ import (
 	"wechat-demo/rikkabot/common"
 	"wechat-demo/rikkabot/config"
 	"wechat-demo/rikkabot/logging"
+	"wechat-demo/rikkabot/manager"
 	"wechat-demo/rikkabot/message"
 	"wechat-demo/rikkabot/onebot/dto/event"
 	"wechat-demo/rikkabot/processor"
@@ -192,6 +193,7 @@ func (r *RikkaBot) Start() {
 func (r *RikkaBot) Exit() {
 	logging.Info("rikka bot exited")
 	r.Processor.Close()
+	manager.CloseDB()
 	r.cancel()
 }
 
@@ -201,6 +203,7 @@ func (r *RikkaBot) ExitWithErr(code int, msg string) {
 	logging.Error("异常退出")
 	logging.Error(msg, map[string]interface{}{"exit code": code})
 	r.Processor.Close()
+	manager.CloseDB()
 	r.cancel()
 }
 

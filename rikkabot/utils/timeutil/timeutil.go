@@ -26,6 +26,12 @@ func GetNowDate() string {
 	return time.Now().Format("2006-01-02")
 }
 
+// IsDateValid 判断字符串是否符合"YYYY-MM-DD"格式
+func IsDateValid(dateStr string) bool {
+	_, err := time.Parse("2006-01-02", dateStr)
+	return err == nil
+}
+
 // IsBeforeThatDay 是否早于 （现在日期 - day）
 func IsBeforeThatDay(oDateStr string, offSetDay int) bool {
 	targetDate := time.Now().AddDate(0, 0, -offSetDay)

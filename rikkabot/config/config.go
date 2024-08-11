@@ -18,7 +18,9 @@ type CommonConfig struct {
 	AnswerDelayRandMin    int    `comment:"The Random Delay Random Min default to 1" yaml:"answer_delay_rand_min"`
 	AnswerDelayRandMax    int    `comment:"The Random Delay Random Max default to 3" yaml:"answer_delay_rand_max"`
 	LogMaxSize            int    `comment:"The Max Log Size default to 10  means 10MB limit" yaml:"log_max_size,omitempty"`
-	DBDirPath             string `comment:"The Directory Path default to ./data/db" yaml:"db_dir_path,omitempty"`
+	DBDirPath             string `comment:"数据库路径，默认: ./data/db" yaml:"db_dir_path,omitempty"`
+	ImgDirPath            string `comment:"图片保存路径，默认: ./data/img" yaml:"img_dir_path,omitempty"`
+	ImgSaveType           string `comment:"聊天图片保存方式，默认以文件保存(file: 文件保存；db: 数据桶保存)" yaml:"img_save_type,omitempty"`
 	CacheSaveInterval     int    `comment:"缓存数据持久化间隔 单位为秒(默认60秒)" yaml:"cache_save_interval,omitempty"`
 	ImgValidDuration      int    `comment:"聊天图片缓存有效时间 单位为天(默认7天)" yaml:"img_valid_duration,omitempty"`
 	ImgCacheCheckInterval int    `comment:"聊天图片校验有效间隔 单位为小时(默认24小时)" yaml:"img_cache_check_interval,omitempty"`
@@ -62,6 +64,8 @@ const (
 	defaultInterval              = 5
 	defaultLogLimit              = 10
 	defaultDBDirPath             = "./data/db"
+	defaultImgDirPath            = "./data/img"
+	defaultImgSaveType           = "file" // 图片默认文件保存
 	defaultCacheSaveInterval     = 60
 	defaultImgValidDuration      = 7  // day
 	defaultImgCacheCheckInterval = 24 // hour
@@ -74,6 +78,8 @@ var config = CommonConfig{
 	AnswerDelayRandMax:    defaultAnswerDelayRandMax,
 	LogMaxSize:            defaultLogLimit,
 	DBDirPath:             defaultDBDirPath,
+	ImgDirPath:            defaultImgDirPath,
+	ImgSaveType:           defaultImgSaveType,
 	CacheSaveInterval:     defaultCacheSaveInterval,
 	ImgValidDuration:      defaultImgValidDuration,
 	ImgCacheCheckInterval: defaultImgCacheCheckInterval,

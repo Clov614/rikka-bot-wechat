@@ -129,3 +129,21 @@ func GetMimeTypeByFileType(fileType FileType) string {
 		return "application/octet-stream"
 	}
 }
+
+// GetEtxByFileType 根据 FileType 返回 Ext 文件后缀
+func GetEtxByFileType(fileType FileType) string {
+	switch fileType {
+	case JPEG:
+		return ".jpg"
+	case PNG:
+		return ".png"
+	case GIF:
+		return ".gif"
+	case BMP:
+		return ".bmp"
+	case TIFF:
+		return ".tiff"
+	default:
+		return ""
+	}
+}
