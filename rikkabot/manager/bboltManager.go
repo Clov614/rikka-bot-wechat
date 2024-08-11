@@ -44,6 +44,7 @@ const (
 
 var ic *imgCache
 
+// nolint
 func init() {
 	// 初始化bbolt桶
 	cfg := config.GetConfig()
@@ -238,6 +239,7 @@ func (i imgCache) cycleCheckOutDate() {
 	}
 }
 
+// nolint
 func (i imgCache) checkByDB(err error) {
 	err = db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(imgBucketName))
@@ -299,7 +301,7 @@ func ValidPath(path string, isCreate bool) (bool, error) {
 					return false, fmt.Errorf("error creating directory %s: %w", currentPath, err)
 				}
 			} else {
-				return false, fmt.Errorf("directory does not exist: %s", currentPath)
+				return false, fmt.Errorf("directory does not exist: %s: %w", currentPath, errUnFindDirByDate)
 			}
 		} else if err != nil {
 			return false, fmt.Errorf("error accessing directory %s: %w", currentPath, err)

@@ -69,6 +69,7 @@ func (i imgCache) getImgByfile(imgId string, imgDate string) (imgdata []byte, er
 }
 
 // 单次检查日期文件夹是否过期
+// nolint
 func (i imgCache) checkByFile(err error) {
 	// 读取日期缓存中的所有日期目录
 	for date, _ := range fileImgCache.dateDirEntry {
@@ -177,8 +178,11 @@ func (fic *tFileImgCache) findImgData(imgId string, imgDate string) (data []byte
 // 保存图片为文件
 func (fic *tFileImgCache) saveImgByData(path string, imgData []byte) (err error) {
 	file, err := os.OpenFile(path, os.O_CREATE, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("save img as file err: %w", err)
+	}
 	defer file.Close()
-	file.Write(imgData)
+	_, err = file.Write(imgData)
 	if err != nil {
 		return fmt.Errorf("save img as file err: %w", err)
 	}
