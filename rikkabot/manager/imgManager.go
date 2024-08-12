@@ -177,7 +177,7 @@ func (fic *tFileImgCache) findImgData(imgId string, imgDate string) (data []byte
 
 // 保存图片为文件
 func (fic *tFileImgCache) saveImgByData(path string, imgData []byte) (err error) {
-	file, err := os.OpenFile(path, os.O_CREATE, os.ModePerm)
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("save img as file err: %w", err)
 	}
