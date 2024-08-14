@@ -58,7 +58,7 @@ func TestSaveImg(t *testing.T) {
 	data, _ := os.ReadFile("./test_img.jpg")
 
 	imgName, imgDate := SaveImg("test-uuid", data)
-	t.Logf(fmt.Sprintf("imgName: %s, imgDate: %s", imgName, imgDate))
+	t.Logf("imgName: %s, imgDate: %s", imgName, imgDate)
 }
 
 func TestGetImg(t *testing.T) {
