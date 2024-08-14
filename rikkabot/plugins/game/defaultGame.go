@@ -1,4 +1,4 @@
-// Package game
+// Package plugin_game
 // @Author Clover
 // @Data 2024/8/1 下午10:52:00
 // @Desc 默认游戏模块

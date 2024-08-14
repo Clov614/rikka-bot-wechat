@@ -14,6 +14,7 @@ import (
 	"wechat-demo/rikkabot/processor/register"
 
 	_ "wechat-demo/rikkabot/plugins/admin" // 需要副作用 init注册方法
+	_ "wechat-demo/rikkabot/plugins/ai"    // 需要副作用 init注册方法
 	_ "wechat-demo/rikkabot/plugins/game"  // 需要副作用 init注册方法
 )
 

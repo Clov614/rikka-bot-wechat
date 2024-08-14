@@ -1,3 +1,5 @@
+github.com/Clov614/go-ai-sdk v0.2.0 h1:LnVAsrrwTsq6NaZe2wttkHe1y1Nfiumnrr1vKDzOBd4=
+github.com/Clov614/go-ai-sdk v0.2.0/go.mod h1:S/GDuJSLlnNU47uEpY2FrN1GdP+A4mDXBQZQ2i6sCzk=
 github.com/bytedance/sonic v1.11.9 h1:LFHENlIY/SLzDWverzdOvgMztTxcfcF+cqNsz9pK5zg=
 github.com/bytedance/sonic v1.11.9/go.mod h1:LysEHSvpvDySVdC2f87zGWf6CIKJcAvqab1ZaiQtds4=
 github.com/bytedance/sonic/loader v0.1.1 h1:c+e5Pt1k/cy5wMveRDyk2X4B9hF4g7an8N3zCYjJFNM=
