@@ -28,7 +28,10 @@ func init() {
 	}
 	bytes, _ := json.Marshal(wCfgInterface)
 	var wcfg weatherCfg
-	json.Unmarshal(bytes, &wcfg)
+	err := json.Unmarshal(bytes, &wcfg)
+	if err != nil {
+		logging.Fatal("weather_ai plugin config unmarshal fail", 12)
+	}
 	w := weather.NewWeather(wcfg.Key)
 	funcCallInfo := ai_sdk.FuncCallInfo{
 		Function: ai_sdk.Function{
