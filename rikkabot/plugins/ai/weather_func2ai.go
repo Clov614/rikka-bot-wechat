@@ -26,9 +26,12 @@ func init() {
 		_ = cfg.Update() // 更新设置
 		logging.Fatal("weather_ai plugin config loaded empty please write the key about weather api in config.yaml", 12)
 	}
-	bytes, _ := json.Marshal(wCfgInterface)
+	bytes, err := json.Marshal(wCfgInterface)
+	if err != nil {
+		logging.Fatal("weather_ai plugin config marshalling failed", 12)
+	}
 	var wcfg weatherCfg
-	err := json.Unmarshal(bytes, &wcfg)
+	err = json.Unmarshal(bytes, &wcfg)
 	if err != nil {
 		logging.Fatal("weather_ai plugin config unmarshal fail", 12)
 	}
