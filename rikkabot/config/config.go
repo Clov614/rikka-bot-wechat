@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sync"
 	"wechat-demo/rikkabot/logging"
 	"wechat-demo/rikkabot/utils/configutil"
 )
@@ -33,6 +34,8 @@ type CommonConfig struct {
 	Interval        int64            `comment:"The Heart Beat Interval" yaml:"heart_beat_interval"`
 	// todo 其他设置项
 	PluginConfig map[string]interface{} `comment:"插件的设置" yaml:"plugin_config"`
+
+	mu sync.RWMutex
 }
 
 // HttpServerConfig http 正向 HTTP API配置
@@ -124,6 +127,20 @@ func (c *CommonConfig) verifiability() {
 		c.AnswerDelayRandMax = defaultAnswerDelayRandMax
 	}
 
+}
+
+// SetCustomPluginCfg 保存自定义插件设置
+func (c *CommonConfig) SetCustomPluginCfg(pluginName string, pluginCfg interface{}) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.PluginConfig[pluginName] = pluginCfg
+}
+
+func (c *CommonConfig) GetCustomPluginCfg(pluginName string) (interface{}, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	plg, ok := c.PluginConfig[pluginName]
+	return plg, ok
 }
 
 var defaultPath = "./cfg/"
