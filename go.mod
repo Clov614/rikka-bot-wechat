@@ -1,6 +1,7 @@
 module wechat-demo
 
 go 1.21.0
+toolchain go1.22.5
 
 require (
 	github.com/Clov614/go-ai-sdk v0.3.2
@@ -10,7 +11,7 @@ require (
 	github.com/rs/zerolog v1.33.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/zwgblue/yaml-encoder v0.0.0-20221226083717-a0bdbda0d998
-	go.etcd.io/bbolt v1.3.10
+	go.etcd.io/bbolt v1.3.11
 	gopkg.in/yaml.v3 v3.0.1
 )
 
