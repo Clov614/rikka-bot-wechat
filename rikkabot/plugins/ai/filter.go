@@ -6,19 +6,21 @@ package ai
 
 import (
 	"fmt"
-	"github.com/yanyiwu/gojieba"
+	"github.com/go-ego/gse"
 )
 
-var x *gojieba.Jieba = gojieba.NewJieba()
+var (
+	seg gse.Segmenter
+)
 
 var DefaultFilter *Filter
 
 type Filter struct {
-	x *gojieba.Jieba // 分词器
+	seg gse.Segmenter // 分词器
 }
 
 func (f *Filter) isLegal(word string) bool {
-	cutWords := f.x.CutAll(word)
+	cutWords := f.seg.CutAll(word)
 	for _, w := range cutWords {
 		if _, exist := sensitiveWordsMap[w]; exist {
 			return false
@@ -42,7 +44,21 @@ func (f *Filter) filter(input string, handle func(content string) (string, error
 }
 
 func init() {
+	// 加载默认词典
+	_ = seg.LoadDict()
+	// 加载默认 embed 词典
+	// seg.LoadDictEmbed()
+	//
+	// 加载简体中文词典
+	_ = seg.LoadDict("zh_s")
+	_ = seg.LoadDictEmbed("zh_s")
+	//
+	// 加载繁体中文词典
+	_ = seg.LoadDict("zh_t")
+	//
+	// 加载日文词典
+	// seg.LoadDict("jp")
 	DefaultFilter = &Filter{
-		x: x,
+		seg: seg,
 	}
 }
