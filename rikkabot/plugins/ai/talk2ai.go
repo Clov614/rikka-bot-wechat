@@ -5,6 +5,7 @@
 package ai
 
 import (
+	"fmt"
 	aisdk "github.com/Clov614/go-ai-sdk"
 	"github.com/rs/zerolog/log"
 	"wechat-demo/rikkabot/message"
@@ -43,14 +44,14 @@ func init() {
 				answer, err := talk2AI.Session.TalkById(recvmsg.GroupId, recvmsg.Content)
 				if err != nil {
 					log.Error().Err(err).Msg("talk2AI.Session.TalkById")
-					return "", err
+					return "", fmt.Errorf("failed to talk2AI.Session.TalkById %w", err)
 				}
 				return answer, nil
 			}
 			answer, err := talk2AI.Session.TalkById(recvmsg.SenderId, recvmsg.Content)
 			if err != nil {
 				log.Error().Err(err).Msg("talk2AI.Session.TalkById")
-				return "", err
+				return "", fmt.Errorf("failed to talk2AI.Session.TalkById %w", err)
 			}
 			return answer, nil
 		})

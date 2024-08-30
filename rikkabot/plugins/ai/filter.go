@@ -5,6 +5,7 @@
 package ai
 
 import (
+	"fmt"
 	"github.com/yanyiwu/gojieba"
 )
 
@@ -32,7 +33,7 @@ func (f *Filter) filter(input string, handle func(content string) (string, error
 	}
 	output, err := handle(input)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("filter failed: %w", err)
 	}
 	if !f.isLegal(output) {
 		return "filtered", nil
