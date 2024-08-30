@@ -39,7 +39,7 @@ func init() {
 		Session: aisdk.DefaultSession,
 	}
 	talk2AI.OnceDialog.Once = func(recvmsg message.Message, sendMsg chan<- *message.Message) {
-		answer, err := defaultFilter.filter(recvmsg.Content, func(content string) (string, error) {
+		answer, err := DefaultFilter.filter(recvmsg.Content, func(content string) (string, error) {
 			if recvmsg.IsGroup { // 群组消息 sessionid 为 groupid
 				answer, err := talk2AI.Session.TalkById(recvmsg.GroupId, recvmsg.Content)
 				if err != nil {

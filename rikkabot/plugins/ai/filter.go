@@ -11,7 +11,7 @@ import (
 
 var x *gojieba.Jieba = gojieba.NewJieba()
 
-var defaultFilter *Filter
+var DefaultFilter *Filter
 
 type Filter struct {
 	x *gojieba.Jieba // 分词器
@@ -42,7 +42,7 @@ func (f *Filter) filter(input string, handle func(content string) (string, error
 }
 
 func init() {
-	defaultFilter = &Filter{
+	DefaultFilter = &Filter{
 		x: x,
 	}
 }
