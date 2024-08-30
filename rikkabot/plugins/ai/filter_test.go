@@ -46,6 +46,17 @@ func TestFilter_filter(t *testing.T) {
 			},
 			wantRes: "rikka",
 		},
+		{
+			name: "test3",
+			fields: fields{
+				seg: seg,
+			},
+			args: args{
+				input:  "习主席",
+				handle: func(content string) (string, error) { return content, nil },
+			},
+			wantRes: "filtered",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

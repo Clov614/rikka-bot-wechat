@@ -7,6 +7,7 @@ package ai
 import (
 	"fmt"
 	"github.com/go-ego/gse"
+	"strings"
 )
 
 var (
@@ -58,6 +59,19 @@ func init() {
 	//
 	// 加载日文词典
 	// seg.LoadDict("jp")
+	// 加载自定义词典
+	if sensitiveWords == nil {
+		sensitiveWords = strings.Split(sensitiveStr, "\n")
+	}
+	customDtMap := make([]map[string]string, len(sensitiveWords))
+	for i, word := range sensitiveWords {
+		customDtMap[i] = map[string]string{
+			"text": word,
+			"freq": "1200",
+		}
+	}
+	_ = seg.LoadDictMap(customDtMap) // 加载自定义词典
+
 	DefaultFilter = &Filter{
 		seg: seg,
 	}
