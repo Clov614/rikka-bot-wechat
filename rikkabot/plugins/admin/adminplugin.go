@@ -179,7 +179,7 @@ func registAdminPlugin() {
 		onceDialog.SendText(recvmsg.MetaData, reply) // send msg
 	}
 
-	register.RegistPlugin(defaultAdminControl, adminPlugin.onceDialog)
+	register.RegistPlugin(defaultAdminControl, adminPlugin.onceDialog, 0)
 }
 
 func isChoice(cotent string, prefix string) bool {

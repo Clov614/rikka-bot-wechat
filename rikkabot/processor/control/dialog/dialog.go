@@ -36,6 +36,7 @@ type Dialog struct {
 	recvMsg      chan message.Message    // 接收消息通道
 	Cache        *cache.Cache
 	Self         *common.Self
+	PluginLevel  int // 会话等级
 	// HandleFunc is unrecommended: using OnceDialog or LongDialog corresponding method
 	HandleFunc func() // 对话逻辑方法
 
@@ -48,6 +49,12 @@ func (d *Dialog) GetPluginName() string {
 }
 func (d *Dialog) GetProcessRules() *control.ProcessRules {
 	return d.ProcessRules
+}
+func (d *Dialog) GetLevel() int {
+	return d.PluginLevel
+}
+func (d *Dialog) SetLevel(level int) {
+	d.PluginLevel = level
 }
 
 func (d *Dialog) RunPlugin(sendChan chan<- *message.Message, receiveChan chan message.Message, done *State) {

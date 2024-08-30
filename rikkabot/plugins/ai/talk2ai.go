@@ -54,5 +54,5 @@ func init() {
 		}
 		talk2AI.OnceDialog.SendText(recvmsg.MetaData, answer)
 	}
-	register.RegistPlugin("talk2ai", &talk2AI.OnceDialog)
+	register.RegistPlugin("talk2ai", &talk2AI.OnceDialog, 5)
 }

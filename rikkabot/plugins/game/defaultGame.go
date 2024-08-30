@@ -41,7 +41,7 @@ func init() {
 		rrPlugin.startGame(firstMsg) // 开始游戏
 	}
 
-	register.RegistPlugin("Russian Roulette", rrPlugin.LongDialog) // 注册游戏
+	register.RegistPlugin("Russian Roulette", rrPlugin.LongDialog, 2) // 注册游戏
 }
 
 type russianRoulettePlugin struct {

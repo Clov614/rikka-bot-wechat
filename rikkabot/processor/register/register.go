@@ -13,6 +13,8 @@ import (
 type IPlugin interface {
 	GetPluginName() string
 	GetProcessRules() *control.ProcessRules
+	GetLevel() int
+	SetLevel(int)
 }
 
 type PluginRegister struct {
@@ -51,10 +53,39 @@ func (p *PluginRegister) GetPluginMap() map[string]IPlugin {
 	return pluginsCopy
 }
 
+var cachePluginMapLevelList []map[string]IPlugin // 等级划分模块列表缓存
+
+// GetPluginMapLevelList 根据等级划分模块（等级==优先级  等级为切片下标）
+func (p *PluginRegister) GetPluginMapLevelList() []map[string]IPlugin {
+	if cachePluginMapLevelList != nil {
+		return cachePluginMapLevelList
+	}
+	pluginMap := p.GetPluginMap()
+	// 初始5个等级
+	pluginLevelList := make([]map[string]IPlugin, 5)
+	for name, plugin := range pluginMap {
+		level := plugin.GetLevel()
+		if level >= len(pluginLevelList) {
+			// 等级超过大小扩容
+			copyList := make([]map[string]IPlugin, level+1)
+			copy(copyList, pluginLevelList)
+			pluginLevelList = copyList
+		}
+		if pluginLevelList[level] == nil {
+			pluginLevelList[level] = map[string]IPlugin{name: plugin}
+		} else {
+			pluginLevelList[level][name] = plugin
+		}
+	}
+	cachePluginMapLevelList = pluginLevelList // cache
+	return pluginLevelList
+}
+
 var pluginPool *PluginRegister
 
 // RegistPlugin 注册对话插件
-func RegistPlugin(name string, plugin IPlugin) {
+func RegistPlugin(name string, plugin IPlugin, pluginLevel int) {
+	plugin.SetLevel(pluginLevel)
 	pluginPool.Regist(name, plugin)
 }
 

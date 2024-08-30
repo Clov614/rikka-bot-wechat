@@ -25,7 +25,7 @@ func init() {
 		ExecOrder: []string{"add whitelist", "加入白名单"}}
 
 	// 注册插件
-	register.RegistPlugin("admin_whitelist_add", &testPlugin.OnceDialog)
+	register.RegistPlugin("admin_whitelist_add", &testPlugin.OnceDialog, 1)
 
 	testLongDialogPlugin()
 }
@@ -90,5 +90,5 @@ func testLongDialogPlugin() {
 		}
 	}
 
-	register.RegistPlugin("long_dialog_plugin_test", &testLongPlugin)
+	register.RegistPlugin("long_dialog_plugin_test", &testLongPlugin, 1)
 }

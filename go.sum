@@ -1,5 +1,5 @@
-github.com/Clov614/go-ai-sdk v0.3.2 h1:CYn+HyB/HSisAgI58pFZn/wbleOK5ASSSJyhEZsdwic=
-github.com/Clov614/go-ai-sdk v0.3.2/go.mod h1:S/GDuJSLlnNU47uEpY2FrN1GdP+A4mDXBQZQ2i6sCzk=
+github.com/Clov614/go-ai-sdk v0.3.3 h1:aNL3vQvh6TRX+NZ8HcW/SJsfSdP1cpX+bcWXkNMSLGw=
+github.com/Clov614/go-ai-sdk v0.3.3/go.mod h1:S/GDuJSLlnNU47uEpY2FrN1GdP+A4mDXBQZQ2i6sCzk=
 github.com/Clov614/openwechat v1.4.8 h1:8O8zeVAGw4W2PWy/gVGthPuM7Ua25ZSfaerwAs6JqIU=
 github.com/Clov614/openwechat v1.4.8/go.mod h1:h4m2N8m0XsUKlm7UR8BUGkV89GNuKHCnlGV3J8n9Mpw=
 github.com/bytedance/sonic v1.11.9 h1:LFHENlIY/SLzDWverzdOvgMztTxcfcF+cqNsz9pK5zg=

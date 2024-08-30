@@ -69,23 +69,33 @@ func (p *Processor) DispatchMsg(recvChan chan *message.Message, sendChan chan *m
 		select {
 		case msg := <-recvChan:
 			tempMsg := *msg
-			p.broadcastRecv(tempMsg) // 长连接分发消息
-			pluginMap := p.pluginPool.GetPluginMap()
-			for name, plugin := range pluginMap {
-				dialog := plugin.(dpkg.IDialog)
-				if p.IsEnable(name) { // 是否启用插件
-					if checkedMsg, ok, _ := p.IsHandle(dialog.GetProcessRules(), tempMsg); ok {
-						recvConn := make(chan message.Message, 1)
-						done := dpkg.NewState()
-						p.registLongConn(recvConn, done)
-						select { // 发送二手消息
-						case recvConn <- checkedMsg:
-						default:
-							// skip send
+			p.broadcastRecv(tempMsg)                                   // 长连接分发消息
+			pluginMapLevelList := p.pluginPool.GetPluginMapLevelList() // 获取等级划分的插件群
+			isTrigger := false                                         // 优先级更高的方法触发标识
+			for _, pluginMapLevel := range pluginMapLevelList {
+				if isTrigger { // 优先级更高的插件已经触发，本次不执行优先级低的方法
+					break
+				}
+				if pluginMapLevel == nil {
+					continue
+				}
+				for name, plugin := range pluginMapLevel {
+					if p.IsEnable(name) { // 是否启用插件
+						dialog := plugin.(dpkg.IDialog)
+						if checkedMsg, ok, _ := p.IsHandle(dialog.GetProcessRules(), tempMsg); ok {
+							isTrigger = true
+							recvConn := make(chan message.Message, 1)
+							done := dpkg.NewState()
+							p.registLongConn(recvConn, done)
+							select { // 发送二手消息
+							case recvConn <- checkedMsg:
+							default:
+								// skip send
+							}
+							go func() {
+								dialog.RunPlugin(sendChan, recvConn, done)
+							}()
 						}
-						go func() {
-							dialog.RunPlugin(sendChan, recvConn, done)
-						}()
 					}
 				}
 			}
