@@ -81,6 +81,8 @@ github.com/twitchyliquid64/golang-asm v0.15.1 h1:SU5vSMR7hnwNxj24w34ZyCi/FmDZTkS
 github.com/twitchyliquid64/golang-asm v0.15.1/go.mod h1:a1lVb/DtPvCB8fslRZhAngC2+aY1QWCk3Cedj/Gdt08=
 github.com/ugorji/go/codec v1.2.12 h1:9LC83zGrHhuUA9l16C9AHXAqEV/2wBQ4nkvumAE65EE=
 github.com/ugorji/go/codec v1.2.12/go.mod h1:UNopzCgEMSXjBc6AOMqYvWC1ktqTAfzJZUZgYf6w6lg=
+github.com/yanyiwu/gojieba v1.4.2 h1:oEuiE/nEmMPdyBEAHMN7IdALNryTnyHd3VlBU0okyiQ=
+github.com/yanyiwu/gojieba v1.4.2/go.mod h1:54wkP7sMJ6bklf7yPl6F+JG71dzVUU1WigZbR47nGdY=
 github.com/zwgblue/yaml-encoder v0.0.0-20221226083717-a0bdbda0d998 h1:nfgqxY/ewt2bYcoPiND18j/uKPn4cbiQa9WyD+HIPKM=
 github.com/zwgblue/yaml-encoder v0.0.0-20221226083717-a0bdbda0d998/go.mod h1:gDS9Ro20YdMC2SY41VMVcy6PqyVCseFPIX1+symaFww=
 go.etcd.io/bbolt v1.3.11 h1:yGEzV1wPz2yVCLsD8ZAiGHhHVlczyC9d1rP43/VCRJ0=

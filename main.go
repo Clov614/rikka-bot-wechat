@@ -15,7 +15,6 @@ import (
 )
 
 func main() {
-
 	// 是否开启调试模式
 	debugflag := flag.Bool("debug", false, "debug mode")
 	// 是否开启 http服务

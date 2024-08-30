@@ -38,21 +38,27 @@ func init() {
 		Session: aisdk.DefaultSession,
 	}
 	talk2AI.OnceDialog.Once = func(recvmsg message.Message, sendMsg chan<- *message.Message) {
-		if recvmsg.IsGroup { // 群组消息 sessionid 为 groupid
-			answer, err := talk2AI.Session.TalkById(recvmsg.GroupId, recvmsg.Content)
+		answer, err := defaultFilter.filter(recvmsg.Content, func(content string) (string, error) {
+			if recvmsg.IsGroup { // 群组消息 sessionid 为 groupid
+				answer, err := talk2AI.Session.TalkById(recvmsg.GroupId, recvmsg.Content)
+				if err != nil {
+					log.Error().Err(err).Msg("talk2AI.Session.TalkById")
+					return "", err
+				}
+				return answer, nil
+			}
+			answer, err := talk2AI.Session.TalkById(recvmsg.SenderId, recvmsg.Content)
 			if err != nil {
 				log.Error().Err(err).Msg("talk2AI.Session.TalkById")
-				return
+				return "", err
 			}
-			talk2AI.OnceDialog.SendText(recvmsg.MetaData, answer)
-			return
-		}
-		answer, err := talk2AI.Session.TalkById(recvmsg.SenderId, recvmsg.Content)
+			return answer, nil
+		})
 		if err != nil {
 			log.Error().Err(err).Msg("talk2AI.Session.TalkById")
 			return
 		}
-		talk2AI.OnceDialog.SendText(recvmsg.MetaData, answer)
+		talk2AI.OnceDialog.SendText(recvmsg.MetaData, answer) // 回复消息
 	}
 	register.RegistPlugin("talk2ai", &talk2AI.OnceDialog, 5)
 }
