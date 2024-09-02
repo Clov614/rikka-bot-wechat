@@ -23,5 +23,5 @@
 
 ## 图解
 
-![img.png](../img/admincall.png)
+![img.png](../../img/admincall.png)
 

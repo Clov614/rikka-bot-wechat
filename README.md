@@ -53,8 +53,8 @@ start cmd /K rikka-bot-wechat.exe
 
 ## 功能模块
 
-1. - [x] [管理权限](docs/plugin/README.md)
-2. - [ ] 链接解析
+1. - [x] [管理权限](docs/plugin/admin/README.md)
+2. - [x] [链接解析](docs/plugin/bilibili/README.md)
 3. - [ ] 热更新
 
 ## 如何开发插件

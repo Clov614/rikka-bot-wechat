@@ -20,6 +20,7 @@ require (
 replace github.com/eatmoreapple/openwechat => github.com/Clov614/openwechat v1.4.8
 
 require (
+	github.com/Clov614/bilibili v0.1.1 // indirect
 	github.com/bytedance/sonic v1.11.9 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
