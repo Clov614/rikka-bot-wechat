@@ -51,6 +51,8 @@ func (c *Cache) IsHandle(rules *control.ProcessRules, msg message.Message) (mess
 	}
 
 	switch msg.Msgtype {
+	case message.MsgTypeApp:
+		fallthrough
 	case message.MsgTypeText: // 文字的处理规则
 		if msg.IsGroup {
 			if rules.EnableGroup {

@@ -11,6 +11,7 @@ const (
 	MsgTypeImage
 	MsgTypeVoice
 	MsgTypeVideo
+	MsgTypeApp
 	//MsgTypeFile todo 待完善消息类型
 )
 

@@ -141,6 +141,10 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 		rikkaMsgType = message.MsgTypeVoice
 	case openwechat.MsgTypeVideo:
 		rikkaMsgType = message.MsgTypeVideo
+	case openwechat.MsgTypeApp: // 解析app消息
+		if msg.AppMsgType == openwechat.AppMsgTypeVideo { // 视频 app 消息
+			rikkaMsgType = message.MsgTypeApp
+		}
 	default:
 		return nil // 忽略未知的消息种类
 	}
