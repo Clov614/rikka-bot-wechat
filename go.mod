@@ -5,6 +5,7 @@ go 1.22
 toolchain go1.22.5
 
 require (
+	github.com/Clov614/bilibili v0.1.2
 	github.com/Clov614/go-ai-sdk v0.3.3
 	github.com/eatmoreapple/openwechat v1.4.7
 	github.com/gin-gonic/gin v1.10.0
@@ -20,7 +21,6 @@ require (
 replace github.com/eatmoreapple/openwechat => github.com/Clov614/openwechat v1.4.8
 
 require (
-	github.com/Clov614/bilibili v0.1.1 // indirect
 	github.com/bytedance/sonic v1.11.9 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
