@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/go-ego/gse"
 	"strings"
+	"unicode/utf8"
 )
 
 var (
@@ -20,28 +21,30 @@ type Filter struct {
 	seg gse.Segmenter // 分词器
 }
 
-func (f *Filter) isLegal(word string) bool {
+func (f *Filter) desensitize(word string) string {
 	cutWords := f.seg.Cut(word, true)
+	var targetWords = make([]string, len(cutWords))
+	var ti int = 0
 	for _, w := range cutWords {
 		if _, exist := sensitiveWordsMap[w]; exist {
-			return false
+			targetWords[ti] = w
+			ti++
 		}
 	}
-	return true
+	// desensitize
+	for i := 0; i < ti; i++ {
+		mask := strings.Repeat("*", utf8.RuneCountInString(targetWords[i]))
+		word = strings.ReplaceAll(word, targetWords[i], mask)
+	}
+	return word
 }
 
 func (f *Filter) filter(input string, handle func(content string) (string, error)) (res string, err error) {
-	if !f.isLegal(input) {
-		return "filtered", nil
-	}
-	output, err := handle(input)
+	output, err := handle(f.desensitize(input))
 	if err != nil {
 		return "", fmt.Errorf("filter failed: %w", err)
 	}
-	if !f.isLegal(output) {
-		return "filtered", nil
-	}
-	return output, nil
+	return f.desensitize(output), nil
 }
 
 func init() {
