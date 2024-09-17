@@ -56,6 +56,16 @@ func TestFilter_filter(t *testing.T) {
 				handle: func(content string) (string, error) { return content, nil },
 			},
 			wantRes: "filtered",
+		}, {
+			name: "test4",
+			fields: fields{
+				seg: seg,
+			},
+			args: args{
+				input:  "那看到小偷走进房间呢\nSeeing the thief walk into the room, he called the police ",
+				handle: func(content string) (string, error) { return content, nil },
+			},
+			wantRes: "那看到小偷走进房间呢\nSeeing the thief walk into the room, he called the police ",
 		},
 	}
 	for _, tt := range tests {

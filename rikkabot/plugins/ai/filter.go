@@ -21,7 +21,7 @@ type Filter struct {
 }
 
 func (f *Filter) isLegal(word string) bool {
-	cutWords := f.seg.CutAll(word)
+	cutWords := f.seg.Cut(word, true)
 	for _, w := range cutWords {
 		if _, exist := sensitiveWordsMap[w]; exist {
 			return false
