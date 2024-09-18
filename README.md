@@ -1,7 +1,7 @@
-
 <div style="text-align: center;">
 
 # Rikka-Bot-WeChat
+
 ✨一个简易的微信机器人框架，基于GoLang✨
 
 ![](https://img.shields.io/github/go-mod/go-version/Clov614/rikka-bot-wechat "语言")
@@ -27,12 +27,18 @@
 
 ## 功能介绍
 
-1. - [x] 支持规则校验
-2. - [x] 持久化设置
-3. - [x] 插件化调用对话（普通对话/长对话）
-4. - [x] 权限管理
-5. - [ ] cron定时任务
-6. - [x] OneBot 标准客户端
+1.
+    - [x] 支持规则校验
+2.
+    - [x] 持久化设置
+3.
+    - [x] 插件化调用对话（普通对话/长对话）
+4.
+    - [x] 权限管理
+5.
+    - [x] cron定时任务
+6.
+    - [x] OneBot 标准客户端
 
 ![cmd_run](/docs/img/product.png)
 ![http_post](/docs/img/product01.png)
@@ -42,27 +48,34 @@
 前往 [Release](https://github.com/Clov614/rikka-bot-wechat/releases) 页面下载对应系统版本的可执行文件
 
 Linux运行
+
 ```bash
 ./rikka-bot-wechat 
 ```
 
 Win运行(不推荐直接点击exe运行、可以将如下内容写进run.bat双击运行或者直接运行如下命令)
+
 ```bash
 start cmd /K rikka-bot-wechat.exe
 ```
 
 ## 功能模块
 
-1. - [x] [管理权限](docs/plugin/admin/README.md)
-2. - [x] [链接解析](docs/plugin/bilibili/README.md)
-3. - [ ] 热更新
+1.
+    - [x] [管理权限](docs/plugin/admin/README.md)
+2.
+    - [x] [链接解析](docs/plugin/bilibili/README.md)
+3.
+    - [ ] 热更新
 
 ## 如何开发插件
 
-todo (暂未完善文档，可以阅读一下 [/rikka/plugins](https://github.com/Clov614/rikka-bot-wechat/tree/main/rikkabot/plugins))
+todo (
+暂未完善文档，可以阅读一下 [/rikka/plugins](https://github.com/Clov614/rikka-bot-wechat/tree/main/rikkabot/plugins))
 
 ## 相关链接
 
-| 地址                                                                    | 简介          |
-|-----------------------------------------------------------------------|-------------|
-| [eatmoreapple/openwechat](https://github.com/eatmoreapple/openwechat) | golang微信SDK |
+| 地址                                                                                      | 简介                            |
+|-----------------------------------------------------------------------------------------|-------------------------------|
+| [eatmoreapple/openwechat](https://github.com/eatmoreapple/openwechat)                   | golang微信SDK                   |
+| [code-innovator-zyx/wechat-gptbot](https://github.com/code-innovator-zyx/wechat-gptbot) | 一个很好的微信机器人项目（微信刷步数功能参考了该项目实现） |
