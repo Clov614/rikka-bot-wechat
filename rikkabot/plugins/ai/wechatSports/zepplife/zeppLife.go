@@ -2,6 +2,8 @@
 // @Author Clover
 // @Data 2024/9/17 下午7:58:00
 // @Desc
+//
+//nolint:bodyclose,err113,wrapcheck
 package zepplife
 
 import (
