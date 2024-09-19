@@ -59,6 +59,9 @@ func init() {
 			PluginName: "AI实时对话",
 			ProcessRules: &control.ProcessRules{EnableGroup: true, CheckBlackUser: true, CheckBlackGroup: true,
 				CostomTrigger: func(rikkaMsg message.Message) bool {
+					if rikkaMsg.Msgtype != message.MsgTypeText || !(rikkaMsg.IsFriend || rikkaMsg.IsGroup) {
+						return false
+					}
 					if rikkaMsg.IsGroup {
 						// 群聊消息需要艾特
 						return rikkaMsg.IsAtMe
