@@ -144,6 +144,8 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 	case openwechat.MsgTypeApp: // 解析app消息
 		if msg.AppMsgType == openwechat.AppMsgTypeVideo { // 视频 app 消息
 			rikkaMsgType = message.MsgTypeApp
+		} else {
+			return nil // 忽略未知app消息
 		}
 	default:
 		return nil // 忽略未知的消息种类
@@ -162,8 +164,19 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 	GroupId := ""
 	ReceiveId := ""
 	SenderId := ""
-	sender, _ := msg.Sender()     // ignore err
+	sender, _ := msg.Sender() // ignore err
+	// 忽略公众号发送的一切消息
+	if !sender.IsFriend() && !sender.IsGroup() && !sender.IsSelf() {
+		return nil
+	}
+	// 忽略公众号发送的一切消息
+	if sender.IsMP() {
+		return nil
+	}
 	receiver, _ := msg.Receiver() // ignore err
+	if receiver == nil {
+		return nil
+	}
 	var isAtMe = false
 	var groupNameList []string
 	var groupAtNameList []string
