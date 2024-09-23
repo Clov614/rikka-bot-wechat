@@ -6,7 +6,7 @@ toolchain go1.22.5
 
 require (
 	github.com/Clov614/bilibili v0.1.2
-	github.com/Clov614/go-ai-sdk v0.4.2
+	github.com/Clov614/go-ai-sdk v0.4.4
 	github.com/eatmoreapple/openwechat v1.4.7
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-ego/gse v0.80.3
