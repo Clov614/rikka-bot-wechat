@@ -126,6 +126,10 @@ func (c *CommonConfig) verifiability() {
 		c.AnswerDelayRandMin = defaultAnswerDelayRandMin
 		c.AnswerDelayRandMax = defaultAnswerDelayRandMax
 	}
+	// 校验 http post 列表是否为空视为不开启主动post
+	if len(c.HttpPost) == 1 && c.HttpPost[0].Url == "" && c.HttpPost[0].Secret == "" && c.HttpPost[0].MaxRetries == 0 {
+		c.HttpPost = []HttpPostConfig{}
+	}
 
 }
 
@@ -155,8 +159,8 @@ func init() {
 		}
 		logging.ErrorWithErr(err, "error load config")
 	}
-	config.verifiability() // 校验设置项是否合规
 	err = configutil.Save(&config, defaultPath, defaultSaveFileName)
+	config.verifiability() // 校验设置项是否合规
 	if err != nil {
 		logging.ErrorWithErr(err, "error saving config")
 	}

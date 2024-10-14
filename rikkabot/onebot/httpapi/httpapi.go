@@ -351,6 +351,7 @@ func (c HttpClient) HandlerPostEvent(event event.IEvent) {
 		req, err = http.NewRequest("POST", c.postUrl, bytes.NewBuffer(eventJSON))
 		if err != nil {
 			logHttpPostError(event, err, "request create failed")
+			rikkabot.Bot().ExitWithErr(1102, err.Error())
 		}
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+encrypt(c.secret))
