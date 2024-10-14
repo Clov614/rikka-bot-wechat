@@ -19,6 +19,8 @@ func main() {
 	debugflag := flag.Bool("debug", false, "debug mode")
 	// 是否开启 http服务
 	httpMode := flag.Bool("http", false, "http mode")
+	// 是否开启 rikkabot
+	botMode := flag.Bool("bot", false, "bot mode(using to start rikkabot and also http can run)")
 	// 是否打印 qrcode
 	isPrintQr := flag.Bool("qrcode", false, "qrcode mode")
 	flag.Parse()
@@ -90,7 +92,7 @@ func main() {
 		rbot.StartHandleEvent() // 处理事件
 	}
 
-	if !*httpMode {
+	if !*httpMode || *botMode { // http 不启动情况 或者 bot模式启动 情况下 启动bot
 		rbot.Start()
 	}
 
