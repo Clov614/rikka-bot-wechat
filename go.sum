@@ -2,8 +2,6 @@ github.com/Clov614/bilibili v0.1.2 h1:vi1Ykn5+xgrwfpR/xLgdXvoNdulaZitXP9BOgdy0n+
 github.com/Clov614/bilibili v0.1.2/go.mod h1:th+qNf6jfSDH03oCM4s347a+i7IpCgZyNRIHY8AAXe8=
 github.com/Clov614/go-ai-sdk v0.4.2 h1:4krlgGbgP4UDBl6YYIc8YBJUWH54q46LOzpWhErSdhA=
 github.com/Clov614/go-ai-sdk v0.4.2/go.mod h1:S/GDuJSLlnNU47uEpY2FrN1GdP+A4mDXBQZQ2i6sCzk=
-github.com/Clov614/openwechat v1.4.8 h1:8O8zeVAGw4W2PWy/gVGthPuM7Ua25ZSfaerwAs6JqIU=
-github.com/Clov614/openwechat v1.4.8/go.mod h1:h4m2N8m0XsUKlm7UR8BUGkV89GNuKHCnlGV3J8n9Mpw=
 github.com/bytedance/sonic v1.11.9 h1:LFHENlIY/SLzDWverzdOvgMztTxcfcF+cqNsz9pK5zg=
 github.com/bytedance/sonic v1.11.9/go.mod h1:LysEHSvpvDySVdC2f87zGWf6CIKJcAvqab1ZaiQtds4=
 github.com/bytedance/sonic/loader v0.1.1 h1:c+e5Pt1k/cy5wMveRDyk2X4B9hF4g7an8N3zCYjJFNM=
@@ -16,6 +14,8 @@ github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSV
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/eatmoreapple/openwechat v1.4.10 h1:Wx1+Eulb8yXY7t9J8FCzaLu2tvRPT0leTskdNOsUXj0=
+github.com/eatmoreapple/openwechat v1.4.10/go.mod h1:h4m2N8m0XsUKlm7UR8BUGkV89GNuKHCnlGV3J8n9Mpw=
 github.com/gabriel-vasile/mimetype v1.4.4 h1:QjV6pZ7/XZ7ryI2KuyeEDE8wnh7fHP9YnQy+R0LnH8I=
 github.com/gabriel-vasile/mimetype v1.4.4/go.mod h1:JwLei5XPtWdGiMFB5Pjle1oEeoSeEuJfJE+TtfvdB/s=
 github.com/gin-contrib/sse v0.1.0 h1:Y/yl/+YNO8GZSjAhjMsSuLt29uWRFHdHYUb5lYOV9qE=
