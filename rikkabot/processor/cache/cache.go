@@ -315,7 +315,7 @@ func (c *Cache) handleSave(firstLoad bool) {
 	if firstLoad {
 		logging.Info("load cache successfully")
 	} else {
-		logging.Info("cache save successfully")
+		logging.Debug("cache save successfully", nil)
 	}
 }
 

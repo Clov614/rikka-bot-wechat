@@ -23,7 +23,7 @@ type Processor struct {
 	// todo 方法 消息/群号 锁 保证对话发起者只能拥有一个插件的对话存活
 	// todo 加入done 处理关闭 临时的
 	done       chan struct{}
-	closeToken chan bool
+	closeToken chan bool // 长连接互斥令牌
 }
 
 func NewProcessor() *Processor {
