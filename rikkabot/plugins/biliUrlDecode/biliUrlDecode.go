@@ -15,12 +15,8 @@ import (
 )
 
 func init() {
-	biliDecodePlugin := biliPlugin{
-		OnceDialog: &dialog.OnceDialog{},
-	}
-	biliDecodePlugin.PluginName = "bilibili链接解析"
 	// 允许群组 白名单允许
-	biliDecodePlugin.ProcessRules = &control.ProcessRules{EnableGroup: true, CostomTrigger: func(rikkaMsg message.Message) bool {
+	rules := &control.ProcessRules{EnableGroup: true, CostomTrigger: func(rikkaMsg message.Message) bool {
 		if rikkaMsg.Msgtype == message.MsgTypeApp {
 			var xmlMsg message.XMLMsg
 			err := xml.Unmarshal([]byte(rikkaMsg.Content), &xmlMsg)
@@ -40,7 +36,12 @@ func init() {
 		}
 		return false
 	}}
-	biliDecodePlugin.Once = func(recvmsg message.Message, sendMsg chan<- *message.Message) {
+	biliDecodePlugin := biliPlugin{
+		// 设置插件名&消息规则&需要的消息类型
+		OnceDialog: dialog.InitOnceDialog("bilibili链接解析", rules, message.MsgTypeList{message.MsgTypeApp}),
+	}
+	// 运行时逻辑
+	biliDecodePlugin.SetOnceFunc(func(recvmsg message.Message, sendMsg chan<- *message.Message) {
 		switch recvmsg.Msgtype {
 		case message.MsgTypeApp:
 			var xmlMsg message.XMLMsg
@@ -94,7 +95,7 @@ func init() {
 			}
 			biliDecodePlugin.SendText(recvmsg.MetaData, output)
 		}
-	}
+	})
 	register.RegistPlugin("bili-url-parse", biliDecodePlugin.OnceDialog, 1)
 }
 

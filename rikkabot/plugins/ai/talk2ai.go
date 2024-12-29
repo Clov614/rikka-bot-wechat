@@ -24,7 +24,7 @@ type AiCfg struct {
 }
 
 type Talk2AI struct {
-	OnceDialog dialog.OnceDialog
+	OnceDialog *dialog.OnceDialog
 	*aisdk.Session
 }
 
@@ -53,26 +53,23 @@ func init() {
 			}
 		}
 	}
+	// 消息规则
+	rules := &control.ProcessRules{EnableGroup: true, CheckBlackUser: true, CheckBlackGroup: true,
+		CostomTrigger: func(rikkaMsg message.Message) bool {
+			if rikkaMsg.Msgtype != message.MsgTypeText || !(rikkaMsg.IsFriend || rikkaMsg.IsGroup) {
+				return false
+			}
+			if rikkaMsg.IsGroup {
+				// 群聊消息需要艾特
+				return rikkaMsg.IsAtMe
+			} else if rikkaMsg.IsFriend {
+				// 好友消息，直接回复
+				return true
+			}
+			return false
+		}}
 
-	talk2AI := Talk2AI{OnceDialog: dialog.OnceDialog{
-		Dialog: dialog.Dialog{
-			PluginName: "AI实时对话",
-			ProcessRules: &control.ProcessRules{EnableGroup: true, CheckBlackUser: true, CheckBlackGroup: true,
-				CostomTrigger: func(rikkaMsg message.Message) bool {
-					if rikkaMsg.Msgtype != message.MsgTypeText || !(rikkaMsg.IsFriend || rikkaMsg.IsGroup) {
-						return false
-					}
-					if rikkaMsg.IsGroup {
-						// 群聊消息需要艾特
-						return rikkaMsg.IsAtMe
-					} else if rikkaMsg.IsFriend {
-						// 好友消息，直接回复
-						return true
-					}
-					return false
-				}},
-		},
-	},
+	talk2AI := Talk2AI{OnceDialog: dialog.InitOnceDialog("AI实时对话", rules, message.MsgTypeList{message.MsgTypeText}),
 		Session: aisdk.NewSession(aiCfg.SystemSet, aiCfg.SessionTimeOut),
 	}
 	talk2AI.OnceDialog.Once = func(recvmsg message.Message, sendMsg chan<- *message.Message) {
@@ -104,5 +101,5 @@ func init() {
 		}
 		talk2AI.OnceDialog.SendText(recvmsg.MetaData, answer) // 回复消息
 	}
-	register.RegistPlugin("talk2ai", &talk2AI.OnceDialog, 5)
+	register.RegistPlugin("talk2ai", talk2AI.OnceDialog, 5)
 }

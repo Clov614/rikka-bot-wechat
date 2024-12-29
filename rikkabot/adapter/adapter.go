@@ -144,7 +144,7 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 	case openwechat.MsgTypeApp: // 解析app消息
 		if msg.AppMsgType == openwechat.AppMsgTypeVideo { // 视频 app 消息
 			rikkaMsgType = message.MsgTypeApp
-		} else {
+		} else { // todo 消息选择器测试无误后移除
 			return nil // 忽略未知app消息
 		}
 	default:

@@ -26,12 +26,11 @@ var (
 
 func init() {
 	rrPlugin := russianRoulettePlugin{
-		LongDialog: &dialog.LongDialog{},
+		LongDialog: dialog.InitLongDialog("游戏-俄罗斯轮盘", &control.ProcessRules{IsAtMe: true, IsCallMe: true, EnableGroup: true,
+			ExecOrder: []string{"俄罗斯轮盘", "轮盘游戏", "Russian Roulette"}}, message.MsgTypeList{message.MsgTypeText}),
 	}
-	rrPlugin.PluginName = "游戏-俄罗斯轮盘"
-	rrPlugin.ProcessRules = &control.ProcessRules{IsAtMe: true, IsCallMe: true, EnableGroup: true,
-		ExecOrder: []string{"俄罗斯轮盘", "轮盘游戏", "Russian Roulette"}}
-	rrPlugin.Long = func(firstMsg message.Message, recvMsg <-chan message.Message, sendMsg chan<- *message.Message) {
+	// 运行时逻辑
+	rrPlugin.SetLongFunc(func(firstMsg message.Message, recvMsg <-chan message.Message, sendMsg chan<- *message.Message) {
 		if firstMsg.Content == "help" {
 			rrPlugin.groupid = firstMsg.GroupId
 			rrPlugin.uuid = firstMsg.Uuid
@@ -39,7 +38,7 @@ func init() {
 			return
 		}
 		rrPlugin.startGame(firstMsg) // 开始游戏
-	}
+	})
 
 	register.RegistPlugin("Russian Roulette", rrPlugin.LongDialog, 2) // 注册游戏
 }

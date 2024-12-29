@@ -12,13 +12,28 @@ import (
 	"wechat-demo/rikkabot/processor/control"
 )
 
+// LongFunc 长对话作用方法
+type LongFunc func(firstMsg message.Message, recvMsg <-chan message.Message, sendMsg chan<- *message.Message)
+
 type LongDialog struct {
-	Dialog
+	*Dialog
 	filtedRecv <-chan message.Message
-	id         string                                                                                          // 长会话的标识
-	Long       func(firstMsg message.Message, recvMsg <-chan message.Message, sendMsg chan<- *message.Message) // 处理对话实现
-	TimeLimit  time.Duration                                                                                   // 对话超时时间
+	id         string        // 长会话的标识
+	Long       LongFunc      // 处理对话实现
+	TimeLimit  time.Duration // 对话超时时间
 	resetTimer chan struct{}
+}
+
+// InitLongDialog 初始化长对话
+func InitLongDialog(pluginName string, processRules *control.ProcessRules, mtList message.MsgTypeList) *LongDialog {
+	return &LongDialog{
+		Dialog: initDialog(pluginName, processRules, mtList),
+	}
+}
+
+// SetLongFunc 设置长对话执行时逻辑
+func (ld *LongDialog) SetLongFunc(long LongFunc) {
+	ld.Long = long
 }
 
 func (ld *LongDialog) SendMessage(msg *message.Message) {
@@ -63,7 +78,8 @@ func (ld *LongDialog) RecvMessage(checkRules *control.ProcessRules, done chan st
 		select {
 		case msg := <-ld.filtedRecv:
 			msg, isHandle, order := ld.Cache.IsHandle(checkRules, msg)
-			if isHandle {
+			isChoose := ld.MsgTypeGuard.Mux(ld.GetPluginName(), msg)
+			if isHandle && isChoose {
 				return msg, true, order
 			}
 		case <-done:

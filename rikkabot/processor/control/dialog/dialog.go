@@ -32,6 +32,7 @@ type IDialog interface {
 type Dialog struct {
 	PluginName   string                  // 插件注册名-对应对话对象
 	ProcessRules *control.ProcessRules   // 触发规则
+	MsgTypeGuard *message.MsgTypeMux     // 消息类型选择
 	sendMsg      chan<- *message.Message // 发送消息通道
 	recvMsg      chan message.Message    // 接收消息通道
 	Cache        *cache.Cache
@@ -42,6 +43,15 @@ type Dialog struct {
 
 	MsgBuf bytes.Buffer // 消息构建缓冲
 	done   *State       // 控制存活
+}
+
+func initDialog(pluginName string, processRules *control.ProcessRules, mtList message.MsgTypeList) *Dialog {
+	msgTypeGuard := message.GetMsgTypeMux()
+	msgTypeGuard.RegistByPluginName(pluginName, mtList) // 注册该对话需要使用的消息类型
+	return &Dialog{
+		MsgTypeGuard: msgTypeGuard,
+		ProcessRules: processRules,
+	}
 }
 
 func (d *Dialog) GetPluginName() string {
@@ -90,7 +100,8 @@ func (d *Dialog) RecvMessage(checkRules *control.ProcessRules, done chan struct{
 		select {
 		case msg := <-d.recvMsg:
 			msg, isHandle, order := d.Cache.IsHandle(checkRules, msg)
-			if isHandle {
+			isChoose := d.MsgTypeGuard.Mux(d.GetPluginName(), msg)
+			if isHandle && isChoose {
 				return msg, true, order
 			}
 		case <-done:
@@ -102,9 +113,23 @@ func (d *Dialog) RecvMessage(checkRules *control.ProcessRules, done chan struct{
 	}
 }
 
+type OnceFunc func(recvmsg message.Message, sendMsg chan<- *message.Message) // 单次对话插件实现
+
 type OnceDialog struct {
-	Dialog
-	Once func(recvmsg message.Message, sendMsg chan<- *message.Message) // 一次对话
+	*Dialog
+	Once OnceFunc // 一次对话
+}
+
+// InitOnceDialog 初始化单次对话
+func InitOnceDialog(pluginName string, processRules *control.ProcessRules, mtList message.MsgTypeList) *OnceDialog {
+	return &OnceDialog{
+		Dialog: initDialog(pluginName, processRules, mtList),
+	}
+}
+
+// SetOnceFunc 设置具体对话逻辑
+func (cd *OnceDialog) SetOnceFunc(once OnceFunc) {
+	cd.Once = once
 }
 
 func (cd *OnceDialog) RunPlugin(sendChan chan<- *message.Message, receiveChan chan message.Message, done *State) {

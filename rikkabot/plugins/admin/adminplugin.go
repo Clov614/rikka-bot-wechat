@@ -27,20 +27,19 @@ const (
 
 // 注册管理员基础功能
 func registAdminPlugin() {
-	adminPlugin := AdminPlugin{
-		onceDialog: &dialog.OnceDialog{},
-	}
-	onceDialog := adminPlugin.onceDialog
-	onceDialog.PluginName = "管理员基础功能"
-	onceDialog.ProcessRules = &control.ProcessRules{IsCallMe: true, IsAdmin: true, IsAtMe: true, EnableGroup: true,
+	rules := &control.ProcessRules{IsCallMe: true, IsAdmin: true, IsAtMe: true, EnableGroup: true,
 		ExecOrder: []string{"admin"}}
+	adminPlugin := AdminPlugin{
+		onceDialog: dialog.InitOnceDialog("管理员基础功能", rules, message.MsgTypeList{message.MsgTypeText}),
+	}
 
-	onceDialog.Once = func(recvmsg message.Message, sendMsg chan<- *message.Message) {
+	// 对话逻辑
+	adminPlugin.onceDialog.SetOnceFunc(func(recvmsg message.Message, sendMsg chan<- *message.Message) {
 		if adminPlugin.cache == nil {
-			adminPlugin.cache = onceDialog.Cache // 运行时获取 缓存指针
+			adminPlugin.cache = adminPlugin.onceDialog.Cache // 运行时获取 缓存指针
 		}
 		if adminPlugin.user == nil {
-			adminPlugin.user = onceDialog.Self // 运行时获取  用户（自身）指针
+			adminPlugin.user = adminPlugin.onceDialog.Self // 运行时获取  用户（自身）指针
 		}
 		content := recvmsg.Content
 		content = msgutil.TrimPrefix(content, "admin", false, true)
@@ -176,8 +175,8 @@ func registAdminPlugin() {
 			reply = helpContent()
 		}
 
-		onceDialog.SendText(recvmsg.MetaData, reply) // send msg
-	}
+		adminPlugin.onceDialog.SendText(recvmsg.MetaData, reply) // send msg
+	})
 
 	register.RegistPlugin(defaultAdminControl, adminPlugin.onceDialog, 0)
 }
