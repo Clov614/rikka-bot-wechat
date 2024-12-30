@@ -27,7 +27,7 @@ var (
 func init() {
 	rrPlugin := russianRoulettePlugin{
 		LongDialog: dialog.InitLongDialog("游戏-俄罗斯轮盘", &control.ProcessRules{IsAtMe: true, IsCallMe: true, EnableGroup: true,
-			ExecOrder: []string{"俄罗斯轮盘", "轮盘游戏", "Russian Roulette"}}, message.MsgTypeList{message.MsgTypeText}),
+			ExecOrder: []string{"俄罗斯轮盘", "轮盘游戏", "Russian Roulette"}, EnableMsgType: []message.MsgType{message.MsgTypeText}}),
 	}
 	// 运行时逻辑
 	rrPlugin.SetLongFunc(func(firstMsg message.Message, recvMsg <-chan message.Message, sendMsg chan<- *message.Message) {

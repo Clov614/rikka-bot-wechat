@@ -127,6 +127,23 @@ func (md *MetaData) runDelayTimer(delayMin int, delayMax int) {
 	close(md.delayToken)
 }
 
+// AgreeNewFriend 同意新好友的添加请求
+func (md *MetaData) AgreeNewFriend() bool {
+	_, err := md.RawMsg.Agree("Hello world!") // friend 对象可以进一步 处理
+	if err != nil {
+		return false
+	}
+	return true
+}
+
+// AsReadMsg 已读消息
+func (md *MetaData) AsReadMsg() {
+	err := md.RawMsg.AsRead()
+	if err != nil {
+		logging.ErrorWithErr(err, "AsReadMsg fail")
+	}
+}
+
 //</editor-fold>
 
 // covert 消息转换处理
@@ -147,6 +164,12 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 		} else { // todo 消息选择器测试无误后移除
 			return nil // 忽略未知app消息
 		}
+	case openwechat.MsgTypeVerify:
+		if !msg.IsFriendAdd() { // 不是添加好友的验证消息就忽略
+			return nil
+		}
+		rikkaMsgType = message.MsgTypeNewFriendVerify
+
 	default:
 		return nil // 忽略未知的消息种类
 	}
@@ -164,14 +187,16 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 	GroupId := ""
 	ReceiveId := ""
 	SenderId := ""
-	sender, _ := msg.Sender() // ignore err
-	// 忽略公众号发送的一切消息
-	if !sender.IsFriend() && !sender.IsGroup() && !sender.IsSelf() {
-		return nil
-	}
-	// 忽略公众号发送的一切消息
-	if sender.IsMP() {
-		return nil
+	sender, _ := msg.Sender()                           // ignore err
+	if rikkaMsgType != message.MsgTypeNewFriendVerify { // todo 优化掉这个公众号判断
+		// 忽略公众号发送的一切消息
+		if !sender.IsFriend() && !sender.IsGroup() && !sender.IsSelf() {
+			return nil
+		}
+		// 忽略公众号发送的一切消息
+		if sender.IsMP() {
+			return nil
+		}
 	}
 	receiver, _ := msg.Receiver() // ignore err
 	if receiver == nil {
@@ -238,6 +263,9 @@ func (a *Adapter) covert(msg *openwechat.Message) *message.Message {
 	content := msg.Content
 	if msg.MsgType == openwechat.MsgTypeImage {
 		content = ""
+	}
+	if rikkaMsgType == message.MsgTypeNewFriendVerify {
+		content = msg.RecommendInfo.Content // 好友验证消息
 	}
 
 	return &message.Message{

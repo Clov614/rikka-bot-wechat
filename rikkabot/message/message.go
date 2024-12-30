@@ -12,6 +12,7 @@ const (
 	MsgTypeVoice
 	MsgTypeVideo
 	MsgTypeApp
+	MsgTypeNewFriendVerify
 	//MsgTypeFile todo 待完善消息类型
 )
 
@@ -50,6 +51,8 @@ type IMeta interface {
 	GetMsgSenderNickname() string                               // 获取消息发送者昵称
 	GetGroupNickname() string                                   // 获取群组消息的群名
 	GetGroupMemberIdByNickname(nickname string) (string, error) // 获取群成员的user_id根据nickname
+	AgreeNewFriend() bool                                       // 同意好友请求
+	AsReadMsg()                                                 // 已读消息
 }
 
 //type ISelf interface {

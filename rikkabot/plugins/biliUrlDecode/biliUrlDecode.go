@@ -35,10 +35,10 @@ func init() {
 			return regexBV.MatchString(rikkaMsg.Content) || regexBilibili.MatchString(rikkaMsg.Content) || regexShort.MatchString(rikkaMsg.Content)
 		}
 		return false
-	}}
+	}, EnableMsgType: []message.MsgType{message.MsgTypeApp, message.MsgTypeText}}
 	biliDecodePlugin := biliPlugin{
 		// 设置插件名&消息规则&需要的消息类型
-		OnceDialog: dialog.InitOnceDialog("bilibili链接解析", rules, message.MsgTypeList{message.MsgTypeApp, message.MsgTypeText}),
+		OnceDialog: dialog.InitOnceDialog("bilibili链接解析", rules),
 	}
 	// 运行时逻辑
 	biliDecodePlugin.SetOnceFunc(func(recvmsg message.Message, sendMsg chan<- *message.Message) {

@@ -67,9 +67,9 @@ func init() {
 				return true
 			}
 			return false
-		}}
+		}, EnableMsgType: []message.MsgType{message.MsgTypeText}}
 
-	talk2AI := Talk2AI{OnceDialog: dialog.InitOnceDialog("AI实时对话", rules, message.MsgTypeList{message.MsgTypeText}),
+	talk2AI := Talk2AI{OnceDialog: dialog.InitOnceDialog("AI实时对话", rules),
 		Session: aisdk.NewSession(aiCfg.SystemSet, aiCfg.SessionTimeOut),
 	}
 	talk2AI.OnceDialog.Once = func(recvmsg message.Message, sendMsg chan<- *message.Message) {

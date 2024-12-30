@@ -25,9 +25,9 @@ type LongDialog struct {
 }
 
 // InitLongDialog 初始化长对话
-func InitLongDialog(pluginName string, processRules *control.ProcessRules, mtList message.MsgTypeList) *LongDialog {
+func InitLongDialog(pluginName string, processRules *control.ProcessRules) *LongDialog {
 	return &LongDialog{
-		Dialog: initDialog(pluginName, processRules, mtList),
+		Dialog: initDialog(pluginName, processRules),
 	}
 }
 
@@ -78,8 +78,8 @@ func (ld *LongDialog) RecvMessage(checkRules *control.ProcessRules, done chan st
 		select {
 		case msg := <-ld.filtedRecv:
 			msg, isHandle, order := ld.Cache.IsHandle(checkRules, msg)
-			isChoose := ld.MsgTypeGuard.Mux(ld.GetPluginName(), msg)
-			if isHandle && isChoose {
+			if isHandle {
+				msg.MetaData.AsReadMsg() // 确认处理标为已读消息
 				return msg, true, order
 			}
 		case <-done:

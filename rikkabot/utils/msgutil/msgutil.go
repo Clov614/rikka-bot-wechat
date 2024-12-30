@@ -33,7 +33,7 @@ func TrimCallMe(me string, s string) string {
 	return TrimPrefix(s, me, false, true)
 }
 
-// TrimPrefix caseSensitive 只在匹配的时候忽略大小写
+// TrimPrefix caseSensitive 只在匹配的时候忽略大小写(前缀是否对大小写敏感)
 func TrimPrefix(s string, prefix string, caseSensitive bool, isTrimSpace bool) string {
 	original := s
 

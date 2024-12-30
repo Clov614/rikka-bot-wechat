@@ -28,9 +28,9 @@ const (
 // 注册管理员基础功能
 func registAdminPlugin() {
 	rules := &control.ProcessRules{IsCallMe: true, IsAdmin: true, IsAtMe: true, EnableGroup: true,
-		ExecOrder: []string{"admin"}}
+		ExecOrder: []string{"admin"}, EnableMsgType: []message.MsgType{message.MsgTypeText}}
 	adminPlugin := AdminPlugin{
-		onceDialog: dialog.InitOnceDialog("管理员基础功能", rules, message.MsgTypeList{message.MsgTypeText}),
+		onceDialog: dialog.InitOnceDialog("管理员基础功能", rules),
 	}
 
 	// 对话逻辑

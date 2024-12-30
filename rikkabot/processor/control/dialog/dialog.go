@@ -32,7 +32,6 @@ type IDialog interface {
 type Dialog struct {
 	PluginName   string                  // 插件注册名-对应对话对象
 	ProcessRules *control.ProcessRules   // 触发规则
-	MsgTypeGuard *message.MsgTypeMux     // 消息类型选择
 	sendMsg      chan<- *message.Message // 发送消息通道
 	recvMsg      chan message.Message    // 接收消息通道
 	Cache        *cache.Cache
@@ -45,11 +44,8 @@ type Dialog struct {
 	done   *State       // 控制存活
 }
 
-func initDialog(pluginName string, processRules *control.ProcessRules, mtList message.MsgTypeList) *Dialog {
-	msgTypeGuard := message.GetMsgTypeMux()
-	msgTypeGuard.RegistByPluginName(pluginName, mtList) // 注册该对话需要使用的消息类型
+func initDialog(pluginName string, processRules *control.ProcessRules) *Dialog {
 	return &Dialog{
-		MsgTypeGuard: msgTypeGuard,
 		ProcessRules: processRules,
 	}
 }
@@ -100,8 +96,8 @@ func (d *Dialog) RecvMessage(checkRules *control.ProcessRules, done chan struct{
 		select {
 		case msg := <-d.recvMsg:
 			msg, isHandle, order := d.Cache.IsHandle(checkRules, msg)
-			isChoose := d.MsgTypeGuard.Mux(d.GetPluginName(), msg)
-			if isHandle && isChoose {
+			if isHandle {
+				msg.MetaData.AsReadMsg() // 确认处理标为已读消息
 				return msg, true, order
 			}
 		case <-done:
@@ -121,9 +117,9 @@ type OnceDialog struct {
 }
 
 // InitOnceDialog 初始化单次对话
-func InitOnceDialog(pluginName string, processRules *control.ProcessRules, mtList message.MsgTypeList) *OnceDialog {
+func InitOnceDialog(pluginName string, processRules *control.ProcessRules) *OnceDialog {
 	return &OnceDialog{
-		Dialog: initDialog(pluginName, processRules, mtList),
+		Dialog: initDialog(pluginName, processRules),
 	}
 }
 
