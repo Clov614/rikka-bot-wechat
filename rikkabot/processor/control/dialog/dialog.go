@@ -46,6 +46,7 @@ type Dialog struct {
 
 func initDialog(pluginName string, processRules *control.ProcessRules) *Dialog {
 	return &Dialog{
+		PluginName:   pluginName,
 		ProcessRules: processRules,
 	}
 }
@@ -87,7 +88,6 @@ func (d *Dialog) sendMessage(msg *message.Message) {
 	d.sendMsg <- msg
 }
 
-// RecvMessage 获取单次接受到的消息 return message isRecv martchedOrder
 func (d *Dialog) RecvMessage(checkRules *control.ProcessRules, done chan struct{}) (message.Message, bool, string) {
 	if done == nil {
 		done = make(chan struct{})
