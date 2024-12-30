@@ -45,12 +45,30 @@ type cacheExported struct {
 // EnablePluginMap 获取插件状态列表 插件名-状态
 func (c *Cache) EnablePluginMap() map[string]bool {
 	c.mu.RLock()
-	defer c.mu.RUnlock()
 	cpEnablePlugins := make(map[string]bool, len(c.EnablePlugins))
+	needDelPlugins := make([]string, 0, len(c.EnablePlugins))
+	for k, _ := range c.EnablePlugins { // 需要删除的插件信息
+		if !register.GetPluginPool().IsExistPlugin(k) { // 已经不在注册列表中
+			needDelPlugins = append(needDelPlugins, k)
+		}
+	}
 	for k, v := range c.EnablePlugins {
-		cpEnablePlugins[k] = v
+		if register.GetPluginPool().IsExistPlugin(k) {
+			cpEnablePlugins[k] = v
+		}
+	}
+	c.mu.RUnlock()
+	for _, plugin := range needDelPlugins { // 删除插件信息
+		c.delPlugin(plugin)
 	}
 	return cpEnablePlugins
+}
+
+// 删除插件信息
+func (c *Cache) delPlugin(pluginName string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.EnablePlugins, pluginName)
 }
 
 // 插件是否存在

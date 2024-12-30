@@ -113,6 +113,9 @@ func (af *autoAddNewFriend) recoverCache() {
 	af.firstRecoverFlag = true
 	c := af.onceDialogM.Cache.GetPluginCacheByName(autoAddnewfriendName)
 	bCache, err := json.Marshal(c)
+	if err != nil {
+		logging.ErrorWithErr(err, "recover auto-add-friend-cache fail")
+	}
 	err = json.Unmarshal(bCache, &af.Cache)
 	if err != nil {
 		logging.ErrorWithErr(err, "recover auto-add-friend-cache fail")

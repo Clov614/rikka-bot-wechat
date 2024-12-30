@@ -41,6 +41,13 @@ func (p *PluginRegister) GetPlugin(name string) IPlugin {
 	return p.Plugins[name]
 }
 
+func (p *PluginRegister) IsExistPlugin(name string) bool {
+	if p.GetPlugin(name) == nil {
+		return false
+	}
+	return true
+}
+
 func (p *PluginRegister) GetPluginMap() map[string]IPlugin {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
