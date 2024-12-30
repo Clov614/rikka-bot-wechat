@@ -20,15 +20,6 @@ import (
 )
 
 func init() {
-	testPlugin := TestPlugin{}
-	testPlugin.PluginName = "管理员模块"
-	testPlugin.ProcessRules = &control.ProcessRules{IsCallMe: true, IsAdmin: true, EnableGroup: true,
-		ExecOrder: []string{"add whitelist", "加入白名单"}}
-
-	// 注册插件
-	register.RegistPlugin("admin_whitelist_add", &testPlugin.OnceDialog, 1)
-
-	testLongDialogPlugin()
 }
 
 // TestPlugin 管理员功能相关

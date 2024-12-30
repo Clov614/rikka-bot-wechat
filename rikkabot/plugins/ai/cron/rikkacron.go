@@ -12,34 +12,34 @@ import (
 	"wechat-demo/rikkabot/logging"
 )
 
-var cronServer *CronServer
+var cronServer *MyCronServer
 
 func init() {
 	cronServer = NewCronServer()
 }
 
-type CronServer struct {
+type MyCronServer struct {
 	*cron.Cron
 	jobId2cron map[string]cron.EntryID // JobId为定时任务唯一标识，同一类型的定时任务只能有一个
 	// todo 保存各个cron插件的信息，利用信息在init中恢复定时任务
 }
 
-func NewCronServer() *CronServer {
+func NewCronServer() *MyCronServer {
 	c := cron.New(cron.WithParser(cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)))
 	// 从设置里读取cronJob相关信息
 
-	return &CronServer{
+	return &MyCronServer{
 		Cron:       c,
 		jobId2cron: make(map[string]cron.EntryID),
 	}
 }
 
-func (cs *CronServer) init() {
+func (cs *MyCronServer) init() {
 	// todo 恢复之前持久化的定时任务
 
 }
 
-func (cs *CronServer) NewJob(spec string, job cron.Job, id string) bool {
+func (cs *MyCronServer) NewJob(spec string, job cron.Job, id string) bool {
 	cs.RemoveCron(id) // 如果定时任务已经存在，则替换
 	entryID, err := cs.AddJob(spec, job)
 	if err != nil {
@@ -51,7 +51,7 @@ func (cs *CronServer) NewJob(spec string, job cron.Job, id string) bool {
 	return true
 }
 
-func (cs *CronServer) ResetPluginCron(jobId, spec string) {
+func (cs *MyCronServer) ResetPluginCron(jobId, spec string) {
 	logging.Info(fmt.Sprintf("Cron jobId: %s, plugin spec: %s", jobId, spec))
 	if id, ok := cs.jobId2cron[jobId]; ok {
 		job := cs.Cron.Entry(id).Job
@@ -65,7 +65,7 @@ func (cs *CronServer) ResetPluginCron(jobId, spec string) {
 	}
 }
 
-func (cs *CronServer) RemoveCron(id string) {
+func (cs *MyCronServer) RemoveCron(id string) {
 	if id, ok := cs.jobId2cron[id]; ok {
 		cs.Remove(id)
 	}

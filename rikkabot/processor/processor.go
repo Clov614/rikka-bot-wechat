@@ -8,7 +8,7 @@ import (
 	"sync"
 	"wechat-demo/rikkabot/logging"
 	"wechat-demo/rikkabot/message"
-	_ "wechat-demo/rikkabot/plugins"
+	_ "wechat-demo/rikkabot/plugins" // 需要副作用
 	"wechat-demo/rikkabot/processor/cache"
 	dpkg "wechat-demo/rikkabot/processor/control/dialog"
 	"wechat-demo/rikkabot/processor/register"
@@ -20,10 +20,8 @@ type Processor struct {
 
 	mu           sync.RWMutex
 	longConnPool map[chan message.Message]*dpkg.State // 长连接池（保存消息接收通道）
-	// todo 方法 消息/群号 锁 保证对话发起者只能拥有一个插件的对话存活
-	// todo 加入done 处理关闭 临时的
-	done       chan struct{}
-	closeToken chan bool // 长连接互斥令牌
+	done         chan struct{}
+	closeToken   chan bool // 长连接互斥令牌
 }
 
 func NewProcessor() *Processor {

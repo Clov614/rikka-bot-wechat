@@ -38,7 +38,7 @@ func init() {
 	}}
 	biliDecodePlugin := biliPlugin{
 		// 设置插件名&消息规则&需要的消息类型
-		OnceDialog: dialog.InitOnceDialog("bilibili链接解析", rules, message.MsgTypeList{message.MsgTypeApp}),
+		OnceDialog: dialog.InitOnceDialog("bilibili链接解析", rules, message.MsgTypeList{message.MsgTypeApp, message.MsgTypeText}),
 	}
 	// 运行时逻辑
 	biliDecodePlugin.SetOnceFunc(func(recvmsg message.Message, sendMsg chan<- *message.Message) {
@@ -94,6 +94,8 @@ func init() {
 				biliDecodePlugin.SendImage(recvmsg.MetaData, imgFetch) // 发送图片封面
 			}
 			biliDecodePlugin.SendText(recvmsg.MetaData, output)
+		default:
+			// nothing to do !!
 		}
 	})
 	register.RegistPlugin("bili-url-parse", biliDecodePlugin.OnceDialog, 1)
