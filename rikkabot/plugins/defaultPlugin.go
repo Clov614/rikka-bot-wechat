@@ -38,7 +38,7 @@ func init() {
 	coreRules := &control.ProcessRules{EnableMsgType: []message.MsgType{message.MsgTypeNewFriendVerify}}
 
 	// manager
-	rules := &control.ProcessRules{IsCallMe: true, IsAdmin: true, IsAtMe: true, EnableGroup: true, EnableMsgType: []message.MsgType{message.MsgTypeText}}
+	rules := &control.ProcessRules{IsCallMe: true, IsAdmin: true, IsAtMe: true, EnableGroup: true, EnableMsgType: []message.MsgType{message.MsgTypeText}, ExecOrder: []string{pluginCallName}}
 	aanf := autoAddNewFriend{
 		onceDialogM: dialog.InitOnceDialog("自动添加好友管理", rules),
 		onceDialogC: dialog.InitOnceDialog("自动添加好友核心", coreRules),
@@ -53,32 +53,27 @@ func init() {
 
 	aanf.onceDialogM.SetOnceFunc(func(recvmsg message.Message, sendMsg chan<- *message.Message) {
 		aanf.recoverCache() // 恢复缓存
-		isOrder, _ := msgutil.IsOrder([]string{pluginCallName}, recvmsg.Content)
-		if !isOrder { // 命令校验//
-			return
-		}
-		trimedContent := msgutil.TrimPrefix(recvmsg.Content, pluginCallName, false, true)
 		switch true {
-		case isChoice(trimedContent, "help"): // 帮助信息
+		case isChoice(recvmsg.Content, "help"): // 帮助信息
 			aanf.onceDialogM.SendText(recvmsg.MetaData, aanf.help())
-		case isChoice(trimedContent, "true"):
+		case isChoice(recvmsg.Content, "true"):
 			aanf.SetIsEnable(true)
 			aanf.onceDialogM.SendText(recvmsg.MetaData, "开启自动通过好友请求成功")
-		case isChoice(trimedContent, "false"):
+		case isChoice(recvmsg.Content, "false"):
 			aanf.SetIsEnable(false)
 			aanf.onceDialogM.SendText(recvmsg.MetaData, "关闭自动通过好友请求成功")
-		case isChoice(trimedContent, "verify"):
-			bStr := msgutil.TrimPrefix(trimedContent, "verify", false, true)
+		case isChoice(recvmsg.Content, "verify"):
+			bStr := msgutil.TrimPrefix(recvmsg.Content, "verify", false, true)
 			b, content := aanf.SetIsVerify(bStr) // 根据文本设置是否开启文本校验
 			if b {
 				aanf.onceDialogM.SendText(recvmsg.MetaData, content)
 			}
-		case isChoice(trimedContent, "set"): // 设置校验文本
-			verifyText := msgutil.TrimPrefix(trimedContent, "set", false, true)
+		case isChoice(recvmsg.Content, "set"): // 设置校验文本
+			verifyText := msgutil.TrimPrefix(recvmsg.Content, "set", false, true)
 			if verifyText != "" {
 				aanf.onceDialogM.SendText(recvmsg.MetaData, aanf.SetVerifyText(verifyText))
 			}
-		case isChoice(trimedContent, "state"):
+		case isChoice(recvmsg.Content, "state"):
 			aanf.onceDialogM.SendText(recvmsg.MetaData, aanf.state())
 		}
 		// 更新缓存
