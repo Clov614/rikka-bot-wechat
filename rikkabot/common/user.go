@@ -383,7 +383,7 @@ func (s *Self) IsGroup(nickname string) bool {
 
 // GetNickname 获取用户名
 func (s *Self) GetNickname() string {
-	return s.self.NickName
+	return s.self.User.NickName
 }
 
 // GetFriendIdByNickname 根据 nickname 查找出 用户id
