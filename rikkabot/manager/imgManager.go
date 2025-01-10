@@ -44,7 +44,7 @@ func init() {
 	imgDirpath = cfg.ImgDirPath
 	_, err = ValidPath(imgDirpath, true)
 	if err != nil {
-		log.Fatal().Err(err).Str("path", mDBPath).Msg("validate img_dir path")
+		log.Fatal().Err(err).Str("path", imgDirpath).Msg("validate img_dir path")
 	}
 }
 
