@@ -19,7 +19,7 @@
 - [ ] 正向WebSocket
 - [ ] 反向WebSocket
 
-### OneBot客户端快速使用
+## OneBot客户端快速使用
 
 1. 前往 [Release](https://github.com/Clov614/rikka-bot-wechat/releases) 页面下载对应系统版本的可执行文件
 
@@ -73,9 +73,18 @@ start cmd /K rikka-bot-wechat.exe
 todo (
 暂未完善文档，可以阅读一下 [/rikka/plugins](https://github.com/Clov614/rikka-bot-wechat/tree/main/rikkabot/plugins))
 
+## 开发计划
+
+1. - [ ] refactor: 注入实现（重构机器人的适配器模块）
+
+2. - [ ] AI模块支持多模态
+
+3. - [ ] bug: ai插件的过滤器重构，将文本分离出程序，加载词典时找不到路径问题
+
+4. - [ ] feat: 自定义消息捕捉器（分流器），暴露一个新的 http 接口，提供给脚本分流使用
+
 ## 相关链接
 
-| 地址                                                                                      | 简介                            |
-|-----------------------------------------------------------------------------------------|-------------------------------|
-| [eatmoreapple/openwechat](https://github.com/eatmoreapple/openwechat)                   | golang微信SDK                   |
-| [code-innovator-zyx/wechat-gptbot](https://github.com/code-innovator-zyx/wechat-gptbot) | 一个很好的微信机器人项目（微信刷步数功能参考了该项目实现） |
+| 地址                                                                    | 简介          |
+|-----------------------------------------------------------------------|-------------|
+| [eatmoreapple/openwechat](https://github.com/eatmoreapple/openwechat) | golang微信SDK |
