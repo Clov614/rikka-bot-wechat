@@ -4,14 +4,14 @@ import (
 	"bytes"
 	"encoding/xml"
 	"github.com/Clov614/bilibili"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control/dialog"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/register"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/imgutil"
 	"github.com/rs/zerolog/log"
 	"regexp"
 	"strconv"
-	"wechat-demo/rikkabot/message"
-	"wechat-demo/rikkabot/processor/control"
-	"wechat-demo/rikkabot/processor/control/dialog"
-	"wechat-demo/rikkabot/processor/register"
-	"wechat-demo/rikkabot/utils/imgutil"
 )
 
 func init() {

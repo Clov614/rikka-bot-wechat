@@ -6,11 +6,11 @@ package event
 
 import (
 	"errors"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/timeutil"
 	"github.com/google/uuid"
 	"sync"
 	"time"
-	"wechat-demo/rikkabot/message"
-	"wechat-demo/rikkabot/utils/timeutil"
 )
 
 var (

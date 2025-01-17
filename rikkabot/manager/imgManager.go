@@ -7,11 +7,11 @@ package manager
 import (
 	"errors"
 	"fmt"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/config"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/timeutil"
 	"github.com/rs/zerolog/log"
 	"os"
 	"strings"
-	"wechat-demo/rikkabot/config"
-	"wechat-demo/rikkabot/utils/timeutil"
 )
 
 var (

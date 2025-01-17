@@ -10,6 +10,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/manager"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/onebot/dto/event"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/onebot/oneboterr"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/imgutil"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/timeutil"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
@@ -19,13 +26,6 @@ import (
 	"net/url"
 	"strings"
 	"time"
-	"wechat-demo/rikkabot"
-	"wechat-demo/rikkabot/logging"
-	"wechat-demo/rikkabot/manager"
-	"wechat-demo/rikkabot/onebot/dto/event"
-	"wechat-demo/rikkabot/onebot/oneboterr"
-	"wechat-demo/rikkabot/utils/imgutil"
-	"wechat-demo/rikkabot/utils/timeutil"
 )
 
 // HttpServer http 服务
@@ -102,8 +102,8 @@ func (s HttpServer) globalHandler() gin.HandlerFunc {
 		switch {
 		case "/send_message" == path: // 发送消息
 			s.handleSendMsg(c)
-		case "/login_callback" == path: // 获取登录回调
-			s.handleLoginUrl(c)
+		//case "/login_callback" == path: // 获取登录回调
+		//	s.handleLoginUrl(c)
 		case strings.HasPrefix(path, "/chat_image/"):
 			s.handleChatImage(c, path)
 		}
@@ -138,48 +138,48 @@ func (s HttpServer) handleChatImage(c *gin.Context, path string) {
 	c.Data(http.StatusOK, imgutil.GetMimeTypeByFileType(fileType), data)
 }
 
-func (s HttpServer) handleLoginUrl(c *gin.Context) {
-	var req event.ActionRequest[any]
-	var resp event.ActionResponse
-	if c.Request.Method == http.MethodGet {
-		// 从URL查询解析参数
-
-		if err := c.ShouldBindQuery(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-	} else if c.Request.Method == http.MethodPost {
-		if err := c.ShouldBind(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-	}
-	logging.Debug("请求参数", map[string]interface{}{"action_request": req})
-	if req.Action != "login_callback" {
-		retErr(c, "/login_callback 端点只处理 action: login_callback",
-			oneboterr.UNSUPPORTED_ACTION, failedStatus)
-		return
-	}
-	var retData struct {
-		Type string `json:"type"`
-		Data string `json:"data"`
-	}
-	retData.Type = "url"
-	retData.Data = s.bot.GetloginUrl()
-	resp.Retcode = oneboterr.OK
-	resp.Status = successStatus
-	resp.Data = retData
-	respData, err := json.Marshal(resp)
-	if err != nil {
-		logging.Error("marshal response failed", map[string]interface{}{"err": err.Error()})
-		retErr(c, "marshal response failed", oneboterr.INTERNAL_HANDLER_ERROR, failedStatus)
-		return
-	}
-
-	c.Header("Content-Type", "application/json")
-	logging.Info(fmt.Sprintf("发送成功回执: %+v", string(respData)))
-	c.String(http.StatusOK, string(respData)) // 返回json字符串
-}
+//func (s HttpServer) handleLoginUrl(c *gin.Context) {
+//	var req event.ActionRequest[any]
+//	var resp event.ActionResponse
+//	if c.Request.Method == http.MethodGet {
+//		// 从URL查询解析参数
+//
+//		if err := c.ShouldBindQuery(&req); err != nil {
+//			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+//			return
+//		}
+//	} else if c.Request.Method == http.MethodPost {
+//		if err := c.ShouldBind(&req); err != nil {
+//			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+//			return
+//		}
+//	}
+//	logging.Debug("请求参数", map[string]interface{}{"action_request": req})
+//	if req.Action != "login_callback" {
+//		retErr(c, "/login_callback 端点只处理 action: login_callback",
+//			oneboterr.UNSUPPORTED_ACTION, failedStatus)
+//		return
+//	}
+//	var retData struct {
+//		Type string `json:"type"`
+//		Data string `json:"data"`
+//	}
+//	retData.Type = "url"
+//	retData.Data = s.bot.GetloginUrl()
+//	resp.Retcode = oneboterr.OK
+//	resp.Status = successStatus
+//	resp.Data = retData
+//	respData, err := json.Marshal(resp)
+//	if err != nil {
+//		logging.Error("marshal response failed", map[string]interface{}{"err": err.Error()})
+//		retErr(c, "marshal response failed", oneboterr.INTERNAL_HANDLER_ERROR, failedStatus)
+//		return
+//	}
+//
+//	c.Header("Content-Type", "application/json")
+//	logging.Info(fmt.Sprintf("发送成功回执: %+v", string(respData)))
+//	c.String(http.StatusOK, string(respData)) // 返回json字符串
+//}
 
 func (s HttpServer) handleSendMsg(c *gin.Context) {
 	var req event.ActionRequest[event.SendMsgParams]
@@ -351,7 +351,7 @@ func (c HttpClient) HandlerPostEvent(event event.IEvent) {
 		req, err = http.NewRequest("POST", c.postUrl, bytes.NewBuffer(eventJSON))
 		if err != nil {
 			logHttpPostError(event, err, "request create failed")
-			rikkabot.Bot().ExitWithErr(1102, err.Error())
+			c.bot.ExitWithErr(1102, err.Error())
 		}
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+encrypt(c.secret))

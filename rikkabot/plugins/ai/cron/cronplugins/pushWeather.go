@@ -10,10 +10,10 @@ import (
 	aisdk "github.com/Clov614/go-ai-sdk"
 	"github.com/Clov614/go-ai-sdk/example_func_call/weather"
 	"github.com/Clov614/go-ai-sdk/global"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/config"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/ai/cron"
 	"strings"
-	"wechat-demo/rikkabot/config"
-	"wechat-demo/rikkabot/logging"
-	"wechat-demo/rikkabot/plugins/ai/cron"
 )
 
 type weatherCfg struct {

@@ -8,6 +8,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/config"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/imgutil"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/timeutil"
 	"github.com/rs/zerolog/log"
 	"go.etcd.io/bbolt"
 	"os"
@@ -16,11 +20,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"wechat-demo/rikkabot/common"
-	"wechat-demo/rikkabot/config"
-	"wechat-demo/rikkabot/logging"
-	"wechat-demo/rikkabot/utils/imgutil"
-	"wechat-demo/rikkabot/utils/timeutil"
 )
 
 var (
@@ -131,9 +130,9 @@ func LoadCache(cache any) (any, error) {
 
 // SaveImg uuid: 可置空
 func SaveImg(uuid string, imgData []byte) (imgName string, imgDate string) {
-	if uuid == common.UUID_NOT_UNIQUE_INGROUPS || uuid == common.UUID_NOT_UNIQUE_INFRIENDS {
-		uuid = "" // 重复 uuid 置空
-	}
+	//if uuid == common.UUID_NOT_UNIQUE_INGROUPS || uuid == common.UUID_NOT_UNIQUE_INFRIENDS {
+	//	uuid = "" // 重复 uuid 置空
+	//}
 	var err error
 	imgId := timeutil.GetTimeStamp() + "_" + uuid
 	nowDate := timeutil.GetNowDate()

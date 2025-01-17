@@ -4,7 +4,7 @@
 // @Desc
 package control
 
-import "wechat-demo/rikkabot/message"
+import "github.com/Clov614/rikka-bot-wechat/rikkabot/message"
 
 // ProcessRules 处理规则
 type ProcessRules struct {

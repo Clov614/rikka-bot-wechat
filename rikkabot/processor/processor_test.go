@@ -5,11 +5,11 @@ package processor
 
 import (
 	"fmt"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
+	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/cache"
 	"testing"
 	"time"
-	"wechat-demo/rikkabot/message"
-	_ "wechat-demo/rikkabot/plugins"
-	"wechat-demo/rikkabot/processor/cache"
 )
 
 func TestMsgDispatch(t *testing.T) {

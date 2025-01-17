@@ -1,28 +1,26 @@
 package main
 
 import (
+	"context"
 	"flag"
-	"fmt"
-	"github.com/eatmoreapple/openwechat"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/adapter"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/onebot/httpapi"
+	wcf "github.com/Clov614/wcf-rpc-sdk"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
-	"github.com/skip2/go-qrcode"
 	"time"
-	"wechat-demo/rikkabot"
-	"wechat-demo/rikkabot/adapter"
-	"wechat-demo/rikkabot/logging"
-	"wechat-demo/rikkabot/onebot/httpapi"
 )
 
 func main() {
+	// todo 支持自动获取sdk.dll 自动完成注入
 	// 是否开启调试模式
 	debugflag := flag.Bool("debug", false, "debug mode")
 	// 是否开启 http服务
 	httpMode := flag.Bool("http", false, "http mode")
 	// 是否开启 rikkabot
 	botMode := flag.Bool("bot", false, "bot mode(using to start rikkabot and also http can run)")
-	// 是否打印 qrcode
-	isPrintQr := flag.Bool("qrcode", false, "qrcode mode")
 	flag.Parse()
 	if *debugflag {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
@@ -41,53 +39,16 @@ func main() {
 			logging.Fatal("Recovered from panic", 1, map[string]interface{}{"panic": r})
 		}
 	}()
+	ctx := context.Background()
+	cli := wcf.NewClient(30)
+	cli.Run(true, false, false) // 运行wcf客户端
 
-	bot := openwechat.DefaultBot(openwechat.Desktop)
-	rbot := rikkabot.GetDefaultBot()
-
-	//// 注册登陆二维码回调
-	//bot.UUIDCallback = openwechat.PrintlnQrcodeUrl
-	// 注册登陆二维码回调
-
-	var isNotUUidCallback bool
-	bot.UUIDCallback = func(uuid string) {
-		url := openwechat.GetQrcodeUrl(uuid)
-		rbot.SetloginUrl(url)
-		logging.Warn("登录地址: " + url)
-		if *isPrintQr {
-			consoleQrCodeand(uuid)
-		}
-		isNotUUidCallback = true
-		// 正向http  http上报器
-		if *httpMode {
-			httpapi.RunHttp(rbot)
-			rbot.StartHandleEvent() // 处理事件
-
-			rbot.PushLoginNoticeEvent() // 推送登录回调通知
-		}
-	}
-
-	// 登陆
-	reloadStorage := openwechat.NewFileHotReloadStorage("storage.json")
-	defer func() {
-		err := reloadStorage.Close()
-		if err != nil {
-			logging.Fatal("get reload storage err", 1, map[string]interface{}{"err": err.Error()})
-		}
-	}()
-	logging.Warn("请在手机中确认登录 or 扫码登录")
-	if err := bot.PushLogin(reloadStorage, openwechat.NewRetryLoginOption()); err != nil {
-		logging.Error("bot.PushLogin() error", map[string]interface{}{"openwechat bot error": err.Error()})
-		return
-	}
-
-	a := adapter.NewAdapter(bot, rbot)
-
+	rbot := rikkabot.NewRikkaBot(ctx, cli)
+	a := adapter.NewAdapter(ctx, cli, rbot)
 	a.HandleCovert() // 消息转换
-	defer a.Close()
 
 	// 正向http  http上报器
-	if *httpMode && !isNotUUidCallback {
+	if *httpMode {
 		httpapi.RunHttp(rbot)
 		rbot.StartHandleEvent() // 处理事件
 	}
@@ -98,10 +59,10 @@ func main() {
 
 	go func() {
 		for {
-			if !bot.Alive() {
-				rbot.PushLogOutNoticeEvent(1101, "open-wechat客户端掉线")
+			if !cli.IsLogin() {
+				rbot.PushLogOutNoticeEvent(1101, "微信未登录或掉线")
 				time.Sleep(1 * time.Second) // 1s 延迟退出
-				rbot.ExitWithErr(1101, "open-wechat客户端掉线")
+				rbot.ExitWithErr(1101, "微信未登录或掉线")
 				return
 			}
 			time.Sleep(5 * time.Second)
@@ -113,10 +74,4 @@ func main() {
 	if err != nil {
 		logging.WarnWithErr(err, "rikka bot.Block() error")
 	}
-}
-
-func consoleQrCodeand(uuid string) {
-	url := openwechat.GetQrcodeUrl(uuid)
-	q, _ := qrcode.New(url, qrcode.Low)
-	fmt.Println(q.ToString(true))
 }

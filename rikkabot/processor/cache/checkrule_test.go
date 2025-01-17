@@ -4,9 +4,9 @@
 package cache
 
 import (
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control"
 	"testing"
-	"wechat-demo/rikkabot/message"
-	"wechat-demo/rikkabot/processor/control"
 )
 
 // 触发器 触发校验 测试

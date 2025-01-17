@@ -7,11 +7,11 @@ package common
 import (
 	"errors"
 	"fmt"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/secretutil"
 	"github.com/eatmoreapple/openwechat"
 	"io"
 	"sync"
-	"wechat-demo/rikkabot/logging"
-	"wechat-demo/rikkabot/utils/secretutil"
 )
 
 type Self struct {
@@ -48,6 +48,8 @@ func GetSelf() *Self {
 	return self
 }
 
+// todo test sdk 中实现，废弃
+// Deprecated
 func InitSelf(bot *openwechat.Bot) {
 	bself, _ := bot.GetCurrentUser() // ignore error
 	friends, _ := bself.Friends()    // ignore err
@@ -653,57 +655,6 @@ func (s *Self) doSendImgByUuid(uuid string, img io.Reader, isGroup bool) error {
 		_, err := friend.SendImage(img)
 		if err != nil {
 			return fmt.Errorf("sendImgByUuid openwechat failed: %w", err)
-		}
-	}
-	return nil
-}
-
-// IsUuidValid 是否为uuid
-func IsUuidValid(uuid string) bool {
-	if len(uuid) != 16 {
-		return false
-	}
-	return true
-}
-
-const (
-	UUID_NOT_UNIQUE_INGROUPS  = "That uuid is not unique in groups! Error!"
-	UUID_NOT_UNIQUE_INFRIENDS = "That uuid is not unique in friends! Error!"
-)
-
-// GetUuidById 根据 用户id获取uuid
-func (s *Self) GetUuidById(user *openwechat.User, isGroup bool) string {
-	remarkName := user.RemarkName
-	var uuid = secretutil.GenerateUnitId(remarkName)
-	if remarkName == "" {
-		uuid = secretutil.GenerateUnitId(user.NickName)
-	}
-	// 校验是否为重复uuid
-	if isGroup {
-		if s.UidGroupNotUnique[uuid] {
-			uuid = UUID_NOT_UNIQUE_INGROUPS
-		}
-	} else {
-		if s.UidFriendNotUnique[uuid] {
-			uuid = UUID_NOT_UNIQUE_INFRIENDS
-		}
-	}
-	return uuid
-}
-
-func (mf MyFriends) SearchById(id string) *openwechat.User {
-	for _, friend := range mf {
-		if friend.AvatarID() == id {
-			return friend
-		}
-	}
-	return nil
-}
-
-func (mg MyGroups) SearchById(id string) *openwechat.User {
-	for _, g := range mg {
-		if g.AvatarID() == id {
-			return g
 		}
 	}
 	return nil

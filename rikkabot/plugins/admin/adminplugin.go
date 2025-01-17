@@ -7,14 +7,14 @@ package plugin_admin
 import (
 	"bytes"
 	"fmt"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/common"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/cache"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control/dialog"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/register"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/msgutil"
 	"strings"
-	"wechat-demo/rikkabot/common"
-	"wechat-demo/rikkabot/message"
-	"wechat-demo/rikkabot/processor/cache"
-	"wechat-demo/rikkabot/processor/control"
-	"wechat-demo/rikkabot/processor/control/dialog"
-	"wechat-demo/rikkabot/processor/register"
-	"wechat-demo/rikkabot/utils/msgutil"
 )
 
 func init() {
@@ -288,7 +288,7 @@ func (a AdminPlugin) addWhiteGroupByMsg(msg message.Message) (reply string) {
 	if !msg.IsGroup {
 		return "不是群消息，无法添加群聊白名单"
 	}
-	a.cache.AddWhiteGroupId(msg.GroupId)
+	a.cache.AddWhiteGroupId(msg.RoomId)
 
 	return fmt.Sprintf("添加成功，群组( %s )id( %s )进入白名单", msg.MetaData.GetGroupNickname(), msg.GroupId)
 }
@@ -308,7 +308,7 @@ func (a AdminPlugin) deleteWhiteGroupByMsg(msg message.Message) (reply string) {
 	if !msg.IsGroup {
 		return "不是群消息，无法移除群聊白名单(请携带群名参数)"
 	}
-	a.cache.DeleteWhiteGroupId(msg.GroupId)
+	a.cache.DeleteWhiteGroupId(msg.RoomId)
 	return fmt.Sprintf("移除了，群组( %s )id( %s )的白名单", msg.MetaData.GetGroupNickname(), msg.GroupId)
 }
 
@@ -339,7 +339,7 @@ func (a AdminPlugin) addBlackGroupByMsg(msg message.Message) (reply string) {
 	if !msg.IsGroup {
 		return "不是群聊无法添加群组黑名单(请携带群名参数)"
 	}
-	a.cache.AddBlackGroupId(msg.GroupId)
+	a.cache.AddBlackGroupId(msg.RoomId)
 	return fmt.Sprintf("添加了，群组( %s )id( %s )的黑名单", msg.MetaData.GetGroupNickname(), msg.GroupId)
 }
 
@@ -348,7 +348,7 @@ func (a AdminPlugin) deleteBlackGroupByMsg(msg message.Message) (reply string) {
 	if !msg.IsGroup {
 		return "不是群聊无法移除群组黑名单(请携带群名参数)"
 	}
-	a.cache.DeleteBlackGroupId(msg.GroupId)
+	a.cache.DeleteBlackGroupId(msg.RoomId)
 	return fmt.Sprintf("移除了，群组( %s )id( %s )的黑名单", msg.MetaData.GetGroupNickname(), msg.GroupId)
 }
 
@@ -398,7 +398,7 @@ func (a AdminPlugin) showBlackGroup() (reply string) {
 func (a AdminPlugin) addBlackUserByNickname(msg message.Message, nickname string) (reply string) {
 	friendId, err := a.user.GetFriendIdByNickname(nickname)
 	if friendId == "" { // 不是好友，尝试通过msg获取member id
-		friendId, err = msg.MetaData.GetGroupMemberIdByNickname(nickname)
+		friendId, err = msg.MetaData.GetRoomNameByRoomId(nickname)
 	}
 	if friendId == "" && err != nil {
 		return "添加用户黑名单失败，错误：" + err.Error()
@@ -411,7 +411,7 @@ func (a AdminPlugin) addBlackUserByNickname(msg message.Message, nickname string
 func (a AdminPlugin) deleteBlackUserByNickname(msg message.Message, nickname string) (reply string) {
 	friendId, err := a.user.GetFriendIdByNickname(nickname)
 	if friendId == "" { // 不是好友，尝试通过msg获取member id
-		friendId, err = msg.MetaData.GetGroupMemberIdByNickname(nickname)
+		friendId, err = msg.MetaData.GetRoomNameByRoomId(nickname)
 	}
 	if friendId == "" && err != nil {
 		return "移除用户黑名单失败，错误：" + err.Error()

@@ -1,31 +1,28 @@
 package rikkabot
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/config"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/manager"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/onebot/dto/event"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/timeutil"
+	wcf "github.com/Clov614/wcf-rpc-sdk"
 	"github.com/google/uuid"
 	"sync"
-	"wechat-demo/rikkabot/common"
-	"wechat-demo/rikkabot/config"
-	"wechat-demo/rikkabot/logging"
-	"wechat-demo/rikkabot/manager"
-	"wechat-demo/rikkabot/message"
-	"wechat-demo/rikkabot/onebot/dto/event"
-	"wechat-demo/rikkabot/processor"
-	"wechat-demo/rikkabot/utils/imgutil"
-	"wechat-demo/rikkabot/utils/timeutil"
 )
 
 type RikkaBot struct {
-	ctx      context.Context
-	cancel   func()
-	self     *common.Self
-	sendMsg  chan *message.Message
-	recvMsg  chan *message.Message
-	Config   *config.CommonConfig
-	loginUrl string // 登录链接
+	ctx     context.Context
+	cancel  func()
+	sendMsg chan *message.Message
+	recvMsg chan *message.Message
+	Config  *config.CommonConfig
+	cli     *wcf.Client // hook sdk
 
 	EnableProcess bool // 是否处理消息
 	Processor     *processor.Processor
@@ -42,78 +39,41 @@ var (
 	ErrInvalidCall = errors.New("invalid bot call")
 	ErrSendMsg     = errors.New("send message error")
 	ErrFetchImg    = errors.New("fetch image error")
+	ErrUnSupport   = errors.New("unsupported this func")
 )
 
-var DefaultBot *RikkaBot
-
 func init() {
-	ctx, cancel := context.WithCancel(context.Background())
 	cfg := config.GetConfig()
 	// 启动日志检测模块
 	go logging.MonitorLogSize(int64(cfg.LogMaxSize) * 1024 * 1024)
+
+}
+
+func NewRikkaBot(ctx context.Context, cli *wcf.Client) *RikkaBot {
+	ctx, cancel := context.WithCancel(ctx)
+	cfg := config.GetConfig()
 	// 初始化
-	DefaultBot = &RikkaBot{
+	return &RikkaBot{
 		ctx:        ctx,
 		cancel:     cancel,
 		sendMsg:    make(chan *message.Message),
 		recvMsg:    make(chan *message.Message),
 		Processor:  processor.NewProcessor(),
 		Config:     cfg,
+		cli:        cli,
 		EventPool:  event.NewEventPool(cfg.HttpServer.EventBufferSize),
 		EventFuncs: make([]func(event event.IEvent), 0),
 	}
+
 }
 
-func GetDefaultBot() *RikkaBot {
-	return DefaultBot
-}
-
-func Bot() *RikkaBot {
-	return DefaultBot
-}
-
-func GetBot(botname string) (*RikkaBot, error) {
-	DefaultBot.Config.Botname = botname
-	err := DefaultBot.Config.Update()
+func (r *RikkaBot) SetBotName(botname string) (*RikkaBot, error) {
+	r.Config.Botname = botname
+	err := r.Config.Update()
 	if err != nil {
 		return nil, fmt.Errorf("error update bot config: %w", err)
 	}
-	return DefaultBot, nil
-}
-
-func (r *RikkaBot) GetloginUrl() string {
-	return r.loginUrl
-}
-
-func (r *RikkaBot) SetloginUrl(url string) {
-	r.loginUrl = url
-}
-
-// PushLoginNoticeEvent 推送登录事件
-func (r *RikkaBot) PushLoginNoticeEvent() {
-	loginUrl := r.GetloginUrl()
-	if loginUrl == "" { // 没有回调不需要处理
-		return
-	}
-	// 构造 notice—event
-	type LoginType struct {
-		LoginUrl string `json:"login_url"`
-	}
-	var loginData LoginType
-	loginData.LoginUrl = loginUrl
-	e := event.Event{
-		Id:         uuid.New().String(),
-		Time:       timeutil.GetTimeUnix(),
-		Type:       "notice",
-		DetailType: "login_callback",
-		SubType:    "",
-	}
-	noticeEvent := event.NoticeEvent[LoginType]{}
-	initNoticeEvent := noticeEvent.InitNoticeEvent(e, loginData)
-	err := r.EventPool.AddEvent(*initNoticeEvent)
-	if err != nil {
-		logging.WarnWithErr(err, "推送登录回调事件至事件池错误")
-	}
+	return r, nil
 }
 
 // PushLogOutNoticeEvent 推送机器人掉线事件
@@ -178,10 +138,6 @@ func (r *RikkaBot) DispatchMsgEvent(rikkaMsg message.Message) {
 	}
 }
 
-func (r *RikkaBot) SetSelf(self *common.Self) {
-	r.self = self
-}
-
 // Start 启动 rikkabot 进行消息处理
 func (r *RikkaBot) Start() {
 	logging.Info("rikka bot start")
@@ -209,9 +165,6 @@ func (r *RikkaBot) ExitWithErr(code int, msg string) {
 
 // Block 当发生错误，该方法会立即返回，否则会一直阻塞
 func (r *RikkaBot) Block() error {
-	if r.self == nil {
-		return fmt.Errorf("`Block` must be called after adapter.HandleCovert(): %w", ErrInvalidCall)
-	}
 	<-r.ctx.Done()
 	logging.Close() // 关闭日志文件
 	return r.err
@@ -248,32 +201,17 @@ func (r *RikkaBot) SendMsg(msgType message.MsgType, isGroup bool, data any, send
 	var err error
 	switch msgType {
 	case message.MsgTypeText:
-		s, ok := data.(string)
+		text, ok := data.(string)
 		if !ok {
 			return fmt.Errorf("`SendMsg of text` must be a string: %w", ErrSendMsg)
 		}
-		if common.IsUuidValid(sendId) { // 支持 uuid为sendId 发送消息
-			err = r.self.SendTextByUuid(sendId, s, isGroup)
-			return err
+		err = r.cli.SendText(sendId, text) // 发送消息
+		if err != nil {
+			return fmt.Errorf("send text to %s error: %w", sendId, err)
 		}
-		err = r.self.SendTextById(sendId, s, isGroup)
 	case message.MsgTypeImage:
-		d, ok := data.([]byte)
-		if !ok { // 断言失败，传入的是路径，请求即可
-			path := data.(string)
-			d, err = imgutil.ImgFetch(path)
-			if err != nil {
-				err = fmt.Errorf("%w 从路径 %s 中获取路径发送错误 %w", ErrFetchImg, path, err)
-				return err
-			}
-		}
-		var buf bytes.Buffer
-		buf.Write(d)
-		if common.IsUuidValid(sendId) { // 支持 uuid为sendId 发送消息
-			err = r.self.SendImgByUuid(sendId, &buf, isGroup)
-			return err
-		}
-		err = r.self.SendImgById(sendId, &buf, isGroup)
+		// todo 暂未实现
+		return fmt.Errorf("sendMsg of MsgTypeImage err: %w", ErrUnSupport)
 	default:
 		err = fmt.Errorf("`SendMsg of type` must be either text or image: %w", ErrSendMsg)
 	}

@@ -7,16 +7,16 @@ package plugin_game
 import (
 	"errors"
 	"fmt"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control/dialog"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/register"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/msgutil"
 	"github.com/rs/zerolog/log"
 	"math/rand"
 	"strconv"
 	"strings"
 	"time"
-	"wechat-demo/rikkabot/message"
-	"wechat-demo/rikkabot/processor/control"
-	"wechat-demo/rikkabot/processor/control/dialog"
-	"wechat-demo/rikkabot/processor/register"
-	"wechat-demo/rikkabot/utils/msgutil"
 )
 
 var (

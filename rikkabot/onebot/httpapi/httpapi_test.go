@@ -5,13 +5,13 @@
 package httpapi
 
 import (
+	"github.com/Clov614/rikka-bot-wechat/rikkabot"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/adapter"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
 	"github.com/eatmoreapple/openwechat"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"testing"
-	"wechat-demo/rikkabot"
-	"wechat-demo/rikkabot/adapter"
-	"wechat-demo/rikkabot/logging"
 )
 
 func TestHttpPost(t *testing.T) {

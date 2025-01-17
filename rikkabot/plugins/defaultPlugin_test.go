@@ -5,8 +5,8 @@
 package plugins
 
 import (
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/msgutil"
 	"testing"
-	"wechat-demo/rikkabot/utils/msgutil"
 )
 
 func Test_autoAddNewFriend_SetIsVerify(t *testing.T) {

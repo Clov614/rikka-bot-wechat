@@ -4,8 +4,8 @@
 package register
 
 import (
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control"
 	"sync"
-	"wechat-demo/rikkabot/processor/control"
 )
 
 // todo 通用 状态缓存，信息缓存结构的定义（定义标准供插件使用） （总结出功能的共性）（通用的开发功能方法的提取）

@@ -5,9 +5,9 @@
 package event
 
 import (
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/timeutil"
 	"testing"
-	"wechat-demo/rikkabot/message"
-	"wechat-demo/rikkabot/utils/timeutil"
 )
 
 import "github.com/google/uuid"

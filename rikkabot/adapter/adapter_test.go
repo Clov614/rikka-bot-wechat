@@ -5,16 +5,16 @@ package adapter
 
 import (
 	"fmt"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/serializer"
 	"github.com/eatmoreapple/openwechat"
 	_ "image/png"
 	"math/rand"
 	"strings"
 	"testing"
 	"time"
-	"wechat-demo/rikkabot"
-	"wechat-demo/rikkabot/logging"
-	"wechat-demo/rikkabot/message"
-	"wechat-demo/rikkabot/utils/serializer"
 )
 
 // 测试是否转发接收到的消息，二次封装是否正常

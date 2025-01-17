@@ -9,16 +9,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"wechat-demo/rikkabot/logging"
-	"wechat-demo/rikkabot/message"
-	_ "wechat-demo/rikkabot/plugins/admin"         // 需要副作用 init注册方法
-	_ "wechat-demo/rikkabot/plugins/ai"            // 需要副作用 init注册方法
-	_ "wechat-demo/rikkabot/plugins/biliUrlDecode" // 需要副作用 init注册方法
-	_ "wechat-demo/rikkabot/plugins/game"          // 需要副作用 init注册方法
-	"wechat-demo/rikkabot/processor/control"
-	"wechat-demo/rikkabot/processor/control/dialog"
-	"wechat-demo/rikkabot/processor/register"
-	"wechat-demo/rikkabot/utils/msgutil"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
+	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/admin"         // 需要副作用 init注册方法
+	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/ai"            // 需要副作用 init注册方法
+	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/biliUrlDecode" // 需要副作用 init注册方法
+	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/game"          // 需要副作用 init注册方法
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control/dialog"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/msgutil"
 )
 
 const (
@@ -33,54 +30,6 @@ var (
 )
 
 func init() {
-
-	// core
-	coreRules := &control.ProcessRules{EnableMsgType: []message.MsgType{message.MsgTypeNewFriendVerify}}
-
-	// manager
-	rules := &control.ProcessRules{IsCallMe: true, IsAdmin: true, IsAtMe: true, EnableGroup: true, EnableMsgType: []message.MsgType{message.MsgTypeText}, ExecOrder: []string{pluginCallName}}
-	aanf := autoAddNewFriend{
-		onceDialogM: dialog.InitOnceDialog("自动添加好友管理", rules),
-		onceDialogC: dialog.InitOnceDialog("自动添加好友核心", coreRules),
-	}
-	aanf.onceDialogC.SetOnceFunc(func(recvmsg message.Message, sendMsg chan<- *message.Message) {
-		aanf.recoverCache()               // 恢复缓存
-		err := aanf.addNewFriend(recvmsg) // 处理添加好友消息
-		if err != nil {
-			logging.ErrorWithErr(err, autoAddnewfriendCore)
-		}
-	})
-
-	aanf.onceDialogM.SetOnceFunc(func(recvmsg message.Message, sendMsg chan<- *message.Message) {
-		aanf.recoverCache() // 恢复缓存
-		switch true {
-		case isChoice(recvmsg.Content, "help"): // 帮助信息
-			aanf.onceDialogM.SendText(recvmsg.MetaData, aanf.help())
-		case isChoice(recvmsg.Content, "true"):
-			aanf.SetIsEnable(true)
-			aanf.onceDialogM.SendText(recvmsg.MetaData, "开启自动通过好友请求成功")
-		case isChoice(recvmsg.Content, "false"):
-			aanf.SetIsEnable(false)
-			aanf.onceDialogM.SendText(recvmsg.MetaData, "关闭自动通过好友请求成功")
-		case isChoice(recvmsg.Content, "verify"):
-			bStr := msgutil.TrimPrefix(recvmsg.Content, "verify", false, true)
-			b, content := aanf.SetIsVerify(bStr) // 根据文本设置是否开启文本校验
-			if b {
-				aanf.onceDialogM.SendText(recvmsg.MetaData, content)
-			}
-		case isChoice(recvmsg.Content, "set"): // 设置校验文本
-			verifyText := msgutil.TrimPrefix(recvmsg.Content, "set", false, true)
-			if verifyText != "" {
-				aanf.onceDialogM.SendText(recvmsg.MetaData, aanf.SetVerifyText(verifyText))
-			}
-		case isChoice(recvmsg.Content, "state"):
-			aanf.onceDialogM.SendText(recvmsg.MetaData, aanf.state())
-		}
-		// 更新缓存
-		aanf.onceDialogM.Cache.UploadCacheByPluginName(autoAddnewfriendName, aanf.Cache)
-	})
-	register.RegistPlugin(autoAddnewfriendCore, aanf.onceDialogC, 0)
-	register.RegistPlugin(autoAddnewfriendName, aanf.onceDialogM, 1)
 }
 
 func isChoice(cotent string, prefix string) bool {
@@ -115,22 +64,6 @@ func (af *autoAddNewFriend) recoverCache() {
 	if err != nil {
 		logging.ErrorWithErr(err, "recover auto-add-friend-cache fail")
 	} // 恢复缓存
-}
-
-func (af *autoAddNewFriend) addNewFriend(msg message.Message) error {
-	if !af.Cache.IsEnable { // 不自动添加好友
-		return nil
-	}
-	if af.Cache.IsVerify {
-		if !msgutil.HasPrefix(msg.Content, af.Cache.VerifyText, false) { // 不符合规则直接返回
-			return irregularVerifyErr
-		}
-	}
-	if !msg.MetaData.AgreeNewFriend() {
-		return addFriendErr
-	}
-	af.onceDialogM.Self.UpdateFriends() // 更新好友列表
-	return nil
 }
 
 func (af *autoAddNewFriend) SetIsEnable(b bool) {

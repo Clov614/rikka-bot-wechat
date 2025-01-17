@@ -5,12 +5,12 @@ package plugin_admin_test
 
 import (
 	"fmt"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/common"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor"
 	"github.com/eatmoreapple/openwechat"
 	"testing"
-	"wechat-demo/rikkabot/common"
-	"wechat-demo/rikkabot/logging"
-	"wechat-demo/rikkabot/message"
-	"wechat-demo/rikkabot/processor"
 )
 
 // deprecated 测试管理员模块

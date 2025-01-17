@@ -4,7 +4,7 @@
 // @Desc 事件动作
 package event
 
-import "wechat-demo/rikkabot/message"
+import "github.com/Clov614/rikka-bot-wechat/rikkabot/message"
 
 type Echo string
 

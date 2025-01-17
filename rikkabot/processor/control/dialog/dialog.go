@@ -7,16 +7,16 @@ package dialog
 import (
 	"bytes"
 	"errors"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/common"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/cache"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"runtime"
 	"sync"
 	"time"
-	"wechat-demo/rikkabot/common"
-	"wechat-demo/rikkabot/logging"
-	"wechat-demo/rikkabot/message"
-	"wechat-demo/rikkabot/processor/cache"
-	"wechat-demo/rikkabot/processor/control"
 )
 
 var (
@@ -98,7 +98,6 @@ func (d *Dialog) RecvMessage(checkRules *control.ProcessRules, done chan struct{
 		case msg := <-d.recvMsg:
 			msg, isHandle, order := d.Cache.IsHandle(checkRules, msg)
 			if isHandle {
-				msg.MetaData.AsReadMsg() // 确认处理标为已读消息
 				return msg, true, order
 			}
 		case <-done:

@@ -4,8 +4,8 @@
 package dialog
 
 import (
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
 	"testing"
-	"wechat-demo/rikkabot/message"
 )
 
 func TestDialog_RunPlugin(t *testing.T) {

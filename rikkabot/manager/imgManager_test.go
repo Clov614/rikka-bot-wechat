@@ -7,13 +7,13 @@ package manager
 import (
 	"bufio"
 	"fmt"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
 	"github.com/rs/zerolog/log"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
-	"wechat-demo/rikkabot/logging"
 )
 
 func init() {

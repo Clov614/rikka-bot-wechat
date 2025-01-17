@@ -5,11 +5,11 @@
 package dialog
 
 import (
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/common"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/cache"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control"
 	"time"
-	"wechat-demo/rikkabot/common"
-	"wechat-demo/rikkabot/message"
-	"wechat-demo/rikkabot/processor/cache"
-	"wechat-demo/rikkabot/processor/control"
 )
 
 // LongFunc 长对话作用方法
@@ -49,9 +49,9 @@ func (ld *LongDialog) RunPlugin(sendChan chan<- *message.Message, receiveChan ch
 	firstMsg := <-receiveChan
 	// 记录 id
 	if firstMsg.IsGroup {
-		ld.id = firstMsg.GroupId
+		ld.id = firstMsg.RoomId
 	} else {
-		ld.id = firstMsg.SenderId
+		ld.id = firstMsg.WxId
 	}
 
 	// 初始化通道
@@ -79,7 +79,6 @@ func (ld *LongDialog) RecvMessage(checkRules *control.ProcessRules, done chan st
 		case msg := <-ld.filtedRecv:
 			msg, isHandle, order := ld.Cache.IsHandle(checkRules, msg)
 			if isHandle {
-				msg.MetaData.AsReadMsg() // 确认处理标为已读消息
 				return msg, true, order
 			}
 		case <-done:
@@ -102,12 +101,12 @@ func (ld *LongDialog) RecvMsgFilter() (filtedRecv chan message.Message) {
 					return
 				}
 				if msg.IsGroup {
-					if ld.id == msg.GroupId {
+					if ld.id == msg.RoomId {
 						filtedRecv <- msg
 						ld.resetTimer <- struct{}{} // 重置超时
 					}
 				} else {
-					if ld.id == msg.SenderId {
+					if ld.id == msg.WxId {
 						filtedRecv <- msg
 						ld.resetTimer <- struct{}{} // 重置超时
 					}

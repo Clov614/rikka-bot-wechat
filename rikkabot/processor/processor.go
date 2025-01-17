@@ -5,13 +5,13 @@
 package processor
 
 import (
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/register"
 	"sync"
-	"wechat-demo/rikkabot/logging"
-	"wechat-demo/rikkabot/message"
-	_ "wechat-demo/rikkabot/plugins" // 需要副作用
-	"wechat-demo/rikkabot/processor/cache"
-	dpkg "wechat-demo/rikkabot/processor/control/dialog"
-	"wechat-demo/rikkabot/processor/register"
+	//_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins" // 需要副作用
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/cache"
+	dpkg "github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control/dialog"
 )
 
 type Processor struct {

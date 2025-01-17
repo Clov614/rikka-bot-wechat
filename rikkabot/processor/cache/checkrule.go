@@ -5,11 +5,11 @@
 package cache
 
 import (
-	"wechat-demo/rikkabot/common"
-	"wechat-demo/rikkabot/logging"
-	"wechat-demo/rikkabot/message"
-	"wechat-demo/rikkabot/processor/control"
-	"wechat-demo/rikkabot/utils/msgutil"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/common"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/msgutil"
 )
 
 // IsEnable 插件是否启用
@@ -113,7 +113,7 @@ func (c *Cache) checkAdmin(msg message.Message) bool {
 	if msg.IsMySelf {
 		return true
 	}
-	return c.HasAdminUserId(msg.SenderId)
+	return c.HasAdminUserId(msg.WxId)
 }
 
 // 判断消息发送者是否在白名单中
@@ -121,7 +121,7 @@ func (c *Cache) checkWhiteUser(msg message.Message) bool {
 	if msg.IsMySelf {
 		return true
 	}
-	return c.HasWhiteUserId(msg.SenderId)
+	return c.HasWhiteUserId(msg.WxId)
 }
 
 // 判断群组消息是否存在白名单中
@@ -129,7 +129,7 @@ func (c *Cache) checkWhiteGroup(msg message.Message) bool {
 	if !msg.IsGroup { // 不是群组消息直接返回
 		return true
 	}
-	return c.HasWhiteGroupId(msg.GroupId)
+	return c.HasWhiteGroupId(msg.RoomId)
 }
 
 // 判断是否不存在黑名单中
@@ -137,7 +137,7 @@ func (c *Cache) checkBlackUser(msg message.Message) bool {
 	if msg.IsMySelf {
 		return true
 	}
-	return !c.HasBlackUserId(msg.SenderId)
+	return !c.HasBlackUserId(msg.WxId)
 }
 
 // 判断是否不存在黑名单中
@@ -145,7 +145,7 @@ func (c *Cache) checkBlackGroup(msg message.Message) bool {
 	if !msg.IsGroup { // 不是群组消息直接返回
 		return true
 	}
-	return !c.HasBlackGroupId(msg.GroupId)
+	return !c.HasBlackGroupId(msg.RoomId)
 }
 
 func (c *Cache) checkEnableMsgTyp(enableMsgTypes []message.MsgType, msg message.Message) bool {

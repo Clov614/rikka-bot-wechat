@@ -7,13 +7,13 @@ package cache
 import (
 	"errors"
 	"fmt"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/config"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/manager"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/register"
 	"github.com/rs/zerolog/log"
 	"sync"
 	"time"
-	"wechat-demo/rikkabot/config"
-	"wechat-demo/rikkabot/logging"
-	"wechat-demo/rikkabot/manager"
-	"wechat-demo/rikkabot/processor/register"
 )
 
 type Cache struct {

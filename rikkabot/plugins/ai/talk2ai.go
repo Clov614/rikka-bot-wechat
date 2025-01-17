@@ -8,14 +8,14 @@ import (
 	"encoding/json"
 	"fmt"
 	aisdk "github.com/Clov614/go-ai-sdk"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/config"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
+	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/ai/cron"
+	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/ai/cron/cronplugins"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control/dialog"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/register"
 	"github.com/rs/zerolog/log"
-	"wechat-demo/rikkabot/config"
-	"wechat-demo/rikkabot/message"
-	_ "wechat-demo/rikkabot/plugins/ai/cron"
-	_ "wechat-demo/rikkabot/plugins/ai/cron/cronplugins"
-	"wechat-demo/rikkabot/processor/control"
-	"wechat-demo/rikkabot/processor/control/dialog"
-	"wechat-demo/rikkabot/processor/register"
 )
 
 type AiCfg struct {
