@@ -14,6 +14,7 @@ import (
 	wcf "github.com/Clov614/wcf-rpc-sdk"
 	"github.com/google/uuid"
 	"sync"
+	"time"
 )
 
 type RikkaBot struct {
@@ -44,8 +45,17 @@ var (
 
 func init() {
 	cfg := config.GetConfig()
-	// 启动日志检测模块
-	go logging.MonitorLogSize(int64(cfg.LogMaxSize) * 1024 * 1024)
+	// 日志模块设置
+	logConfig := logging.Config{
+		LogPath:             "./log/rikka.log",
+		ProjectKey:          "bot", // 项目唯一标识，默认为 "project"
+		ProjectName:         "rikka-bot-wechat",
+		MaxLogSize:          int64(cfg.LogMaxSize) * 1024 * 1024, // 10MB, 日志文件最大大小
+		MonitorInterval:     4 * time.Hour,                       // 日志文件大小监控间隔
+		EnableConsoleOutput: true,
+		EnableFileOutput:    true,
+	}
+	logging.InitLogger(logConfig)
 
 }
 

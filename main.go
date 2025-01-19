@@ -14,17 +14,6 @@ import (
 )
 
 func main() {
-	// 日志模块设置
-	logConfig := logging.Config{
-		LogPath:             "./log/rikka.log",
-		ProjectKey:          "bot", // 项目唯一标识，默认为 "project"
-		ProjectName:         "rikka-bot-wechat",
-		MaxLogSize:          10 * 1024 * 1024, // 10MB, 日志文件最大大小
-		MonitorInterval:     4 * time.Hour,    // 日志文件大小监控间隔
-		EnableConsoleOutput: true,
-		EnableFileOutput:    true,
-	}
-	logging.InitLogger(logConfig)
 
 	// todo 支持自动获取sdk.dll 自动完成注入
 	// 是否开启调试模式
