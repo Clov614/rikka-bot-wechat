@@ -5,9 +5,9 @@
 package httpapi
 
 import (
+	"github.com/Clov614/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/adapter"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
 	"github.com/eatmoreapple/openwechat"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"

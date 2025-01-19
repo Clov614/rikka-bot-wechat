@@ -7,7 +7,7 @@ package common
 import (
 	"errors"
 	"fmt"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
+	"github.com/Clov614/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/secretutil"
 	"github.com/eatmoreapple/openwechat"
 	"io"

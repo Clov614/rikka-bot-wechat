@@ -7,8 +7,8 @@ package cache
 import (
 	"errors"
 	"fmt"
+	"github.com/Clov614/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/config"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/manager"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/register"
 	"github.com/rs/zerolog/log"

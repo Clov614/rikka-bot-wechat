@@ -6,8 +6,8 @@ package cron
 
 import (
 	"fmt"
+	"github.com/Clov614/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/common"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog/log"
 )

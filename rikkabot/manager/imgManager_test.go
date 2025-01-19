@@ -7,7 +7,7 @@ package manager
 import (
 	"bufio"
 	"fmt"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
+	"github.com/Clov614/logging"
 	"github.com/rs/zerolog/log"
 	"os"
 	"strconv"

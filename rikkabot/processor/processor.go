@@ -5,7 +5,7 @@
 package processor
 
 import (
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
+	"github.com/Clov614/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/register"
 	"sync"

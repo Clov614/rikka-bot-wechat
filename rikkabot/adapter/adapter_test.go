@@ -5,8 +5,8 @@ package adapter
 
 import (
 	"fmt"
+	"github.com/Clov614/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/serializer"
 	"github.com/eatmoreapple/openwechat"

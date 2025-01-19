@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
+	"github.com/Clov614/logging"
 	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/admin"         // 需要副作用 init注册方法
 	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/ai"            // 需要副作用 init注册方法
 	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/biliUrlDecode" // 需要副作用 init注册方法

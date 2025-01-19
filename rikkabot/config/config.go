@@ -7,7 +7,7 @@ package config
 import (
 	"errors"
 	"fmt"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/logging"
+	"github.com/Clov614/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/configutil"
 	"os"
 	"sync"

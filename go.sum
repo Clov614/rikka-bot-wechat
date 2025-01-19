@@ -2,6 +2,8 @@ github.com/Clov614/bilibili v0.1.2 h1:vi1Ykn5+xgrwfpR/xLgdXvoNdulaZitXP9BOgdy0n+
 github.com/Clov614/bilibili v0.1.2/go.mod h1:th+qNf6jfSDH03oCM4s347a+i7IpCgZyNRIHY8AAXe8=
 github.com/Clov614/go-ai-sdk v0.4.2 h1:4krlgGbgP4UDBl6YYIc8YBJUWH54q46LOzpWhErSdhA=
 github.com/Clov614/go-ai-sdk v0.4.2/go.mod h1:S/GDuJSLlnNU47uEpY2FrN1GdP+A4mDXBQZQ2i6sCzk=
+github.com/Clov614/logging v0.1.2 h1:DuzFJ7MXpwYyEASoHYr5lZnUchKow36/u3F0p5dhg5Q=
+github.com/Clov614/logging v0.1.2/go.mod h1:Vxr9X5cvKXT17F/iBeBj8w6WSAuBQppsvtoCi0UXxe0=
 github.com/Clov614/wcf-rpc-sdk v0.2.3 h1:A6M60Z5kB1pJTZeufFakjQJfLob0xEYjZA1wUKUbfh4=
 github.com/Clov614/wcf-rpc-sdk v0.2.3/go.mod h1:knw4SYFua+ZlWJI5KmWafx4I5GkC27IQUvuFxOBrKxY=
 github.com/Microsoft/go-winio v0.5.2 h1:a9IhgEQBCUEk6QCdml9CiJGhAws+YwffDHEMp1VMrpA=
