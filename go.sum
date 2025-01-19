@@ -1,11 +1,11 @@
 github.com/Clov614/bilibili v0.1.2 h1:vi1Ykn5+xgrwfpR/xLgdXvoNdulaZitXP9BOgdy0n+I=
 github.com/Clov614/bilibili v0.1.2/go.mod h1:th+qNf6jfSDH03oCM4s347a+i7IpCgZyNRIHY8AAXe8=
-github.com/Clov614/go-ai-sdk v0.4.2 h1:4krlgGbgP4UDBl6YYIc8YBJUWH54q46LOzpWhErSdhA=
-github.com/Clov614/go-ai-sdk v0.4.2/go.mod h1:S/GDuJSLlnNU47uEpY2FrN1GdP+A4mDXBQZQ2i6sCzk=
+github.com/Clov614/go-ai-sdk v0.4.4 h1:ebSmdp3MoF/OcSwACG1tDrvZwGogCAfbR64MVlaLsk8=
+github.com/Clov614/go-ai-sdk v0.4.4/go.mod h1:S/GDuJSLlnNU47uEpY2FrN1GdP+A4mDXBQZQ2i6sCzk=
 github.com/Clov614/logging v0.1.2 h1:DuzFJ7MXpwYyEASoHYr5lZnUchKow36/u3F0p5dhg5Q=
 github.com/Clov614/logging v0.1.2/go.mod h1:Vxr9X5cvKXT17F/iBeBj8w6WSAuBQppsvtoCi0UXxe0=
-github.com/Clov614/wcf-rpc-sdk v0.2.3 h1:A6M60Z5kB1pJTZeufFakjQJfLob0xEYjZA1wUKUbfh4=
-github.com/Clov614/wcf-rpc-sdk v0.2.3/go.mod h1:knw4SYFua+ZlWJI5KmWafx4I5GkC27IQUvuFxOBrKxY=
+github.com/Clov614/wcf-rpc-sdk v0.2.4 h1:MJKN1dSMpkyPJOfzf6eHTNE6YJSlQaHs6UlpCi7Aaqg=
+github.com/Clov614/wcf-rpc-sdk v0.2.4/go.mod h1:NM5+RKzcoeYfNxrB1D9Qfttzq2wzl+VYAY2cdgaXRTI=
 github.com/Microsoft/go-winio v0.5.2 h1:a9IhgEQBCUEk6QCdml9CiJGhAws+YwffDHEMp1VMrpA=
 github.com/Microsoft/go-winio v0.5.2/go.mod h1:WpS1mjBmmwHBEWmogvA2mj8546UReBk4v8QkMxJ6pZY=
 github.com/bytedance/sonic v1.11.9 h1:LFHENlIY/SLzDWverzdOvgMztTxcfcF+cqNsz9pK5zg=
@@ -92,8 +92,9 @@ github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
-github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
+github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=
+github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/twitchyliquid64/golang-asm v0.15.1 h1:SU5vSMR7hnwNxj24w34ZyCi/FmDZTkS4MhqMhdFk5YI=
 github.com/twitchyliquid64/golang-asm v0.15.1/go.mod h1:a1lVb/DtPvCB8fslRZhAngC2+aY1QWCk3Cedj/Gdt08=
 github.com/ugorji/go/codec v1.2.12 h1:9LC83zGrHhuUA9l16C9AHXAqEV/2wBQ4nkvumAE65EE=
