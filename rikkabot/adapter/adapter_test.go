@@ -4,90 +4,81 @@
 package adapter
 
 import (
+	"context"
 	"fmt"
-	"github.com/Clov614/logging"
+	"testing"
+	"time"
+
+	"math/rand"
+	"strings"
+
 	"github.com/Clov614/rikka-bot-wechat/rikkabot"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/serializer"
-	"github.com/eatmoreapple/openwechat"
-	_ "image/png"
-	"math/rand"
-	"strings"
-	"testing"
-	"time"
+	wcf "github.com/Clov614/wcf-rpc-sdk"
+	"github.com/google/uuid"
 )
 
 // 测试是否转发接收到的消息，二次封装是否正常
 func TestReceiveRawMsg(t *testing.T) {
-
+	runBase(t, func(a *Adapter, done chan struct{}) error {
+		recvChan := a.rikkaBot.GetReqMsgRecvChan()
+		for {
+			select {
+			case <-done:
+				return nil
+			case rikkaMsg := <-recvChan:
+				if rikkaMsg.Msgtype == message.MsgTypeText {
+					if rikkaMsg.Content != "test" {
+						return fmt.Errorf("TestReceiveRawMsg faild")
+					}
+					return nil
+				}
+			}
+		}
+	})
 }
 
 // 测试rikkaBot发送的消息是否能转发给 openwechat
 func TestSendRikkaMsg(t *testing.T) {
-
+	runBase(t, func(a *Adapter, done chan struct{}) error {
+		var sendMsg *message.Message
+		select {
+		case <-done:
+			return nil
+		case msg := <-a.rikkaBot.GetReqMsgRecvChan():
+			if msg.Content != "test" {
+				t.Errorf("TestSendRikkaMsg faild")
+			}
+			sendMsg = msg
+			sendMsg.Content = "got it testing!"
+		}
+		a.rikkaBot.GetRespMsgSendChan() <- sendMsg
+		return nil
+	})
 }
 
 // 获取 第三方平台发送来的经转换后的消息json，保存于同级目录下
 func TestGetMsgJson(t *testing.T) {
-	bot := openwechat.DefaultBot(openwechat.Desktop)
-
-	a := NewAdapter(bot, rikkabot.GetDefaultBot())
-
-	HandleCovert(a)
-	defer a.Close()
-
-	t.Logf("Start test\n")
-
-	go func() {
-		// 保存 json
-		cnt := 7
-		for rikkaMsg := range a.selfBot.GetReqMsgRecvChan() {
-			fmt.Printf("save json recv rikkaMsg: %#v\n", *rikkaMsg)
-			err := serializer.Save("./test/cacheMsg", fmt.Sprintf("rikkaMsg%d", cnt), rikkaMsg)
-			senderId := rikkaMsg.SenderId
-			receiverId := rikkaMsg.ReceiverId
-			t.Logf("sender id: %s, receiver id: %s\n", senderId, receiverId)
-			if err != nil {
-				t.Logf("err: %v", err)
+	runBase(t, func(a *Adapter, done chan struct{}) error {
+		func() {
+			for {
+				select {
+				case <-done:
+					return
+				case msg := <-a.cli.GetMsgChan():
+					rikkaMsg := a.covert(msg)
+					fmt.Printf("save json recv rikkaMsg: %#v\n", *rikkaMsg)
+					err := serializer.Save("./test/cacheMsg", fmt.Sprintf("rikkaMsg%s", uuid.New().String()), rikkaMsg)
+					if err != nil {
+						t.Logf("err: %v", err)
+					}
+					return
+				}
 			}
-			cnt++
-		}
-	}()
-
-	// 注册登陆二维码回调
-	bot.UUIDCallback = openwechat.PrintlnQrcodeUrl
-
-	// 登陆
-	reloadStorage := openwechat.NewFileHotReloadStorage("storage.json")
-	defer func() {
-		err := reloadStorage.Close()
-		if err != nil {
-			t.Logf("err: %v", err)
-		}
-	}()
-	if err := bot.PushLogin(reloadStorage, openwechat.NewRetryLoginOption()); err != nil {
-		t.Error(err)
-		return
-	}
-
-	// 获取登陆的用户
-	self, err := bot.GetCurrentUser()
-	if err != nil {
-		t.Logf("err: %v", err)
-		return
-	}
-
-	if self == nil {
-		t.Errorf("GetCurrentUser err")
-	}
-
-	// 阻塞主goroutine, 直到发生异常或者用户主动退出
-	err = bot.Block()
-	if err != nil {
-		t.Error(err)
-	}
-	fmt.Println("hello")
-	// Output: hello
+		}()
+		return nil
+	})
 }
 
 // 测试发送xx消息
@@ -117,24 +108,19 @@ func TestAtAnalys(t *testing.T) {
 }
 
 func GetmsgAtAnalysis(a *Adapter, done chan struct{}) error {
-	recvChan := a.selfBot.GetReqMsgRecvChan()
+	recvChan := a.rikkaBot.GetReqMsgRecvChan()
 	for {
 		select {
 		case <-done:
 			return nil
 		case rikkaMsg := <-recvChan:
 			_ = rikkaMsg.Content
-			self, _ := a.openwcBot.GetCurrentUser()
-			friends, _ := self.Friends()
-			groups, _ := self.Groups()
-			members, _ := self.Members()
+			self := a.cli.GetSelfInfo()
 			//rawmsg := rikkaMsg.MetaData.GetRawMsg().(*openwechat.Message)
 
-			fmt.Printf("friends: %#v\n", friends)
-			fmt.Printf("groups: %v\n", groups)
-			fmt.Printf("members: %v\n", members)
+			fmt.Printf("self: %#v\n", self)
 
-			rawMsg := rikkaMsg.MetaData.GetRawMsg().(*openwechat.Message)
+			rawMsg := rikkaMsg.MetaData.GetRawMsg().(*wcf.Message)
 
 			fmt.Printf("rawMsg: %#v\n", rawMsg)
 		}
@@ -143,7 +129,7 @@ func GetmsgAtAnalysis(a *Adapter, done chan struct{}) error {
 
 // 测试各种消息的唯一ID
 func GetUserId(a *Adapter, done chan struct{}) error {
-	recvChan := a.selfBot.GetReqMsgRecvChan()
+	recvChan := a.rikkaBot.GetReqMsgRecvChan()
 	for {
 		select {
 		case <-done:
@@ -151,15 +137,14 @@ func GetUserId(a *Adapter, done chan struct{}) error {
 		case rikkaMsg := <-recvChan:
 			if rikkaMsg.Msgtype == message.MsgTypeText {
 				if rikkaMsg.IsGroup { // 群消息返回
-					rikkaMsg.Content = fmt.Sprintf("groupId= %s \n senderId = %s \n"+
-						" receviceId = %s", rikkaMsg.GroupId, rikkaMsg.SenderId, rikkaMsg.ReceiverId)
+					rikkaMsg.Content = fmt.Sprintf("wxId= %s \n roomId = %s \n", rikkaMsg.WxId, rikkaMsg.RoomId)
 					rikkaMsg.Raw = []byte(rikkaMsg.Content)
-					a.selfBot.GetRespMsgSendChan() <- rikkaMsg // 原路返回消息
+					a.rikkaBot.GetRespMsgSendChan() <- rikkaMsg // 原路返回消息
 				} else {
-					rikkaMsg.Content = fmt.Sprintf("senderId = %s \n receviceId = %s",
-						rikkaMsg.SenderId, rikkaMsg.ReceiverId)
+					rikkaMsg.Content = fmt.Sprintf("wxId = %s",
+						rikkaMsg.WxId)
 					rikkaMsg.Raw = []byte(rikkaMsg.Content)
-					a.selfBot.GetRespMsgSendChan() <- rikkaMsg // 原路返回消息
+					a.rikkaBot.GetRespMsgSendChan() <- rikkaMsg // 原路返回消息
 				}
 			}
 		}
@@ -167,7 +152,7 @@ func GetUserId(a *Adapter, done chan struct{}) error {
 }
 
 func echo(a *Adapter, done chan struct{}) error {
-	recvChan := a.selfBot.GetReqMsgRecvChan()
+	recvChan := a.rikkaBot.GetReqMsgRecvChan()
 	for {
 		select {
 		case <-done:
@@ -178,14 +163,14 @@ func echo(a *Adapter, done chan struct{}) error {
 				trimed := strings.TrimPrefix(context, "echo ")
 				rikkaMsg.Content = trimed
 				rikkaMsg.Raw = []byte(rikkaMsg.Content)
-				a.selfBot.GetRespMsgSendChan() <- rikkaMsg
+				a.rikkaBot.GetRespMsgSendChan() <- rikkaMsg
 			}
 		}
 	}
 }
 
 func doubleEcho(a *Adapter, done chan struct{}) error {
-	recvChan := a.selfBot.GetReqMsgRecvChan()
+	recvChan := a.rikkaBot.GetReqMsgRecvChan()
 	for {
 		select {
 		case <-done:
@@ -197,8 +182,8 @@ func doubleEcho(a *Adapter, done chan struct{}) error {
 				trimed := strings.TrimPrefix(context, "echo ")
 				rikkaMsg.Content = trimed
 				rikkaMsg.Raw = []byte(rikkaMsg.Content)
-				a.selfBot.GetRespMsgSendChan() <- rikkaMsg
-				a.selfBot.GetRespMsgSendChan() <- rikkaMsg
+				a.rikkaBot.GetRespMsgSendChan() <- rikkaMsg
+				a.rikkaBot.GetRespMsgSendChan() <- rikkaMsg
 			}
 		}
 	}
@@ -206,7 +191,7 @@ func doubleEcho(a *Adapter, done chan struct{}) error {
 
 // todo test 主动发送消息测试 （获取发送者id -> 获取发送者对象（friend），发送）
 func doubleEchoActive(a *Adapter, done chan struct{}) error {
-	recvChan := a.selfBot.GetReqMsgRecvChan()
+	recvChan := a.rikkaBot.GetReqMsgRecvChan()
 	for {
 		select {
 		case <-done:
@@ -224,52 +209,40 @@ func doubleEchoActive(a *Adapter, done chan struct{}) error {
 	}
 }
 
-func imgEcho(a *Adapter, done chan struct{}) error {
-	recvChan := a.selfBot.GetReqMsgRecvChan()
-	for {
-		select {
-		case <-done:
-			return nil
-		case rikkaMsg := <-recvChan:
-
-			if rikkaMsg.Msgtype == message.MsgTypeImage {
-				msg := rikkaMsg.MetaData.GetRawMsg().(*openwechat.Message)
-				err := msg.SaveFileToLocal("./test/testImg.jpg")
-				if err != nil {
-					logging.WarnWithErr(err, "save img file to local fail")
-				}
-				a.selfBot.GetRespMsgSendChan() <- rikkaMsg
-
-			}
-
-		}
-	}
-}
+//func imgEcho(a *Adapter, done chan struct{}) error {
+//	recvChan := a.rikkaBot.GetReqMsgRecvChan()
+//	for {
+//		select {
+//		case <-done:
+//			return nil
+//		case rikkaMsg := <-recvChan:
+//
+//			if rikkaMsg.Msgtype == message.MsgTypeImage {
+//				msg := rikkaMsg.MetaData.GetRawMsg().(*wcf.Message)
+//				//err := msg.SaveFileToLocal("./test/testImg.jpg")
+//				//if err != nil {
+//				//	logging.WarnWithErr(err, "save img file to local fail")
+//				//}
+//				a.rikkaBot.GetRespMsgSendChan() <- rikkaMsg
+//
+//			}
+//
+//		}
+//	}
+//}
 
 func runBase(t *testing.T, testfunc func(*Adapter, chan struct{}) error) {
-	bot := openwechat.DefaultBot(openwechat.Desktop)
+	//bot := openwechat.DefaultBot(openwechat.Desktop)
 
 	t.Logf("Start test\n")
+	ctx := context.Background()
+	cli := wcf.NewClient(10)
+	cli.Run(true, false, false) // 运行wcf客户端
 
-	// 注册登陆二维码回调
-	bot.UUIDCallback = openwechat.PrintlnQrcodeUrl
-
-	// 登陆
-	reloadStorage := openwechat.NewFileHotReloadStorage("storage.json")
-	defer func() {
-		err := reloadStorage.Close()
-		if err != nil {
-			t.Logf("err: %v", err)
-		}
-	}()
-	if err := bot.PushLogin(reloadStorage, openwechat.NewRetryLoginOption()); err != nil {
-		t.Error(err)
-		return
-	}
-
-	a := NewAdapter(bot, rikkabot.GetDefaultBot())
-	HandleCovert(a)
-	defer a.Close()
+	rbot := rikkabot.NewRikkaBot(ctx, cli)
+	rbot.EnableProcess = true // 允许处理消息
+	a := NewAdapter(ctx, cli, rbot)
+	a.HandleCovert() // 消息转换
 
 	// test 实际回复功能测试
 	done := make(chan struct{})
@@ -279,25 +252,11 @@ func runBase(t *testing.T, testfunc func(*Adapter, chan struct{}) error) {
 		if err2 != nil {
 			t.Logf("echo err: %v", err2)
 		}
-
+		time.Sleep(10 * time.Second)
+		rbot.Exit() // 退出
 	}()
+	_ = rbot.Block()
 
-	// 获取登陆的用户
-	self, err := bot.GetCurrentUser()
-	if err != nil {
-		t.Logf("err: %v", err)
-		return
-	}
-
-	if self == nil {
-		t.Errorf("GetCurrentUser err")
-	}
-
-	// 阻塞主goroutine, 直到发生异常或者用户主动退出
-	err = bot.Block()
-	if err != nil {
-		t.Logf("err: %v", err)
-	}
 	fmt.Println("hello")
 	// Output: hello
 }
@@ -311,10 +270,4 @@ func TestDelaytime(t *testing.T) {
 		time.Sleep(time.Duration(rnd.Intn(1000*delayMax-1000*delayMin)+1000*delayMin) * time.Millisecond)
 		fmt.Printf("delay %v\n", time.Now().Sub(startTime))
 	}
-}
-
-func FuzzDelaytime(f *testing.F) {
-	f.Fuzz(func(t *testing.T) {
-
-	})
 }

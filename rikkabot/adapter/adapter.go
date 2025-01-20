@@ -39,7 +39,6 @@ func NewAdapter(ctx context.Context, cli *wcf.Client, bot *rikkabot.RikkaBot) *A
 }
 
 func (a *Adapter) HandleCovert() {
-	sendChan := a.rikkaBot.GetRespMsgRecvChan()
 	go func() {
 		for {
 			select {
@@ -47,18 +46,21 @@ func (a *Adapter) HandleCovert() {
 				logging.ErrorWithErr(a.ctx.Err(), "handle covert exit")
 				return
 			case msg := <-a.cli.GetMsgChan(): // 转换收到的消息
+				logging.Debug("rikka-bot received message", map[string]interface{}{"sdk-msg": msg})
 				a.receiveMsg(msg)
 			}
 		}
 	}()
 
+	sendChan := a.rikkaBot.GetRespMsgRecvChan()
 	go func() {
 		for {
 			select {
 			case <-a.ctx.Done():
 				logging.ErrorWithErr(a.ctx.Err(), "handle send exit")
 				return
-			case respMsg := <-sendChan:
+			case respMsg := <-sendChan: // 接收到回复消息
+				logging.Debug("rikka-bot send message", map[string]interface{}{"sdk-msg": respMsg})
 				//rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 				//time.Sleep(time.Duration((rnd.Intn(1000) + 1000)) * time.Millisecond)
 				err := a.sendMsg(respMsg)

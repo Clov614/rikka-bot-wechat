@@ -16,6 +16,8 @@ import (
 func main() {
 
 	// todo 支持自动获取sdk.dll 自动完成注入
+	// 是否自动注入
+	autoInject := flag.Bool("autoInject", false, "注入sdk.dll")
 	// 是否开启调试模式
 	debugflag := flag.Bool("debug", false, "debug mode")
 	// 是否开启 http服务
@@ -42,7 +44,7 @@ func main() {
 	}()
 	ctx := context.Background()
 	cli := wcf.NewClient(30)
-	cli.Run(true, false, false) // 运行wcf客户端
+	cli.Run(*debugflag, *autoInject, false) // 运行wcf客户端
 
 	rbot := rikkabot.NewRikkaBot(ctx, cli)
 	a := adapter.NewAdapter(ctx, cli, rbot)
