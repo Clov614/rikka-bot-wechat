@@ -4,8 +4,8 @@ github.com/Clov614/go-ai-sdk v0.4.4 h1:ebSmdp3MoF/OcSwACG1tDrvZwGogCAfbR64MVlaLs
 github.com/Clov614/go-ai-sdk v0.4.4/go.mod h1:S/GDuJSLlnNU47uEpY2FrN1GdP+A4mDXBQZQ2i6sCzk=
 github.com/Clov614/logging v0.1.2 h1:DuzFJ7MXpwYyEASoHYr5lZnUchKow36/u3F0p5dhg5Q=
 github.com/Clov614/logging v0.1.2/go.mod h1:Vxr9X5cvKXT17F/iBeBj8w6WSAuBQppsvtoCi0UXxe0=
-github.com/Clov614/wcf-rpc-sdk v0.2.4 h1:MJKN1dSMpkyPJOfzf6eHTNE6YJSlQaHs6UlpCi7Aaqg=
-github.com/Clov614/wcf-rpc-sdk v0.2.4/go.mod h1:NM5+RKzcoeYfNxrB1D9Qfttzq2wzl+VYAY2cdgaXRTI=
+github.com/Clov614/wcf-rpc-sdk v0.2.5 h1:R0XvI9KKm12po8cyzdH4+FOzSum/XT+8VlZBG9rW9vk=
+github.com/Clov614/wcf-rpc-sdk v0.2.5/go.mod h1:NM5+RKzcoeYfNxrB1D9Qfttzq2wzl+VYAY2cdgaXRTI=
 github.com/Microsoft/go-winio v0.5.2 h1:a9IhgEQBCUEk6QCdml9CiJGhAws+YwffDHEMp1VMrpA=
 github.com/Microsoft/go-winio v0.5.2/go.mod h1:WpS1mjBmmwHBEWmogvA2mj8546UReBk4v8QkMxJ6pZY=
 github.com/bytedance/sonic v1.11.9 h1:LFHENlIY/SLzDWverzdOvgMztTxcfcF+cqNsz9pK5zg=

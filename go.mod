@@ -8,7 +8,7 @@ require (
 	github.com/Clov614/bilibili v0.1.2
 	github.com/Clov614/go-ai-sdk v0.4.4
 	github.com/Clov614/logging v0.1.2
-	github.com/Clov614/wcf-rpc-sdk v0.2.4
+	github.com/Clov614/wcf-rpc-sdk v0.2.5
 	github.com/eatmoreapple/openwechat v1.4.10
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-ego/gse v0.80.3
