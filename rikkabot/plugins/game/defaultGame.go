@@ -32,9 +32,8 @@ func init() {
 	// 运行时逻辑
 	rrPlugin.SetLongFunc(func(firstMsg message.Message, recvMsg <-chan message.Message, sendMsg chan<- *message.Message) {
 		if firstMsg.Content == "help" {
-			rrPlugin.groupid = firstMsg.GroupId
-			rrPlugin.uuid = firstMsg.Uuid
-			rrPlugin.sendText(rrPlugin.getHelp()) // 发送帮助信息
+			rrPlugin.roomId = firstMsg.RoomId
+			rrPlugin.sendText(firstMsg.RoomId, rrPlugin.getHelp()) // 发送帮助信息
 			return
 		}
 		rrPlugin.startGame(firstMsg) // 开始游戏
@@ -52,8 +51,7 @@ type russianRoulettePlugin struct {
 	Trgger         string // 每回合扣扳机者
 	BulletRoulette []int  // 子弹轮盘
 	setting        tsettings
-	groupid        string // 群id
-	uuid           string // 群uuid
+	roomId         string // 群id
 }
 
 const (
@@ -68,13 +66,12 @@ type tsettings struct {
 
 func (rrp *russianRoulettePlugin) startGame(firstMsg message.Message) {
 	// 获取群id
-	rrp.groupid = firstMsg.GroupId
-	rrp.uuid = firstMsg.Uuid
+	rrp.roomId = firstMsg.RoomId
 	// 初始化游戏
 	err := rrp.InitGame(firstMsg.Content, firstMsg.SenderName)
 	if err != nil {
 		log.Error().Err(err).Msg("初始化’俄罗斯轮盘‘游戏错误")
-		rrp.sendText("初始化’俄罗斯轮盘‘游戏错误: " + err.Error())
+		rrp.sendText(firstMsg.RoomId, "初始化’俄罗斯轮盘‘游戏错误: "+err.Error())
 		return
 	}
 	rrp.initGameData() // 初始化游戏数据
@@ -283,9 +280,9 @@ func (rrp *russianRoulettePlugin) reportResult() (res string) {
 //	}()
 //}
 
-func (rrp *russianRoulettePlugin) sendText(text string) {
+func (rrp *russianRoulettePlugin) sendText(receiver string, text string, ats ...string) {
 	var err error
-	err = rrp.Self.SendTextById(rrp.groupid, text, true)
+	err = rrp.Self.SendText(receiver, text, ats...)
 	if err != nil {
 		log.Warn().Err(err).Msg("俄罗斯轮盘游戏发送消息失败")
 	}

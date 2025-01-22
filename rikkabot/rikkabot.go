@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Clov614/logging"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/common"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/config"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/manager"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
@@ -18,13 +19,13 @@ import (
 )
 
 type RikkaBot struct {
-	ctx     context.Context
-	cancel  func()
-	sendMsg chan *message.Message
-	recvMsg chan *message.Message
-	Config  *config.CommonConfig
-	cli     *wcf.Client // hook sdk
-
+	ctx           context.Context
+	cancel        func()
+	sendMsg       chan *message.Message
+	recvMsg       chan *message.Message
+	Config        *config.CommonConfig
+	cli           *wcf.Client // hook sdk
+	self          *common.Self
 	EnableProcess bool // 是否处理消息
 	Processor     *processor.Processor
 
@@ -84,6 +85,10 @@ func (r *RikkaBot) SetBotName(botname string) (*RikkaBot, error) {
 		return nil, fmt.Errorf("error update bot config: %w", err)
 	}
 	return r, nil
+}
+
+func (r *RikkaBot) SetSelf(self *common.Self) {
+	r.self = self
 }
 
 // PushLogOutNoticeEvent 推送机器人掉线事件

@@ -64,7 +64,7 @@ func (c *Cache) IsHandle(rules *control.ProcessRules, msg message.Message) (mess
 		if rules.IsCallMe {
 			if msgutil.HasPrefix(msg.Content, "@", true) { // 处理艾特
 				nickname := msgutil.GetNicknameByAt(msg.Content)
-				if nickname == common.GetSelf().GetNickname() {
+				if nickname == common.GetSelf().GetNickName() {
 					calledMeFlag = true
 					msg.Content = msgutil.TrimPrefix(msg.Content, "@"+nickname+" ", false, true)
 				}

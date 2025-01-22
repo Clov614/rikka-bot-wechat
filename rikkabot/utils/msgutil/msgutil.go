@@ -88,7 +88,7 @@ func ContainsInt(slice []int, element int) bool {
 // GetNicknameByAt 获取艾特消息中的用户名
 func GetNicknameByAt(atcontent string) (nickname string) {
 	// 获取消息中艾特成员的成员名
-	re := regexp.MustCompile(`@([^\s ]+)`)
+	re := regexp.MustCompile(`@([^\s]+?) `)
 	match := re.FindAllStringSubmatch(atcontent, -1)
 	if len(match) == 0 {
 		return ""

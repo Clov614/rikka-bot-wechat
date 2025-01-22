@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/Clov614/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/common"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/config"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/manager"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
@@ -29,8 +30,8 @@ var (
 )
 
 func NewAdapter(ctx context.Context, cli *wcf.Client, bot *rikkabot.RikkaBot) *Adapter {
-	//common.InitSelf(openwcBot) // 初始化 该用户数据（朋友、群组） todo refactor
-	//selfBot.SetSelf(common.GetSelf()) todo refactor
+	common.InitSelf(context.TODO(), cli) // 将cli初始化至一个独立的模块便于插件的直接调用
+	bot.SetSelf(common.GetSelf())
 
 	return &Adapter{
 		ctx:      ctx,
@@ -77,9 +78,8 @@ func (a *Adapter) HandleCovert() {
 
 // MetaData message.IMeta impl
 type MetaData struct {
-	cli    *wcf.Client // 客户端引用
-	RawMsg *wcf.Message
-	//GroupMember openwechat.Members // todo 群组成员（群组消息才会有） RoomMember
+	cli        *wcf.Client // 客户端引用
+	RawMsg     *wcf.Message
 	delayToken chan struct{} // 控制消息的接收与发送的随机间隔
 }
 
@@ -171,16 +171,28 @@ func (a *Adapter) covert(msg *wcf.Message) *message.Message {
 	go metaData.runDelayTimer(cfg.AnswerDelayRandMin, cfg.AnswerDelayRandMax) // 消息随机延迟
 
 	//rself := common.GetSelf() // 获取rikka的self对象
-
-	// 获取消息中艾特成员的成员名
-	re := regexp.MustCompile(`@([^\s]+) `)
-	matches := re.FindAllStringSubmatch(msg.Content, -1)
-	groupAtNameList := make([]string, len(matches))
 	var isAtMe bool
-	for i, match := range matches {
-		if len(match) > 1 {
-			groupAtNameList[i] = match[1]
-			isAtMe = match[1] == a.cli.GetSelfInfo().Name // 是否艾特自己
+	var AtNameList []string
+	var AtWxidList []string
+	if msg.IsGroup {
+		// 获取消息中艾特成员的成员名
+		re := regexp.MustCompile(`@([^\s]+?) `)
+		matches := re.FindAllStringSubmatch(msg.Content, -1)
+		AtNameList = make([]string, len(matches))
+		AtWxidList = make([]string, len(matches))
+
+		for i, match := range matches {
+			if len(match) > 1 {
+				AtNameList[i] = match[1]
+				infos, err := msg.RoomData.GetMembersByNickName(match[1])
+				if err != nil {
+					logging.WarnWithErr(err, "RoomData.GetMembersByNickName fail")
+				} else {
+					AtWxidList[i] = infos[0].Wxid
+				}
+
+				isAtMe = match[1] == a.cli.GetSelfInfo().Name // 是否艾特自己
+			}
 		}
 	}
 	return &message.Message{
@@ -188,15 +200,17 @@ func (a *Adapter) covert(msg *wcf.Message) *message.Message {
 		MetaData:   metaData,
 		RawContent: msg.Content,
 		//ChatImgUrl:      cacheImgCovert2Url(imgData, uuid), // 图片url
-		Content:   msg.Content,
-		MsgId:     msg.MessageId,
-		WxId:      msg.WxId,
-		RoomId:    msg.RoomId,
-		GroupName: metaData.GetGroupNickname(),
-		IsAtMe:    isAtMe,
-		IsGroup:   msg.IsGroup,
-		IsFriend:  msg.IsSendByFriend(),
-		IsMySelf:  msg.IsSelf, // 是否为自己发送的消息
+		Content:         msg.Content,
+		MsgId:           msg.MessageId,
+		WxId:            msg.WxId,
+		RoomId:          msg.RoomId,
+		GroupName:       metaData.GetGroupNickname(),
+		GroupAtNameList: AtNameList,
+		GroupAtWxIdList: AtWxidList,
+		IsAtMe:          isAtMe,
+		IsGroup:         msg.IsGroup,
+		IsFriend:        msg.IsSendByFriend(),
+		IsMySelf:        msg.IsSelf, // 是否为自己发送的消息
 	}
 }
 
