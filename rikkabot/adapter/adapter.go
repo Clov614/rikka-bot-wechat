@@ -22,6 +22,7 @@ type Adapter struct {
 }
 
 var (
+	ErrNull        = errors.New("something is null")
 	ErrNotGroupMsg = errors.New("not a group msg")
 	ErrMetaDateNil = errors.New("meta date is nil")
 	ErrRawMSgNil   = errors.New("raw message is nil")
@@ -76,34 +77,63 @@ func (a *Adapter) HandleCovert() {
 
 // MetaData message.IMeta impl
 type MetaData struct {
+	cli    *wcf.Client // 客户端引用
 	RawMsg *wcf.Message
 	//GroupMember openwechat.Members // todo 群组成员（群组消息才会有） RoomMember
 	delayToken chan struct{} // 控制消息的接收与发送的随机间隔
 }
 
-func NewMetaData(rawMsg *wcf.Message) *MetaData {
-	return &MetaData{RawMsg: rawMsg, delayToken: make(chan struct{})}
+func NewMetaData(cli *wcf.Client, rawMsg *wcf.Message) *MetaData {
+	return &MetaData{cli: cli, RawMsg: rawMsg, delayToken: make(chan struct{})}
 }
 
 func (md *MetaData) GetRawMsg() interface{} {
 	return md.RawMsg
 }
 
-// GetMsgSenderNickname 获取消息发送者昵称 todo
+// GetMsgSenderNickname 获取消息发送者昵称 test
 func (md *MetaData) GetMsgSenderNickname() string {
-	return ""
+	member, err := md.cli.GetMember(md.RawMsg.WxId)
+	if err != nil {
+		logging.ErrorWithErr(err, "GetMsgSenderNickName fail")
+	}
+	if 0 == len(member) {
+		logging.WarnWithErr(ErrNull, "GetMsgSenderNickname fail")
+		return ""
+	} else if nil == member[0] {
+		logging.WarnWithErr(ErrNull, "GetMsgSenderNickname fail")
+		return ""
+	}
+	return member[0].NickName
 }
 
-// GetGroupNickname 获取群组消息的群名
+// GetGroupNickname 获取群组消息的群名 test
 func (md *MetaData) GetGroupNickname() string {
-	// todo
-	return ""
+	member, err := md.cli.GetMember(md.RawMsg.RoomId)
+	if err != nil {
+		logging.ErrorWithErr(err, "GetMsgGroupNickname fail")
+	}
+	if 0 == len(member) {
+		logging.WarnWithErr(ErrNull, "GetMsgGroupNickname fail")
+		return ""
+	} else if nil == member[0] {
+		logging.WarnWithErr(ErrNull, "GetMsgGroupNickname fail")
+		return ""
+	}
+	return member[0].NickName
 }
 
-// GetRoomNameByRoomId 根据RoomId 获得群名
+// GetRoomNameByRoomId 根据RoomId 获得群名 test
 func (md *MetaData) GetRoomNameByRoomId(id string) (string, error) {
-	// todo
-	return "", nil
+	member, err := md.cli.GetMember(id)
+	if err != nil {
+	}
+	if 0 == len(member) {
+		return "", ErrNull
+	} else if nil == member[0] {
+		return "", ErrNull
+	}
+	return member[0].NickName, nil
 }
 
 func (md *MetaData) runDelayTimer(delayMin int, delayMax int) {
@@ -136,7 +166,7 @@ func (a *Adapter) covert(msg *wcf.Message) *message.Message {
 		return nil // 忽略未知的消息种类
 	}
 
-	metaData := NewMetaData(msg)
+	metaData := NewMetaData(a.cli, msg)
 	cfg := config.GetConfig()
 	go metaData.runDelayTimer(cfg.AnswerDelayRandMin, cfg.AnswerDelayRandMax) // 消息随机延迟
 
@@ -158,15 +188,15 @@ func (a *Adapter) covert(msg *wcf.Message) *message.Message {
 		MetaData:   metaData,
 		RawContent: msg.Content,
 		//ChatImgUrl:      cacheImgCovert2Url(imgData, uuid), // 图片url
-		Content: msg.Content,
-		MsgId:   msg.MessageId,
-		WxId:    msg.WxId,
-		RoomId:  msg.RoomId,
-		//GroupName: todo
-		IsAtMe:  isAtMe,
-		IsGroup: msg.IsGroup,
-		//IsFriend:        msg.IsSendByFriend(), todo
-		IsMySelf: msg.IsSelf, // 是否为自己发送的消息
+		Content:   msg.Content,
+		MsgId:     msg.MessageId,
+		WxId:      msg.WxId,
+		RoomId:    msg.RoomId,
+		GroupName: metaData.GetGroupNickname(),
+		IsAtMe:    isAtMe,
+		IsGroup:   msg.IsGroup,
+		IsFriend:  msg.IsSendByFriend(),
+		IsMySelf:  msg.IsSelf, // 是否为自己发送的消息
 	}
 }
 

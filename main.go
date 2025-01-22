@@ -20,6 +20,8 @@ func main() {
 	autoInject := flag.Bool("autoInject", false, "注入sdk.dll")
 	// 是否开启调试模式
 	debugflag := flag.Bool("debug", false, "debug mode")
+	// 是否开启wcf调试模式
+	wcfdebugflag := flag.Bool("wcfdebug", false, "wcf debug mode")
 	// 是否开启 http服务
 	httpMode := flag.Bool("http", false, "http mode")
 	// 是否开启 rikkabot
@@ -44,7 +46,7 @@ func main() {
 	}()
 	ctx := context.Background()
 	cli := wcf.NewClient(30)
-	cli.Run(*debugflag, *autoInject, false) // 运行wcf客户端
+	cli.Run(*wcfdebugflag, *autoInject, false) // 运行wcf客户端
 
 	rbot := rikkabot.NewRikkaBot(ctx, cli)
 	a := adapter.NewAdapter(ctx, cli, rbot)

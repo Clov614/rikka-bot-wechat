@@ -1,6 +1,6 @@
 // @Author Clover
 // @Data 2024/7/5 下午6:09:00
-// @Desc
+// @Desc 适配器模块测试
 package adapter
 
 import (
@@ -237,7 +237,7 @@ func runBase(t *testing.T, testfunc func(*Adapter, chan struct{}) error) {
 	t.Logf("Start test\n")
 	ctx := context.Background()
 	cli := wcf.NewClient(10)
-	cli.Run(true, false, false) // 运行wcf客户端
+	cli.Run(false, false, false) // 运行wcf客户端
 
 	rbot := rikkabot.NewRikkaBot(ctx, cli)
 	rbot.EnableProcess = true // 允许处理消息
