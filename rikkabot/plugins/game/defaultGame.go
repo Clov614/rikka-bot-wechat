@@ -33,7 +33,7 @@ func init() {
 	rrPlugin.SetLongFunc(func(firstMsg message.Message, recvMsg <-chan message.Message, sendMsg chan<- *message.Message) {
 		if firstMsg.Content == "help" {
 			rrPlugin.roomId = firstMsg.RoomId
-			rrPlugin.sendText(firstMsg.RoomId, rrPlugin.getHelp()) // 发送帮助信息
+			rrPlugin.sendText(rrPlugin.getHelp()) // 发送帮助信息
 			return
 		}
 		rrPlugin.startGame(firstMsg) // 开始游戏
@@ -45,13 +45,18 @@ func init() {
 type russianRoulettePlugin struct {
 	// todo 设计比分查询
 	*dialog.LongDialog
-	Initiator      string // 游戏发起者
-	Challenger     string // 挑战者
+	Initiator      player // 游戏发起者
+	Challenger     player // 挑战者
 	Winer          string // 获胜者
 	Trgger         string // 每回合扣扳机者
 	BulletRoulette []int  // 子弹轮盘
 	setting        tsettings
 	roomId         string // 群id
+}
+
+type player struct {
+	Name string
+	WxId string
 }
 
 const (
@@ -68,15 +73,15 @@ func (rrp *russianRoulettePlugin) startGame(firstMsg message.Message) {
 	// 获取群id
 	rrp.roomId = firstMsg.RoomId
 	// 初始化游戏
-	err := rrp.InitGame(firstMsg.Content, firstMsg.SenderName)
+	err := rrp.InitGame(firstMsg.Content, firstMsg.SenderName, firstMsg.WxId, firstMsg.GroupAtWxIdList)
 	if err != nil {
 		log.Error().Err(err).Msg("初始化’俄罗斯轮盘‘游戏错误")
-		rrp.sendText(firstMsg.RoomId, "初始化’俄罗斯轮盘‘游戏错误: "+err.Error())
+		rrp.sendText("初始化’俄罗斯轮盘‘游戏错误: " + err.Error())
 		return
 	}
 	rrp.initGameData() // 初始化游戏数据
 
-	rrp.sendText(fmt.Sprintf("开始游戏，对手是: %s 请在30s内接受挑战，艾特我回复‘接受’即开始游戏", msgutil.AtSomeOne(rrp.Challenger)))
+	rrp.sendText(fmt.Sprintf("开始游戏，对手是: %s 请在30s内接受挑战，艾特我回复‘接受’即开始游戏", msgutil.AtSomeOne(rrp.Challenger.Name)), rrp.Challenger.WxId)
 	isAccept := rrp.waitChallengerAccept() // 等待对手接受
 	if !isAccept {
 		rrp.sendText(fmt.Sprintf("对手 %s 未能在30秒内接受挑战", rrp.Challenger))
@@ -100,14 +105,17 @@ func (rrp *russianRoulettePlugin) startGame(firstMsg message.Message) {
 }
 
 // InitGame 初始化游戏
-func (rrp *russianRoulettePlugin) InitGame(startText string, senderUserName string) error {
+func (rrp *russianRoulettePlugin) InitGame(startText string, senderUserName string, senderWxId string, GroupAtWxIdList []string) error {
 	var err error
-	err = rrp.getTheSettings(startText)
+	err = rrp.getTheSettings(startText, GroupAtWxIdList)
 	if err != nil {
 		return fmt.Errorf("初始化游戏错误: %w", err)
 	}
 	rrp.initGameData()
-	rrp.Initiator = senderUserName // 发起者id
+	rrp.Initiator = player{
+		Name: senderUserName,
+		WxId: senderWxId,
+	}
 	return nil
 }
 
@@ -132,7 +140,7 @@ func (rrp *russianRoulettePlugin) initGameData() {
 }
 
 // getTheSettings 读取发起用户设置
-func (rrp *russianRoulettePlugin) getTheSettings(text string) error {
+func (rrp *russianRoulettePlugin) getTheSettings(text string, groupAtIdList []string) error {
 	var err error
 	var settings tsettings
 	spled := strings.Split(text, " ")
@@ -150,7 +158,14 @@ func (rrp *russianRoulettePlugin) getTheSettings(text string) error {
 		return fmt.Errorf("%w 参数不对，第三个参数为对手艾特，请使用\"<游戏名> help\" 查看帮助信息", errParams)
 	}
 	// 读取挑战者名称
-	rrp.Challenger = msgutil.GetNicknameByAt(challengerATName)
+	cName := msgutil.GetNicknameByAt(challengerATName)
+	if groupAtIdList == nil || len(groupAtIdList) == 0 || groupAtIdList[0] == "" {
+		return fmt.Errorf("%w 参数不对，第三个参数为对手艾特，请使用\"<游戏名> help\" 查看帮助信息", errParams)
+	}
+	rrp.Challenger = player{
+		Name: cName,
+		WxId: groupAtIdList[0],
+	}
 	if len(spled) != 3 {
 		return fmt.Errorf("%w 参数不对，请使用\"<游戏名> help\" 查看帮助信息", errParams)
 	}
@@ -183,7 +198,7 @@ func (rrp *russianRoulettePlugin) waitChallengerAccept() bool {
 	}()
 	_, b, _ := rrp.RecvMessage(&control.ProcessRules{IsAtMe: true, IsCallMe: true, EnableGroup: true,
 		ExecOrder: []string{"接受", "接受挑战", "accept", "ok", "go", "fine"}, CostomTrigger: func(rikkaMsg message.Message) bool {
-			return rikkaMsg.SenderName == rrp.Challenger
+			return rikkaMsg.WxId == rrp.Challenger.WxId
 		}}, done)
 
 	return b
@@ -207,33 +222,33 @@ func (rrp *russianRoulettePlugin) doInitiatorRound(bullet int) (isEnd bool) {
 }
 
 // doPlayerRound 玩家回合处理
-func (rrp *russianRoulettePlugin) doPlayerRound(bullet int, player1 string, player2 string) (isEnd bool) {
-	atText := msgutil.AtSomeOne(player1)
+func (rrp *russianRoulettePlugin) doPlayerRound(bullet int, player1 player, player2 player) (isEnd bool) {
+	atText := msgutil.AtSomeOne(player1.Name)
 	rrp.sendText(atText + "你的回合！（可选择: ’射自己‘ 或 ‘射对手’）")
 	done := make(chan struct{})
 	_, b, order := rrp.RecvMessage(&control.ProcessRules{IsAtMe: true, IsCallMe: true, EnableGroup: true,
 		ExecOrder: append(execShotself, execShotOpponent...), CostomTrigger: func(rikkaMsg message.Message) bool {
-			return rikkaMsg.SenderName == player1
+			return rikkaMsg.WxId == player1.WxId
 		}}, done)
 	if !b { // 是否超时
 		rrp.sendText(atText + "30s未作选择，视为弃权")
-		rrp.Winer = player2 // 发起者胜出
+		rrp.Winer = player2.Name // 发起者胜出
 		return true
 	}
 	// 判断指令
 	if strings.Contains(joinedShotself, order) {
 		// 射自己
-		rrp.Trgger = player1
+		rrp.Trgger = player1.Name
 		if rrp.isbulletfatal(bullet) {
-			rrp.Winer = player2
+			rrp.Winer = player2.Name
 			rrp.sendText(rrp.Trgger + " 扣下了扳机，bang！很遗憾它带了！！")
 			return true
 		}
 	} else if strings.Contains(joinedShotOpponent, order) {
 		// 射对手
-		rrp.Trgger = player2
+		rrp.Trgger = player2.Name
 		if rrp.isbulletfatal(bullet) {
-			rrp.Winer = player1
+			rrp.Winer = player1.Name
 			rrp.sendText(rrp.Trgger + " 扣下了扳机，bang！很遗憾它带了！！")
 			return true
 		}
@@ -280,9 +295,9 @@ func (rrp *russianRoulettePlugin) reportResult() (res string) {
 //	}()
 //}
 
-func (rrp *russianRoulettePlugin) sendText(receiver string, text string, ats ...string) {
+func (rrp *russianRoulettePlugin) sendText(text string, ats ...string) {
 	var err error
-	err = rrp.Self.SendText(receiver, text, ats...)
+	err = rrp.Self.SendText(rrp.roomId, text, ats...)
 	if err != nil {
 		log.Warn().Err(err).Msg("俄罗斯轮盘游戏发送消息失败")
 	}

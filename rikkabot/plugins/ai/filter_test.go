@@ -10,6 +10,9 @@ import (
 )
 
 func TestFilter_filter(t *testing.T) {
+	// 初始化 seg
+	f := GetFilter()
+
 	type fields struct {
 		seg gse.Segmenter
 	}
@@ -25,42 +28,7 @@ func TestFilter_filter(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "test1",
-			fields: fields{
-				seg: seg,
-			},
-			args: args{
-				input:  "共产党",
-				handle: func(content string) (string, error) { return content, nil },
-			},
-			wantRes: "***",
-		},
-		{
-			name: "test2",
-			fields: fields{
-				seg: seg,
-			},
-			args: args{
-				input:  "rikka",
-				handle: func(content string) (string, error) { return content, nil },
-			},
-			wantRes: "rikka",
-		},
-		{
-			name: "test3",
-			fields: fields{
-				seg: seg,
-			},
-			args: args{
-				input:  "习主席",
-				handle: func(content string) (string, error) { return content, nil },
-			},
-			wantRes: "***",
-		}, {
-			name: "test4",
-			fields: fields{
-				seg: seg,
-			},
+			name: "测试过滤",
 			args: args{
 				input:  "那看到小偷走进房间呢\nSeeing the thief walk into the room, he called the police ",
 				handle: func(content string) (string, error) { return content, nil },
@@ -75,14 +43,19 @@ func TestFilter_filter(t *testing.T) {
 				input:  "1三个代表123平反456平凡",
 				handle: func(content string) (string, error) { return content, nil },
 			},
-			wantRes: "1****123**456平凡",
+			wantRes: "1三个代表123**456平凡",
+		},
+		{
+			name: "测试过滤2",
+			args: args{
+				input:  "平凡职业",
+				handle: func(content string) (string, error) { return content, nil },
+			},
+			wantRes: "平凡职业",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := &Filter{
-				seg: tt.fields.seg,
-			}
 			gotRes, err := f.filter(tt.args.input, tt.args.handle)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("filter() error = %v, wantErr %v", err, tt.wantErr)

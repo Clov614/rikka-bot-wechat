@@ -7,6 +7,8 @@ package plugin_admin
 import (
 	"bytes"
 	"fmt"
+	"strings"
+
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/common"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/cache"
@@ -14,7 +16,6 @@ import (
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control/dialog"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/register"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/msgutil"
-	"strings"
 )
 
 func init() {
@@ -41,140 +42,7 @@ func registAdminPlugin() {
 		if adminPlugin.user == nil {
 			adminPlugin.user = adminPlugin.onceDialog.Self // 运行时获取  用户（自身）指针
 		}
-		content := recvmsg.Content
-		content = msgutil.TrimPrefix(content, "admin", false, true)
-		reply := ""
-		switch true {
-		case isChoice(content, "add"):
-			nickname := msgutil.TrimPrefix(content, "add", false, true)
-			if nickname == "" {
-				reply = "添加管理员示例: add admin <nickname>"
-				break
-			}
-			if !recvmsg.IsMySelf {
-				reply = "仅有超级管理员(自己)，才能操作"
-				break
-			}
-			reply = adminPlugin.handleAtContentMapper(addAdmin, adminPlugin, nickname)
-		case isChoice(content, "del"):
-			nickname := msgutil.TrimPrefix(content, "del", false, true)
-			if nickname == "" {
-				reply = "移除管理员示例: del admin <nickname>"
-				break
-			}
-			if !recvmsg.IsMySelf {
-				reply = "仅有超级管理员(自己)，才能操作"
-				break
-			}
-			reply = adminPlugin.handleAtContentMapper(deleteAdmin, adminPlugin, nickname)
-		case isChoice(content, "show admin"):
-			if !recvmsg.IsMySelf {
-				reply = "仅有超级管理员(自己)，才能操作"
-				break
-			}
-			reply = adminPlugin.showAdminList()
-		case isChoice(content, "show plugin state") || isChoice(content, "show plugin status"):
-			reply = adminPlugin.showPluginState()
-		case content == "show":
-			reply = "show what? <admin> or <plugin state>\nExample: <callbot> admin show admin"
-		// 插件管理
-		case isChoice(content, "plugin"):
-			pluginsContent := msgutil.TrimPrefix(content, "plugin", false, true)
-			switch true {
-			case isChoice(pluginsContent, "enable"):
-				pluginsContent = msgutil.TrimPrefix(pluginsContent, "enable", false, true)
-				if pluginsContent == "" {
-					reply = "enable后面请跟模块名称\n示例: admin plugin enable <plugin name> \n(如不清楚模块名称请调用: admin show plugin state)"
-					break
-				}
-				reply = adminPlugin.enablePlugin(pluginsContent)
-			case isChoice(pluginsContent, "disable"):
-				pluginsContent = msgutil.TrimPrefix(pluginsContent, "disable", false, true)
-				if pluginsContent == "" {
-					reply = "disable后面请跟模块名称\n示例: admin plugin disable <plugin name> \n(如不清楚模块名称请调用: admin show plugin state)"
-					break
-				}
-				reply = adminPlugin.disablePlugin(pluginsContent)
-			}
-		// 白名单
-		case isChoice(content, "white"):
-			whiteContent := msgutil.TrimPrefix(content, "white", false, true)
-			switch true {
-			case isChoice(whiteContent, "add"): // 添加群组白名单
-				whiteContent = msgutil.TrimPrefix(whiteContent, "add", false, true)
-				if whiteContent == "" {
-					if !recvmsg.IsGroup {
-						reply = "添加失败，群组内才能操作: admin white add"
-						break
-					}
-					reply = adminPlugin.addWhiteGroupByMsg(recvmsg)
-				} else {
-					reply = adminPlugin.handleAtContentMapper(addWhiteGroup, adminPlugin, whiteContent)
-				}
-			case isChoice(whiteContent, "del"):
-				whiteContent = msgutil.TrimPrefix(whiteContent, "del", false, true)
-				if whiteContent == "" {
-					if !recvmsg.IsGroup {
-						reply = "移除白名单失败，群组内才能操作: admin white del"
-						break
-					}
-					reply = adminPlugin.deleteWhiteGroupByMsg(recvmsg)
-				} else {
-					reply = adminPlugin.handleAtContentMapper(deleteWhiteGroup, adminPlugin, whiteContent)
-				}
-			case isChoice(whiteContent, "show"):
-				reply = adminPlugin.showWhiteGroup()
-			}
-		// 黑名单
-		case isChoice(content, "black"):
-			blackcontent := msgutil.TrimPrefix(content, "black", false, true)
-			switch true {
-			case isChoice(blackcontent, "group"): // 群组黑名单
-				groupContent := msgutil.TrimPrefix(blackcontent, "group", false, true)
-				switch true {
-				case isChoice(groupContent, "add"): // 添加群组白名单
-					groupContent = msgutil.TrimPrefix(groupContent, "add", false, true)
-					if groupContent == "" {
-						if !recvmsg.IsGroup {
-							reply = "添加群组黑名单失败，群组内才能操作: admin black group add"
-							break
-						}
-						reply = adminPlugin.addBlackGroupByMsg(recvmsg)
-					} else { // 否则就是按照参数添加黑名单
-						reply = adminPlugin.handleAtContentMapper(addBlackGroupByNickname, adminPlugin, groupContent)
-					}
-				case isChoice(groupContent, "del"):
-					groupContent = msgutil.TrimPrefix(groupContent, "del", false, true)
-					if groupContent == "" {
-						if !recvmsg.IsGroup {
-							reply = "移除群组黑名单失败，群组内才能操作: admin black group del\n可选使用: admin black group del <group nickname>"
-							break
-						}
-						reply = adminPlugin.deleteBlackGroupByMsg(recvmsg)
-					} else {
-						reply = adminPlugin.handleAtContentMapper(deleteBlackGroupByNickname, adminPlugin, groupContent)
-					}
-				case isChoice(groupContent, "show"):
-					reply = adminPlugin.showBlackGroup()
-				}
-			case isChoice(blackcontent, "user"):
-				userContent := msgutil.TrimPrefix(blackcontent, "user", false, true)
-				switch true {
-				case isChoice(userContent, "add"):
-					userContent = msgutil.TrimPrefix(userContent, "add", false, true)
-					reply = adminPlugin.handleAtContentMapper(addBlackUserByNickname, adminPlugin, recvmsg, userContent)
-				case isChoice(userContent, "del"):
-					userContent = msgutil.TrimPrefix(userContent, "del", false, true)
-					reply = adminPlugin.handleAtContentMapper(deleteBlackUserByNickname, adminPlugin, recvmsg, userContent)
-				case isChoice(userContent, "show"):
-					reply = adminPlugin.showBlackUser()
-				}
-			}
-		// help
-		case content == "help":
-			reply = helpContent()
-		}
-
+		reply := adminPlugin.handleAdminCommand(recvmsg)
 		adminPlugin.onceDialog.SendText(recvmsg.MetaData, reply) // send msg
 	})
 
@@ -196,6 +64,9 @@ type AdminPlugin struct {
 
 // 根据nickname添加管理员
 func (a AdminPlugin) addAdmin(nickname string) (reply string) {
+	if strings.HasPrefix(nickname, "@") {
+		nickname = msgutil.GetNicknameByAt(nickname)
+	}
 	friendId, err := a.user.GetFriendIdByNickname(nickname)
 	if err != nil {
 		return "添加管理员失败，错误：" + err.Error()
@@ -290,7 +161,7 @@ func (a AdminPlugin) addWhiteGroupByMsg(msg message.Message) (reply string) {
 	}
 	a.cache.AddWhiteGroupId(msg.RoomId)
 
-	return fmt.Sprintf("添加成功，群组( %s )id( %s )进入白名单", msg.MetaData.GetGroupNickname(), msg.GroupId)
+	return fmt.Sprintf("添加成功，群组( %s )id( %s )进入白名单", msg.MetaData.GetGroupNickname(), msg.RoomId)
 }
 
 // 群组移除白名单
@@ -309,7 +180,7 @@ func (a AdminPlugin) deleteWhiteGroupByMsg(msg message.Message) (reply string) {
 		return "不是群消息，无法移除群聊白名单(请携带群名参数)"
 	}
 	a.cache.DeleteWhiteGroupId(msg.RoomId)
-	return fmt.Sprintf("移除了，群组( %s )id( %s )的白名单", msg.MetaData.GetGroupNickname(), msg.GroupId)
+	return fmt.Sprintf("移除了，群组( %s )id( %s )的白名单", msg.MetaData.GetGroupNickname(), msg.RoomId)
 }
 
 // 显示群组白名单
@@ -340,7 +211,7 @@ func (a AdminPlugin) addBlackGroupByMsg(msg message.Message) (reply string) {
 		return "不是群聊无法添加群组黑名单(请携带群名参数)"
 	}
 	a.cache.AddBlackGroupId(msg.RoomId)
-	return fmt.Sprintf("添加了，群组( %s )id( %s )的黑名单", msg.MetaData.GetGroupNickname(), msg.GroupId)
+	return fmt.Sprintf("添加了，群组( %s )id( %s )的黑名单", msg.MetaData.GetGroupNickname(), msg.RoomId)
 }
 
 // 移除该群组黑名单,群组内使用（不携带昵称）
@@ -349,7 +220,7 @@ func (a AdminPlugin) deleteBlackGroupByMsg(msg message.Message) (reply string) {
 		return "不是群聊无法移除群组黑名单(请携带群名参数)"
 	}
 	a.cache.DeleteBlackGroupId(msg.RoomId)
-	return fmt.Sprintf("移除了，群组( %s )id( %s )的黑名单", msg.MetaData.GetGroupNickname(), msg.GroupId)
+	return fmt.Sprintf("移除了，群组( %s )id( %s )的黑名单", msg.MetaData.GetGroupNickname(), msg.RoomId)
 }
 
 // 添加群组黑名单，根据群昵称
@@ -442,53 +313,23 @@ func (a AdminPlugin) showBlackUser() (reply string) {
 	return buf.String()
 }
 
-//type nicknameFunc func(a AdminPlugin, nickname string) (reply string)
-//type msgnicknameFunc func(a AdminPlugin, msg message.Message, nickname string) (reply string)
-
-// 闭包以捕获接收者
-func addAdmin(a AdminPlugin, nickname string) (reply string) {
-	return a.addAdmin(nickname)
-}
-func deleteAdmin(a AdminPlugin, nickname string) (reply string) {
-	return a.deleteAdmin(nickname)
-}
-func deleteWhiteGroup(a AdminPlugin, groupnickname string) (reply string) {
-	return a.deleteWhiteGroup(groupnickname)
-}
-func addWhiteGroup(a AdminPlugin, groupnickname string) (reply string) {
-	return a.addWhiteGroup(groupnickname)
-}
-func addBlackGroupByNickname(a AdminPlugin, nickname string) (reply string) {
-	return a.addBlackGroupByNickname(nickname)
-}
-func deleteBlackGroupByNickname(a AdminPlugin, nickname string) (reply string) {
-	return a.deleteBlackGroupByNickname(nickname)
-}
-func addBlackUserByNickname(a AdminPlugin, msg message.Message, nickname string) (reply string) {
-	return a.addBlackUserByNickname(msg, nickname)
-}
-func deleteBlackUserByNickname(a AdminPlugin, msg message.Message, nickname string) (reply string) {
-	return a.deleteBlackUserByNickname(msg, nickname)
-}
-
-// 包装类
-// 处理艾特消息
-func (a AdminPlugin) handleAtContentMapper(fn interface{}, params ...interface{}) (reply string) {
+// 更新handleAtContentMapper方法
+func (a AdminPlugin) handleAtContentMapper(fn interface{}, params ...interface{}) string {
 	switch f := fn.(type) {
-	case func(a AdminPlugin, nickname string) (reply string):
+	case func(nickname string) string:
 		nickname := params[1].(string)
 		if strings.HasPrefix(nickname, "@") {
 			nickname = msgutil.GetNicknameByAt(nickname) // 支持获取at后的用户名
 		}
-		reply = f(a, nickname)
-	case func(a AdminPlugin, msg message.Message, nickname string) (reply string):
+		return f(nickname)
+	case func(msg message.Message, nickname string) string:
 		nickname := params[2].(string)
 		if strings.HasPrefix(nickname, "@") {
 			nickname = msgutil.GetNicknameByAt(nickname) // 支持获取at后的用户名
 		}
-		reply = f(a, params[1].(message.Message), nickname)
+		return f(params[1].(message.Message), nickname)
 	}
-	return
+	return ""
 }
 
 func helpContent() string {
@@ -517,4 +358,95 @@ func helpContent() string {
 	buf.WriteString("移除用户黑名单 black user del <group name>\n")
 	buf.WriteString("显示用户黑名单 black user show\n")
 	return buf.String()
+}
+
+// 将闭包捕获的函数提取为方法，减少闭包的使用
+func (a AdminPlugin) handleAdminCommand(recvmsg message.Message) string {
+	content := recvmsg.Content
+	content = msgutil.TrimPrefix(content, "admin", false, true)
+	switch {
+	case isChoice(content, "add"):
+		nickname := msgutil.TrimPrefix(content, "add", false, true)
+		if nickname == "" {
+			return "添加管理员示例: add admin <nickname>"
+		}
+		if !recvmsg.IsMySelf {
+			return "仅有超级管理员(自己)，才能操作"
+		}
+		return a.addAdmin(nickname)
+	case isChoice(content, "del"):
+		nickname := msgutil.TrimPrefix(content, "del", false, true)
+		if nickname == "" {
+			return "移除管理员示例: del admin <nickname>"
+		}
+		if !recvmsg.IsMySelf {
+			return "仅有超级管理员(自己)，才能操作"
+		}
+		return a.deleteAdmin(nickname)
+	case isChoice(content, "show admin"):
+		if !recvmsg.IsMySelf {
+			return "仅有超级管理员(自己)，才能操作"
+		}
+		return a.showAdminList()
+	case isChoice(content, "show plugin state"), isChoice(content, "show plugin status"):
+		return a.showPluginState()
+	case content == "show":
+		return "show what? <admin> or <plugin state>\nExample: <callbot> admin show admin"
+	case isChoice(content, "plugin"):
+		pluginsContent := msgutil.TrimPrefix(content, "plugin", false, true)
+		switch {
+		case isChoice(pluginsContent, "enable"):
+			return a.enablePlugin(msgutil.TrimPrefix(pluginsContent, "enable", false, true))
+		case isChoice(pluginsContent, "disable"):
+			return a.disablePlugin(msgutil.TrimPrefix(pluginsContent, "disable", false, true))
+		default:
+			return "未知插件管理命令"
+		}
+	case isChoice(content, "white"):
+		whiteContent := msgutil.TrimPrefix(content, "white", false, true)
+		switch {
+		case isChoice(whiteContent, "add"):
+			return a.addWhiteGroupByMsg(recvmsg)
+		case isChoice(whiteContent, "del"):
+			return a.deleteWhiteGroupByMsg(recvmsg)
+		case isChoice(whiteContent, "show"):
+			return a.showWhiteGroup()
+		default:
+			return "未知白名单命令"
+		}
+	case isChoice(content, "black"):
+		blackContent := msgutil.TrimPrefix(content, "black", false, true)
+		switch {
+		case isChoice(blackContent, "group"):
+			groupContent := msgutil.TrimPrefix(blackContent, "group", false, true)
+			switch {
+			case isChoice(groupContent, "add"):
+				return a.handleAtContentMapper(a.addBlackGroupByNickname, groupContent)
+			case isChoice(groupContent, "del"):
+				return a.handleAtContentMapper(a.deleteBlackGroupByNickname, groupContent)
+			case isChoice(groupContent, "show"):
+				return a.showBlackGroup()
+			default:
+				return "未知黑名单群组命令"
+			}
+		case isChoice(blackContent, "user"):
+			userContent := msgutil.TrimPrefix(blackContent, "user", false, true)
+			switch {
+			case isChoice(userContent, "add"):
+				return a.handleAtContentMapper(a.addBlackUserByNickname, recvmsg, userContent)
+			case isChoice(userContent, "del"):
+				return a.handleAtContentMapper(a.deleteBlackUserByNickname, recvmsg, userContent)
+			case isChoice(userContent, "show"):
+				return a.showBlackUser()
+			default:
+				return "未知黑名单用户命令"
+			}
+		default:
+			return "未知黑名单命令"
+		}
+	case content == "help":
+		return helpContent()
+	default:
+		return "未知命令"
+	}
 }

@@ -187,7 +187,7 @@ func (a *Adapter) covert(msg *wcf.Message) *message.Message {
 				infos, err := msg.RoomData.GetMembersByNickName(match[1])
 				if err != nil {
 					logging.WarnWithErr(err, "RoomData.GetMembersByNickName fail")
-				} else {
+				} else if infos[0] != nil || infos[0].Wxid != "" {
 					AtWxidList[i] = infos[0].Wxid
 				}
 

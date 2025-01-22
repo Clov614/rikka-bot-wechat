@@ -79,9 +79,11 @@ func (d *Dialog) SendText(meta message.IMeta, sendtext string) {
 	d.sendMessage(&sendMsg)
 }
 
+// SendImage todo 发送图片待实现
 func (d *Dialog) SendImage(meta message.IMeta, imgData []byte) {
-	sendMsg := message.Message{Msgtype: message.MsgTypeImage, MetaData: meta, Raw: imgData}
-	d.sendMessage(&sendMsg)
+	logging.Warn("un implement SendImage")
+	//sendMsg := message.Message{Msgtype: message.MsgTypeImage, MetaData: meta, Raw: imgData}
+	//d.sendMessage(&sendMsg)
 }
 
 func (d *Dialog) sendMessage(msg *message.Message) {

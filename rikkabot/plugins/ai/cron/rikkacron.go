@@ -95,7 +95,7 @@ func (cj *CronJob) GetJobId() string {
 }
 
 func (cj *CronJob) SendText(text string) {
-	err := cj.SendTextByUuid(cj.Uuid, text, cj.IsGroup)
+	err := cj.Self.SendText(cj.Uuid, text)
 	if err != nil {
 		log.Err(err).Msg("定时推送消息错误")
 	}

@@ -75,9 +75,9 @@ func init() {
 	talk2AI.OnceDialog.Once = func(recvmsg message.Message, sendMsg chan<- *message.Message) {
 		answer, err := DefaultFilter.filter(recvmsg.Content, func(content string) (string, error) {
 			if recvmsg.IsGroup { // 群组消息 sessionid 为 groupid
-				answer, err := talk2AI.Session.TalkByIdEx(recvmsg.GroupId, recvmsg.Content,
+				answer, err := talk2AI.Session.TalkByIdEx(recvmsg.RoomId, recvmsg.Content,
 					func() string {
-						return fmt.Sprintf("(该次对话隐藏信息 uuid:%s isGroup:%v)", recvmsg.Uuid, recvmsg.IsGroup)
+						return fmt.Sprintf("(该次对话隐藏信息 uuid:%s isGroup:%v)", recvmsg.RoomId, recvmsg.IsGroup)
 					})
 				if err != nil {
 					log.Error().Err(err).Msg("talk2AI.Session.TalkById")
@@ -85,9 +85,9 @@ func init() {
 				}
 				return answer, nil
 			}
-			answer, err := talk2AI.Session.TalkByIdEx(recvmsg.SenderId, recvmsg.Content,
+			answer, err := talk2AI.Session.TalkByIdEx(recvmsg.WxId, recvmsg.Content,
 				func() string {
-					return fmt.Sprintf("(该次对话隐藏信息 uuid:%s isGroup:%v)", recvmsg.Uuid, recvmsg.IsGroup)
+					return fmt.Sprintf("(该次对话隐藏信息 uuid:%s isGroup:%v)", recvmsg.WxId, recvmsg.IsGroup)
 				})
 			if err != nil {
 				log.Error().Err(err).Msg("talk2AI.Session.TalkById")

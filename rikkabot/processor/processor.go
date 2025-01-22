@@ -7,7 +7,7 @@ package processor
 import (
 	"github.com/Clov614/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
-	//_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins" // 需要副作用
+	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins" // 需要副作用
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/cache"
 	dpkg "github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control/dialog"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/register"

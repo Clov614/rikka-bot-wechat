@@ -14,7 +14,7 @@ import (
 	"strconv"
 )
 
-func init() {
+func init() { // todo 图片 || 富文本
 	// 允许群组 白名单允许
 	rules := &control.ProcessRules{EnableGroup: true, CostomTrigger: func(rikkaMsg message.Message) bool {
 		if rikkaMsg.Msgtype == message.MsgTypeApp {
