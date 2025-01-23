@@ -6,6 +6,7 @@ github.com/Clov614/logging v0.1.3 h1:Ijj5aRuznEpt7qgW5aQf9jlTdKB0ZY9uOz4fn56Y0RU
 github.com/Clov614/logging v0.1.3/go.mod h1:Vxr9X5cvKXT17F/iBeBj8w6WSAuBQppsvtoCi0UXxe0=
 github.com/Clov614/wcf-rpc-sdk v0.2.11 h1:mYPACtphmrMQvIHObJMy21cFNz3/KSufiQMBUDl6WxA=
 github.com/Clov614/wcf-rpc-sdk v0.2.11/go.mod h1:qeOQ+Y0G/gSNtgwwO/XW2Q5tGPvRFln+iW3ksEWp5MI=
+github.com/Clov614/wcf-rpc-sdk v0.2.12/go.mod h1:qeOQ+Y0G/gSNtgwwO/XW2Q5tGPvRFln+iW3ksEWp5MI=
 github.com/Microsoft/go-winio v0.5.2 h1:a9IhgEQBCUEk6QCdml9CiJGhAws+YwffDHEMp1VMrpA=
 github.com/Microsoft/go-winio v0.5.2/go.mod h1:WpS1mjBmmwHBEWmogvA2mj8546UReBk4v8QkMxJ6pZY=
 github.com/bytedance/sonic v1.11.9 h1:LFHENlIY/SLzDWverzdOvgMztTxcfcF+cqNsz9pK5zg=
