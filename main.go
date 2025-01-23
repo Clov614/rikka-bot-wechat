@@ -34,9 +34,9 @@ func main() {
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 		gin.SetMode(gin.ReleaseMode)
 	}
-	// 在初始化完成后输出所有缓冲日志
-	logging.Logger.Flush(zerolog.GlobalLevel())
-	logging.Logger.SetActive(false) // 取消缓存，正常日志输出
+	//// 在初始化完成后输出所有缓冲日志
+	//logging.Logger.Flush(zerolog.GlobalLevel())
+	//logging.Logger.SetActive(false) // 取消缓存，正常日志输出
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -45,12 +45,12 @@ func main() {
 		}
 	}()
 	ctx := context.Background()
-	cli := wcf.NewClient(30)
-	cli.Run(*wcfdebugflag, *autoInject, false) // 运行wcf客户端
+	cli := wcf.NewClient(30, *autoInject, false)
+	cli.Run(*wcfdebugflag) // 运行wcf客户端
 
 	rbot := rikkabot.NewRikkaBot(ctx, cli)
 	a := adapter.NewAdapter(ctx, cli, rbot)
-	a.HandleCovert() // 消息转换
+	a.HandleCovert() // 消息转换e11
 
 	// 正向http  http上报器
 	if *httpMode {
