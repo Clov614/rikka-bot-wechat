@@ -7,7 +7,6 @@ import (
 	"github.com/Clov614/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/common"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/config"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/manager"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/onebot/dto/event"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor"
@@ -167,7 +166,6 @@ func (r *RikkaBot) Start() {
 func (r *RikkaBot) Exit() {
 	logging.Info("rikka bot exited")
 	r.Processor.Close()
-	manager.CloseDB()
 	r.cancel()
 }
 
@@ -177,7 +175,6 @@ func (r *RikkaBot) ExitWithErr(code int, msg string) {
 	logging.Error("异常退出")
 	logging.Error(msg, map[string]interface{}{"exit code": code})
 	r.Processor.Close()
-	manager.CloseDB()
 	r.cancel()
 }
 
@@ -222,7 +219,7 @@ func (r *RikkaBot) GetImgDataByPath(path string) []byte {
 
 // SendMsg 统一发送消息接口 消息类型 是否群组 发送数据 群/好友 id
 // nolint
-func (r *RikkaBot) SendMsg(msgType message.MsgType, isGroup bool, data any, sendId string) error {
+func (r *RikkaBot) SendMsg(msgType message.MsgType, data any, sendId string) error {
 	// todo 发送消息回调消息id 并保存sendmsg，提供过期控制、根据id查询发送的消息
 	var err error
 	switch msgType {
@@ -236,8 +233,12 @@ func (r *RikkaBot) SendMsg(msgType message.MsgType, isGroup bool, data any, send
 			return fmt.Errorf("send text to %s error: %w", sendId, err)
 		}
 	case message.MsgTypeImage:
-		// todo 暂未实现
-		return fmt.Errorf("sendMsg of MsgTypeImage err: %w", ErrUnSupport)
+		src, ok := data.(string)
+		if !ok {
+			return fmt.Errorf("`SendMsg of image` must be a string(src:<ImgPath or URL>): %w", ErrSendMsg)
+		}
+		err = r.cli.SendImage(sendId, src)
+		return fmt.Errorf("send image to %s error: %w", sendId, err)
 	default:
 		err = fmt.Errorf("`SendMsg of type` must be either text or image: %w", ErrSendMsg)
 	}

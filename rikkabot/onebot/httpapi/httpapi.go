@@ -201,24 +201,12 @@ func (s HttpServer) handleSendMsg(c *gin.Context) {
 			oneboterr.UNSUPPORTED_ACTION, failedStatus)
 		return
 	}
-	// 校验params
-	if req.Params.DetailType == "" {
-		retErr(c, "params.detail_type 为空 请携带其并赋予（群组/个人） group private", oneboterr.BAD_PARAME, failedStatus)
-	}
 	if req.Params.Message == nil {
-		retErr(c, "params.message 为空 请携带发送的消息数据(string、[]byte) 图片消息支持传入string链接",
+		retErr(c, "params.message 为空 请携带发送的消息数据(string、[]byte) 图片消息只支持传入string链接(绝对路径||网络URL)",
 			oneboterr.BAD_PARAME, failedStatus)
 	}
-	var isGroup bool
-	if req.Params.DetailType == "group" {
-		isGroup = true
-	} else if req.Params.DetailType == "private" {
-		isGroup = false
-	} else {
-		retErr(c, "params.detail_type 只支持 group private 两种消息类型", oneboterr.BAD_PARAME, failedStatus)
-	}
 
-	err := s.bot.SendMsg(req.Params.MsgType, isGroup, req.Params.Message, req.Params.SendId)
+	err := s.bot.SendMsg(req.Params.MsgType, req.Params.Message, req.Params.SendId)
 	if err != nil {
 		logging.Error("Http server 发送消息错误", map[string]interface{}{"err": err.Error()})
 		logging.Warn("Tips: 如果未找到群聊请检查机器人账号是否将群聊添加至通讯录")

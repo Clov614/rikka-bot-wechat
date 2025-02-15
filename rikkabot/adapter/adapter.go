@@ -225,6 +225,7 @@ func (a *Adapter) covert(msg *wcf.Message) *message.Message {
 		IsGroup:         msg.IsGroup,
 		IsFriend:        msg.IsSendByFriend(),
 		IsMySelf:        msg.IsSelf, // 是否为自己发送的消息
+		FileInfo:        msg.FileInfo,
 	}
 }
 
@@ -265,11 +266,14 @@ func (a *Adapter) sendMsg(sendMsg *message.Message) error {
 		if err != nil {
 			logging.ErrorWithErr(err, "SendMsg fail")
 		}
-	//case message.MsgTypeImage:
-	//	replyImage, err := rawMsg.ReplyImage(bytes.NewReader(sendMsg.Raw))
-	//	if err != nil {
-	//		logging.ErrorWithErr(err, "SendMsg fail", map[string]interface{}{"replyImage": replyImage})
-	//	}
+	case message.MsgTypeImage:
+		if nil == sendMsg.FileInfo {
+			return fmt.Errorf("send img err, FileInfo is: %w", ErrNull)
+		}
+		err := rawMsg.ReplyImage(sendMsg.FileInfo.FilePath)
+		if err != nil {
+			logging.ErrorWithErr(err, "SendMsg fail", map[string]interface{}{"filePath": sendMsg.FileInfo.FilePath})
+		}
 	default:
 		logging.Warn("unknown msgType do not handle send")
 	}

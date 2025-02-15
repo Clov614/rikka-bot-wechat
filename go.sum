@@ -6,6 +6,7 @@ github.com/Clov614/logging v0.1.4 h1:wvTJHIPg1KQdxv23khFcZk5I4rA1jhyCCeCC0UR43AQ
 github.com/Clov614/logging v0.1.4/go.mod h1:Vxr9X5cvKXT17F/iBeBj8w6WSAuBQppsvtoCi0UXxe0=
 github.com/Clov614/wcf-rpc-sdk v0.3.3 h1:SsFMNoOyuGAxIVuNqmbl7NWSIhiar9Un6aV4e1gJf+8=
 github.com/Clov614/wcf-rpc-sdk v0.3.3/go.mod h1:0faSxqY7zW9CaACx3li+QTtNQovs3IxaBAjCVQJr54w=
+github.com/Clov614/wcf-rpc-sdk v0.3.4/go.mod h1:ZBJKTyIs6Tkip9n81iE00lUg0eD+dLt7/vfvWcEiAX4=
 github.com/Microsoft/go-winio v0.5.2 h1:a9IhgEQBCUEk6QCdml9CiJGhAws+YwffDHEMp1VMrpA=
 github.com/Microsoft/go-winio v0.5.2/go.mod h1:WpS1mjBmmwHBEWmogvA2mj8546UReBk4v8QkMxJ6pZY=
 github.com/antchfx/xmlquery v1.4.4 h1:mxMEkdYP3pjKSftxss4nUHfjBhnMk4imGoR96FRY2dg=
