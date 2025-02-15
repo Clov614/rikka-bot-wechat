@@ -1,8 +1,7 @@
 module github.com/Clov614/rikka-bot-wechat
 
 go 1.22
-
-toolchain go1.22.5
+toolchain go1.23.6
 
 require (
 	github.com/Clov614/bilibili v0.1.2
@@ -16,7 +15,7 @@ require (
 	github.com/robfig/cron/v3 v3.0.0
 	github.com/rs/zerolog v1.33.0
 	github.com/zwgblue/yaml-encoder v0.0.0-20221226083717-a0bdbda0d998
-	go.etcd.io/bbolt v1.3.11
+	go.etcd.io/bbolt v1.4.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -54,7 +53,7 @@ require (
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/net v0.33.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	google.golang.org/protobuf v1.36.2 // indirect
 )
