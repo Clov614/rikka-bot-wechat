@@ -159,7 +159,9 @@ func (a *Adapter) covert(msg *wcf.Message) *message.Message {
 	var rikkaMsgType message.MsgType
 	var chatImgUrl string
 	switch msg.Type {
-	case wcf.MsgTypeText | wcf.MsgTypeXMLQuote:
+	case wcf.MsgTypeText:
+		fallthrough
+	case wcf.MsgTypeXMLQuote:
 		rikkaMsgType = message.MsgTypeText
 	case wcf.MsgTypeImage:
 		rikkaMsgType = message.MsgTypeImage
