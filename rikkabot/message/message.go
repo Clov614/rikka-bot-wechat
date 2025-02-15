@@ -21,7 +21,6 @@ type MsgMetaType int
 type Message struct {
 	Msgtype         MsgType  `json:"msg_type"`
 	MetaData        IMeta    `json:"-"` // `json:"meta_data"` todo 元数据 （封装关于Sender Receiver Self 的 数据/调用）
-	Raw             []byte   `json:"-"` // 图片数据
 	RawContent      string   `json:"-"`
 	ChatImgUrl      string   `json:"chat_img_url,omitempty"` // 图片url (只有图片类型消息存在该字段)
 	Content         string   `json:"content"`                // 消息内容
@@ -47,6 +46,7 @@ type IMeta interface {
 	GetMsgSenderNickname() string                        // todo 获取消息发送者昵称
 	GetGroupNickname() string                            // todo  获取群组消息的群名
 	GetRoomNameByRoomId(nickname string) (string, error) // todo 根据RoomId 获得RoomName
+	GetImgData() []byte
 }
 
 //type ISelf interface {

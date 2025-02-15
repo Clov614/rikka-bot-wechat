@@ -60,9 +60,12 @@ func init() {
 
 }
 
-func NewRikkaBot(ctx context.Context, cli *wcf.Client) *RikkaBot {
+func NewRikkaBot(ctx context.Context, cli *wcf.Client, debug bool) *RikkaBot {
 	ctx, cancel := context.WithCancel(ctx)
 	cfg := config.GetConfig()
+	if debug {
+		logging.SetLogLevel("debug")
+	}
 	// 初始化
 	return &RikkaBot{
 		ctx:        ctx,
@@ -208,6 +211,14 @@ func (r *RikkaBot) GetRespMsgRecvChan() <-chan *message.Message {
 }
 
 //endregion
+
+func (r *RikkaBot) GetFullFilePathFromRelativePath(relativePath string) string {
+	return r.cli.GetFullFilePathFromRelativePath(relativePath)
+}
+
+func (r *RikkaBot) GetImgDataByPath(path string) []byte {
+	return r.cli.DecodeDatFileToBytes(path)
+}
 
 // SendMsg 统一发送消息接口 消息类型 是否群组 发送数据 群/好友 id
 // nolint

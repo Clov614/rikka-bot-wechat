@@ -8,10 +8,10 @@ import (
 	"github.com/Clov614/rikka-bot-wechat/rikkabot"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/common"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/config"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/manager"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
 	wcf "github.com/Clov614/wcf-rpc-sdk"
 	"math/rand"
+	"path/filepath"
 	"regexp"
 	"time"
 )
@@ -109,11 +109,11 @@ func (md *MetaData) GetMsgSenderNickname() string {
 
 // GetGroupNickname 获取群组消息的群名 test
 func (md *MetaData) GetGroupNickname() string {
-	member, err := md.cli.GetMember(md.RawMsg.RoomId)
-	if err != nil {
-		logging.ErrorWithErr(err, "GetMsgGroupNickname fail")
+	if !md.RawMsg.IsGroup { // 不是群组直接返回空
+		return ""
 	}
-	if 0 == len(member) {
+	member, err := md.cli.GetMember(md.RawMsg.RoomId)
+	if err != nil || 0 == len(member) {
 		logging.WarnWithErr(ErrNull, "GetMsgGroupNickname fail")
 		return ""
 	} else if nil == member[0] {
@@ -136,6 +136,16 @@ func (md *MetaData) GetRoomNameByRoomId(id string) (string, error) {
 	return member[0].NickName, nil
 }
 
+// GetImgData 获取图片数据
+func (md *MetaData) GetImgData() []byte {
+	err := md.RawMsg.FileInfo.DecryptImg()
+	if err != nil {
+		logging.ErrorWithErr(err, "GetImgData fail")
+		return nil
+	}
+	return md.RawMsg.FileInfo.Data
+}
+
 func (md *MetaData) runDelayTimer(delayMin int, delayMax int) {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	time.Sleep(time.Duration(rnd.Intn(1000*delayMax-1000*delayMin)+1000*delayMin) * time.Millisecond)
@@ -147,16 +157,20 @@ func (md *MetaData) runDelayTimer(delayMin int, delayMax int) {
 // covert 消息转换处理
 func (a *Adapter) covert(msg *wcf.Message) *message.Message {
 	var rikkaMsgType message.MsgType
+	var chatImgUrl string
 	switch msg.Type {
-	case uint32(wcf.MsgTypeText):
+	case wcf.MsgTypeText | wcf.MsgTypeXMLQuote:
 		rikkaMsgType = message.MsgTypeText
-	case uint32(wcf.MsgTypeImage):
+	case wcf.MsgTypeImage:
 		rikkaMsgType = message.MsgTypeImage
-	case uint32(wcf.MsgTypeVoice):
+		if msg.FileInfo != nil {
+			chatImgUrl = generateChatImageWebURL(msg.FileInfo.ExtractRelativePath()) // 生成chatImgUrl
+		}
+	case wcf.MsgTypeVoice:
 		rikkaMsgType = message.MsgTypeVoice
-	case uint32(wcf.MsgTypeVideo):
+	case wcf.MsgTypeVideo:
 		rikkaMsgType = message.MsgTypeVideo
-	case uint32(wcf.MsgTypeShare): // todo test 解析app消息
+	case wcf.MsgTypeXML: // todo test 解析app消息
 		//if msg.AppMsgType == openwechat.AppMsgTypeVideo { // 视频 app 消息
 		//	rikkaMsgType = message.MsgTypeApp
 		//} else { // todo 消息选择器测试无误后移除
@@ -196,10 +210,10 @@ func (a *Adapter) covert(msg *wcf.Message) *message.Message {
 		}
 	}
 	return &message.Message{
-		Msgtype:    rikkaMsgType,
-		MetaData:   metaData,
-		RawContent: msg.Content,
-		//ChatImgUrl:      cacheImgCovert2Url(imgData, uuid), // 图片url
+		Msgtype:         rikkaMsgType,
+		MetaData:        metaData,
+		RawContent:      msg.Content,
+		ChatImgUrl:      chatImgUrl, // 图片url
 		Content:         msg.Content,
 		MsgId:           msg.MessageId,
 		WxId:            msg.WxId,
@@ -214,14 +228,8 @@ func (a *Adapter) covert(msg *wcf.Message) *message.Message {
 	}
 }
 
-func cacheImgCovert2Url(data []byte, uuid string) string {
-	if data == nil || len(data) == 0 {
-		return ""
-	}
-	imgName, nowDate := manager.SaveImg(uuid, data)
-	// 拼装返回url
-	imgUrl := "/chat_image/" + nowDate + "/" + imgName
-	return imgUrl
+func generateChatImageWebURL(suffixPath string) string {
+	return filepath.ToSlash(filepath.Join("/chat_image", suffixPath))
 }
 
 // @Author By Clover 2024/7/5 下午5:28:00
@@ -229,6 +237,7 @@ func cacheImgCovert2Url(data []byte, uuid string) string {
 // @Demand Version
 func (a *Adapter) receiveMsg(msg *wcf.Message) {
 	selfMsg := a.covert(msg)
+	logging.Debug("adapter.receiveMsg", map[string]interface{}{"covertedMsg": fmt.Sprintf("%+v", selfMsg)})
 	if selfMsg == nil {
 		return
 	}

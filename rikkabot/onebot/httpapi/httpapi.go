@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"github.com/Clov614/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/manager"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/onebot/dto/event"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/onebot/oneboterr"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/imgutil"
@@ -113,16 +112,11 @@ func (s HttpServer) globalHandler() gin.HandlerFunc {
 
 func (s HttpServer) handleChatImage(c *gin.Context, path string) {
 	// 处理 /chat_image/:date/:imgId 路径
-	parts := strings.Split(path, "/")
-	if len(parts) != 4 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "paths not match"})
-		return
-	}
-	imgDate := parts[2]
-	imgId := parts[3]
+	msgAttachIndex := strings.Index(path, "chat_image")
+	relativePath := path[msgAttachIndex+len("chat_image"):]
 
 	// 获取图片
-	data := manager.GetImg(imgId, imgDate)
+	data := s.bot.GetImgDataByPath(s.bot.GetFullFilePathFromRelativePath(relativePath))
 	if data == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "image not found"})
 		return

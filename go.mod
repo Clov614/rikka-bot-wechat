@@ -7,8 +7,8 @@ toolchain go1.22.5
 require (
 	github.com/Clov614/bilibili v0.1.2
 	github.com/Clov614/go-ai-sdk v0.4.4
-	github.com/Clov614/logging v0.1.3
-	github.com/Clov614/wcf-rpc-sdk v0.2.12
+	github.com/Clov614/logging v0.1.4
+	github.com/Clov614/wcf-rpc-sdk v0.3.3
 	github.com/eatmoreapple/openwechat v1.4.10
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-ego/gse v0.80.3
@@ -24,6 +24,8 @@ require (
 
 require (
 	github.com/Microsoft/go-winio v0.5.2 // indirect
+	github.com/antchfx/xmlquery v1.4.4 // indirect
+	github.com/antchfx/xpath v1.3.3 // indirect
 	github.com/bytedance/sonic v1.11.9 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
@@ -35,6 +37,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.22.0 // indirect
 	github.com/goccy/go-json v0.10.3 // indirect
+	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
@@ -49,9 +52,9 @@ require (
 	github.com/vcaesar/cedar v0.20.2 // indirect
 	go.nanomsg.org/mangos/v3 v3.4.2 // indirect
 	golang.org/x/arch v0.8.0 // indirect
-	golang.org/x/crypto v0.25.0 // indirect
-	golang.org/x/net v0.27.0 // indirect
-	golang.org/x/sys v0.26.0 // indirect
-	golang.org/x/text v0.16.0 // indirect
+	golang.org/x/crypto v0.31.0 // indirect
+	golang.org/x/net v0.33.0 // indirect
+	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/text v0.21.0 // indirect
 	google.golang.org/protobuf v1.36.2 // indirect
 )

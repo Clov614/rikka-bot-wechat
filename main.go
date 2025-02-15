@@ -48,7 +48,7 @@ func main() {
 	cli := wcf.NewClient(30, *autoInject, false)
 	cli.Run(*wcfdebugflag) // 运行wcf客户端
 
-	rbot := rikkabot.NewRikkaBot(ctx, cli)
+	rbot := rikkabot.NewRikkaBot(ctx, cli, *debugflag)
 	a := adapter.NewAdapter(ctx, cli, rbot)
 	a.HandleCovert() // 消息转换e11
 
@@ -63,15 +63,23 @@ func main() {
 	}
 
 	go func() {
-		for {
-			if !cli.IsLogin() {
-				rbot.PushLogOutNoticeEvent(1101, "微信未登录或掉线")
-				time.Sleep(1 * time.Second) // 1s 延迟退出
-				rbot.ExitWithErr(1101, "微信未登录或掉线")
-				return
+		maxRetries := 7
+		retryInterval := 1 * time.Second
+		for i := 0; i < maxRetries; i++ {
+			if cli.IsLogin() {
+				logging.Info("微信登录成功")
+				return // 登录成功，退出循环
 			}
-			time.Sleep(5 * time.Second)
+			logging.Warn("微信未登录或掉线，正在重试...", map[string]interface{}{
+				"retry_count": i + 1,
+			})
+			time.Sleep(retryInterval)
+			retryInterval *= 2 // 指数退避
 		}
+		// 重试7次后仍然失败
+		rbot.PushLogOutNoticeEvent(1101, "微信未登录或掉线")
+		time.Sleep(1 * time.Second) // 1s 延迟退出
+		rbot.ExitWithErr(1101, "微信未登录或掉线")
 	}()
 
 	// 阻塞主goroutine, 直到发生异常或者用户主动退出
