@@ -4,16 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
+	"path/filepath"
+	"regexp"
+	"time"
+
 	"github.com/Clov614/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/common"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/config"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
 	wcf "github.com/Clov614/wcf-rpc-sdk"
-	"math/rand"
-	"path/filepath"
-	"regexp"
-	"time"
 )
 
 type Adapter struct {
@@ -200,11 +201,21 @@ func (a *Adapter) covert(msg *wcf.Message) *message.Message {
 		for i, match := range matches {
 			if len(match) > 1 {
 				AtNameList[i] = match[1]
-				infos, err := msg.RoomData.GetMembersByNickName(match[1])
-				if err != nil {
-					logging.WarnWithErr(err, "RoomData.GetMembersByNickName fail")
-				} else if len(infos) != 0 || infos[0] != nil || infos[0].Wxid != "" {
-					AtWxidList[i] = infos[0].Wxid
+				// 检查 msg.RoomData 是否为 nil
+				if msg.RoomData != nil {
+					infos, err := msg.RoomData.GetMembersByNickName(match[1])
+					if err != nil {
+						logging.WarnWithErr(err, "RoomData.GetMembersByNickName fail")
+					} else {
+						// 检查 infos 是否为空切片或 nil，以及 infos[0] 是否为 nil
+						if len(infos) > 0 && infos[0] != nil {
+							AtWxidList[i] = infos[0].Wxid
+						} else {
+							logging.Warn("GetMembersByNickName 返回的 infos 为空或包含 nil 元素")
+						}
+					}
+				} else {
+					logging.Warn("msg.RoomData 为 nil")
 				}
 
 				isAtMe = match[1] == a.cli.GetSelfInfo().Name // 是否艾特自己
