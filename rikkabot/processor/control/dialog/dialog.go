@@ -12,6 +12,7 @@ import (
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/cache"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control"
+	wcf "github.com/Clov614/wcf-rpc-sdk"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"runtime"
@@ -75,15 +76,14 @@ func (d *Dialog) RunPlugin(sendChan chan<- *message.Message, receiveChan chan me
 }
 
 func (d *Dialog) SendText(meta message.IMeta, sendtext string) {
-	sendMsg := message.Message{Msgtype: message.MsgTypeText, MetaData: meta, Content: sendtext} // todo test 暂时修改 去掉raw
+	sendMsg := message.Message{Msgtype: message.MsgTypeText, MetaData: meta, Content: sendtext}
 	d.sendMessage(&sendMsg)
 }
 
-// SendImage todo 发送图片待实现
-func (d *Dialog) SendImage(meta message.IMeta, imgData []byte) {
-	logging.Warn("un implement SendImage")
-	//sendMsg := message.Message{Msgtype: message.MsgTypeImage, MetaData: meta, Raw: imgData}
-	//d.sendMessage(&sendMsg)
+// SendImage 对话模块发送图片
+func (d *Dialog) SendImage(meta message.IMeta, imgPath string) {
+	sendMsg := message.Message{Msgtype: message.MsgTypeImage, MetaData: meta, FileInfo: &wcf.FileInfo{FilePath: imgPath, IsImg: true}}
+	d.sendMessage(&sendMsg)
 }
 
 func (d *Dialog) sendMessage(msg *message.Message) {

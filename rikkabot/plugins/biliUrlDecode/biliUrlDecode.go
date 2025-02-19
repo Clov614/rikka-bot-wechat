@@ -8,7 +8,6 @@ import (
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control/dialog"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/register"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/imgutil"
 	"github.com/rs/zerolog/log"
 	"regexp"
 	"strconv"
@@ -87,11 +86,8 @@ func init() { // todo 图片 || 富文本
 				}
 			}
 			output := buildOutput(videoInfo)
-			imgFetch, err := imgutil.ImgFetch(videoInfo.Pic)
-			if err != nil {
-				log.Err(err).Msg("bilibili.videoInfo.pic.fetchimg fail at biliPlugin")
-			} else {
-				biliDecodePlugin.SendImage(recvmsg.MetaData, imgFetch) // 发送图片封面
+			if nil != videoInfo {
+				biliDecodePlugin.Dialog.SendImage(recvmsg.MetaData, videoInfo.Pic)
 			}
 			biliDecodePlugin.SendText(recvmsg.MetaData, output)
 		default:
@@ -103,17 +99,19 @@ func init() { // todo 图片 || 富文本
 
 func buildOutput(videoInfo *bilibili.VideoInfo) string {
 	// 构建输出视频信息
-	videoUrl := "https://www.bilibili.com/video/" + videoInfo.Bvid + "\n"
+	videoUrl := "https://www.bilibili.com/video/" + videoInfo.Bvid
 	var buf bytes.Buffer
-	buf.WriteString(videoUrl)
-	buf.WriteString("标题:  " + videoInfo.Title + "\n")
-	buf.WriteString("分区:  " + videoInfo.Tname + "\n")
-	buf.WriteString("播放量:  " + strconv.Itoa(videoInfo.View) + "\n")
-	buf.WriteString("点赞:  " + strconv.Itoa(videoInfo.Like) + "\n")
-	buf.WriteString("投币:  " + strconv.Itoa(videoInfo.Coin) + "\n")
-	buf.WriteString("收藏:  " + strconv.Itoa(videoInfo.Favorite) + "\n")
-	buf.WriteString("分享:  " + strconv.Itoa(videoInfo.Share) + "\n")
-	buf.WriteString("Bvid:  \n\n     " + videoInfo.Bvid + "\n")
+	buf.WriteString("🎬 标题:  " + videoInfo.Title + "\n")
+	buf.WriteString("📂 分区:  " + videoInfo.Tname + "\n\n")
+	buf.WriteString("📊 数据:\n")
+	buf.WriteString("  - 👀 播放量:  " + strconv.Itoa(videoInfo.View) + "\n")
+	buf.WriteString("  - 👍 点赞:  " + strconv.Itoa(videoInfo.Like) + "\n")
+	buf.WriteString("  - 🪙 投币:  " + strconv.Itoa(videoInfo.Coin) + "\n")
+	buf.WriteString("  - ⭐️ 收藏:  " + strconv.Itoa(videoInfo.Favorite) + "\n")
+	buf.WriteString("  - 📤 分享:  " + strconv.Itoa(videoInfo.Share) + "\n\n")
+	buf.WriteString("---\n")                // 分割线
+	buf.WriteString("  " + videoUrl + "\n") // 链接前空两格
+	buf.WriteString("---\n")                // 分割线
 	return buf.String()
 }
 
