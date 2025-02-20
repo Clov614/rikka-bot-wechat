@@ -14,6 +14,7 @@ import (
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/common"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/config"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/testutil"
 	wcf "github.com/Clov614/wcf-rpc-sdk"
 )
 
@@ -157,6 +158,10 @@ func (md *MetaData) runDelayTimer(delayMin int, delayMax int) {
 
 // covert 消息转换处理
 func (a *Adapter) covert(msg *wcf.Message) *message.Message {
+	if msg.IsGH { // 忽略公众号消息
+		logging.Warn("!!注意：此版本框架自动忽略了公众号的消息！~")
+		return nil
+	}
 	var rikkaMsgType message.MsgType
 	var chatImgUrl string
 	switch msg.Type {
@@ -259,6 +264,13 @@ func (a *Adapter) receiveMsg(msg *wcf.Message) {
 	a.rikkaBot.DispatchMsgEvent(copyMsg) // 存入事件池
 	if a.rikkaBot.EnableProcess {        // 判断是否启动了处理器（防止没有消费者阻塞在此）
 		a.rikkaBot.GetReqMsgSendChan() <- selfMsg
+	}
+	// 测试插件
+	if config.GetConfig().EnableTestPlugin {
+		err := testutil.SaveTestMessage(msg)
+		if err != nil {
+			logging.ErrorWithErr(err, "SaveTestMessage error")
+		}
 	}
 }
 

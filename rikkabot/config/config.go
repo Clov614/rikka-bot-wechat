@@ -7,10 +7,11 @@ package config
 import (
 	"errors"
 	"fmt"
-	"github.com/Clov614/logging"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/configutil"
 	"os"
 	"sync"
+
+	"github.com/Clov614/logging"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/configutil"
 )
 
 type CommonConfig struct {
@@ -34,6 +35,8 @@ type CommonConfig struct {
 	Interval        int64            `comment:"The Heart Beat Interval" yaml:"heart_beat_interval"`
 	// todo 其他设置项
 	PluginConfig map[string]interface{} `comment:"插件的设置" yaml:"plugin_config"`
+
+	EnableTestPlugin bool `comment:"是否开启测试插件（保存所有接受消息）" yaml:"enable_test_plugin"` // 是否开启测试插件（保存所有接受消息）
 
 	mu sync.RWMutex
 }
@@ -91,9 +94,10 @@ var config = CommonConfig{
 		HttpAddress: defaultHttpAdress,
 		AccessToken: defaultAccessToken,
 	},
-	HttpPost:        make([]HttpPostConfig, 1),
-	EnableHeartBeat: defaultHeartBeat,
-	Interval:        defaultInterval,
+	HttpPost:         make([]HttpPostConfig, 1),
+	EnableHeartBeat:  defaultHeartBeat,
+	Interval:         defaultInterval,
+	EnableTestPlugin: false, // 默认不开启测试插件
 	// 其他设置项
 	PluginConfig: make(map[string]interface{}),
 }
