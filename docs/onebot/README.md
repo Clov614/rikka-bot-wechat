@@ -11,15 +11,20 @@ OneBot V12: [接口标准](https://12.onebot.dev/)
 
 ## 快速开始
 
-Linux运行
-```bash
-./rikka-bot-wechat -http
-```
+~~Linux运行~~ hook客户端不再支持Linux
+
 
 Win运行(不推荐直接点击exe运行、可以将如下内容写进run.bat双击运行或者直接运行如下命令)
 ```bash
-start cmd /K rikka-bot-wechat.exe -http
+start cmd /K rikka-bot-wechat.exe -bot -autoInject
 ```
+> [!TIP] 
+> 【后缀说明】  -bot 开启机器人功能 -http 开启http客户端 -autoInject 自动注入(自动唤起微信完成注入) -debug debug模式
+
+> [!IMPORTANT]
+> 【重要事项】首次启动客户端会自动生成配置文件以及拉取需要的文件，拉取失败可根据日志信息自行手动下载到对应目录
+> 可通过删除原本的配置文件，启动会生成默认配置文件
+
 
 ## HTTP 正向
 
