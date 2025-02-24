@@ -56,13 +56,13 @@ func init() {
 	// 消息规则
 	rules := &control.ProcessRules{EnableGroup: true, CheckBlackUser: true, CheckBlackGroup: true,
 		CostomTrigger: func(rikkaMsg message.Message) bool {
-			if rikkaMsg.Msgtype != message.MsgTypeText || !(rikkaMsg.IsFriend || rikkaMsg.IsGroup) {
+			if rikkaMsg.Msgtype != message.MsgTypeText || rikkaMsg.IsGH {
 				return false
 			}
 			if rikkaMsg.IsGroup {
 				// 群聊消息需要艾特
 				return rikkaMsg.IsAtMe
-			} else if rikkaMsg.IsFriend {
+			} else if !rikkaMsg.IsGroup {
 				// 好友消息，直接回复
 				return true
 			}

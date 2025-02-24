@@ -36,6 +36,7 @@ type Message struct {
 	IsAtMe          bool          `json:"is_at"`      // 群组中是否艾特本人
 	IsGroup         bool          `json:"is_group"`   // 是否为群聊消息
 	IsFriend        bool          `json:"is_friend"`  // 是否为好友私聊消息
+	IsGH            bool          `json:"is_gh"`      // 是否为公众号
 	IsMySelf        bool          `json:"is_my_self"` // 消息是否为自己发送的
 	IsSystem        bool          `json:"is_system"`  // 是否为系统消息
 	FileInfo        *wcf.FileInfo `json:"-"`          // 文件信息

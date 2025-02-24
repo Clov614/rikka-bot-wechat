@@ -156,10 +156,13 @@ func (md *MetaData) runDelayTimer(delayMin int, delayMax int) {
 
 //</editor-fold>
 
+var ignoreGHCount uint32 = 0
+
 // covert 消息转换处理
 func (a *Adapter) covert(msg *wcf.Message) *message.Message {
-	if msg.IsGH { // 忽略公众号消息
+	if ignoreGHCount < 5 && msg.IsGH { // 忽略公众号消息
 		logging.Warn("!!注意：此版本框架自动忽略了公众号的消息！~")
+		ignoreGHCount++
 		return nil
 	}
 	var rikkaMsgType message.MsgType
