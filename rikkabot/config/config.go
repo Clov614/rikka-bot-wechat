@@ -160,11 +160,12 @@ func init() {
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			err = configutil.Save(&config, defaultPath, defaultSaveFileName)
+			logging.Fatal("配置文件不存在，已自动生成默认配置", 0000)
 		}
-		logging.ErrorWithErr(err, "error load config")
+
 	}
-	err = configutil.Save(&config, defaultPath, defaultSaveFileName)
-	config.verifiability() // 校验设置项是否合规
+	err = configutil.Save(&config, defaultPath, defaultSaveFileName) // 二次持久化
+	config.verifiability()                                           // 校验设置项是否合规
 	if err != nil {
 		logging.ErrorWithErr(err, "error saving config")
 	}

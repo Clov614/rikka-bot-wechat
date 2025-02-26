@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"path/filepath"
 	"regexp"
+	"sync"
 	"time"
 
 	"github.com/Clov614/logging"
@@ -156,14 +157,14 @@ func (md *MetaData) runDelayTimer(delayMin int, delayMax int) {
 
 //</editor-fold>
 
-var ignoreGHCount uint32 = 0
+var ignoreGHOnce sync.Once
 
 // covert 消息转换处理
 func (a *Adapter) covert(msg *wcf.Message) *message.Message {
-	if ignoreGHCount < 5 && msg.IsGH { // 忽略公众号消息
-		logging.Warn("!!注意：此版本框架自动忽略了公众号的消息！~")
-		ignoreGHCount++
-		return nil
+	if msg.IsGH { // 忽略公众号消息
+		ignoreGHOnce.Do(func() { logging.Warn("!!注意：此版本框架自动忽略了公众号的消息！~") })
+		logging.Debug("!!注意：此版本框架自动忽略了公众号的消息！~", map[string]interface{}{"msg": msg})
+		return nil // 跳过处理公众号消息 todo 处理公众号消息
 	}
 	var rikkaMsgType message.MsgType
 	var chatImgUrl string
