@@ -79,13 +79,13 @@ func isFileSizeExceed(filePath string, maxSize int64) bool {
 
 func replaceInvalidFilenameChars(filename string) string {
 	// 允许的字符 (字母数字下划线)
-	validChars := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
+	unValidChars := "| " // 不符合字符
 	var safeFilenameBuilder []rune
 	for _, r := range filename {
-		if strings.ContainsRune(validChars, r) {
+		if strings.ContainsRune(unValidChars, r) {
+			safeFilenameBuilder = append(safeFilenameBuilder, '_') // 不符合的字符替换为下划线
+		} else {
 			safeFilenameBuilder = append(safeFilenameBuilder, r)
-		} else if r == ' ' {
-			safeFilenameBuilder = append(safeFilenameBuilder, '_') // 空格替换为下划线
 		}
 		// 可以选择忽略或替换其他非法字符
 	}
