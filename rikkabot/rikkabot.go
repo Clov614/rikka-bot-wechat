@@ -19,7 +19,7 @@ import (
 
 type RikkaBot struct {
 	ctx           context.Context
-	cancel        func()
+	cancel        context.CancelFunc
 	sendMsg       chan *message.Message
 	recvMsg       chan *message.Message
 	Config        *config.CommonConfig
@@ -59,8 +59,7 @@ func init() {
 
 }
 
-func NewRikkaBot(ctx context.Context, cli *wcf.Client, debug bool) *RikkaBot {
-	ctx, cancel := context.WithCancel(ctx)
+func NewRikkaBot(ctx context.Context, cancel context.CancelFunc, cli *wcf.Client, debug bool) *RikkaBot {
 	cfg := config.GetConfig()
 	if debug {
 		logging.SetLogLevel("debug")
@@ -71,7 +70,7 @@ func NewRikkaBot(ctx context.Context, cli *wcf.Client, debug bool) *RikkaBot {
 		cancel:     cancel,
 		sendMsg:    make(chan *message.Message),
 		recvMsg:    make(chan *message.Message),
-		Processor:  processor.NewProcessor(),
+		Processor:  processor.NewProcessor(ctx),
 		Config:     cfg,
 		cli:        cli,
 		EventPool:  event.NewEventPool(cfg.HttpServer.EventBufferSize),
@@ -167,6 +166,7 @@ func (r *RikkaBot) Exit() {
 	logging.Info("rikka bot exited")
 	r.Processor.Close()
 	r.cancel()
+	r.cli.Close()
 }
 
 // ExitWithErr 异常退出 rikkabot
@@ -176,12 +176,18 @@ func (r *RikkaBot) ExitWithErr(code int, msg string) {
 	logging.Error(msg, map[string]interface{}{"exit code": code})
 	r.Processor.Close()
 	r.cancel()
+	r.cli.Close()
 }
+
+var onceExit sync.Once
 
 // Block 当发生错误，该方法会立即返回，否则会一直阻塞
 func (r *RikkaBot) Block() error {
 	<-r.ctx.Done()
+	onceExit.Do(func() { r.Exit() })
 	logging.Close() // 关闭日志文件
+	logging.Info("主程序将在5s后退出...")
+	time.Sleep(5 * time.Second) // 增加一个固定延迟，简单的确保退出 todo perf -> wg
 	return r.err
 }
 

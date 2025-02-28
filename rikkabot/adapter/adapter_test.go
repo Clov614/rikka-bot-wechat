@@ -235,11 +235,11 @@ func runBase(t *testing.T, testfunc func(*Adapter, chan struct{}) error) {
 	//bot := openwechat.DefaultBot(openwechat.Desktop)
 
 	t.Logf("Start test\n")
-	ctx := context.Background()
-	cli := wcf.NewClient(10)
-	cli.Run(false, false, false) // 运行wcf客户端
+	ctx, cancel := context.WithCancel(context.Background())
+	cli := wcf.NewClientWithCtx(ctx, cancel, 30, false, false)
+	cli.Run(false) // 运行wcf客户端
 
-	rbot := rikkabot.NewRikkaBot(ctx, cli)
+	rbot := rikkabot.NewRikkaBot(ctx, cancel, cli, false)
 	rbot.EnableProcess = true // 允许处理消息
 	a := NewAdapter(ctx, cli, rbot)
 	a.HandleCovert() // 消息转换

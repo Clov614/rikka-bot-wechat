@@ -44,11 +44,12 @@ func main() {
 			logging.Fatal("Recovered from panic", 1, map[string]interface{}{"panic": r})
 		}
 	}()
-	ctx := context.Background()
-	cli := wcf.NewClient(30, *autoInject, false)
+	ctx, cancel := context.WithCancel(context.Background())
+	cli := wcf.NewClientWithCtx(ctx, cancel, 30, *autoInject, false)
 	cli.Run(*wcfdebugflag) // 运行wcf客户端
+	defer cli.Close()
 
-	rbot := rikkabot.NewRikkaBot(ctx, cli, *debugflag)
+	rbot := rikkabot.NewRikkaBot(ctx, cancel, cli, *debugflag)
 	a := adapter.NewAdapter(ctx, cli, rbot)
 	a.HandleCovert() // 消息转换e11
 

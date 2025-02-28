@@ -5,6 +5,7 @@
 package processor
 
 import (
+	"context"
 	"github.com/Clov614/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
 	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins" // 需要副作用
@@ -15,28 +16,28 @@ import (
 )
 
 type Processor struct {
+	ctx          context.Context
 	*cache.Cache // 处理器缓存
 	pluginPool   *register.PluginRegister
 
 	mu           sync.RWMutex
 	longConnPool map[chan message.Message]*dpkg.State // 长连接池（保存消息接收通道）
-	done         chan struct{}
-	closeToken   chan bool // 长连接互斥令牌
+	closeToken   chan bool                            // 长连接互斥令牌
 }
 
-func NewProcessor() *Processor {
+func NewProcessor(ctx context.Context) *Processor {
 	return &Processor{
+		ctx:          ctx,
 		Cache:        cache.Init(),
 		pluginPool:   register.GetPluginPool(),
 		longConnPool: make(map[chan message.Message]*dpkg.State),
-		done:         make(chan struct{}),
 		closeToken:   make(chan bool, 1),
 	}
 }
 
 // Block 阻塞不退出
 func (p *Processor) Block() {
-	<-p.done
+	<-p.ctx.Done()
 }
 
 // Close 关闭阻塞
@@ -51,9 +52,7 @@ func (p *Processor) Close() {
 		p.unregistLongconn(msgChan)
 	}
 	select {
-	case <-p.done:
-	default:
-		close(p.done)
+	case <-p.ctx.Done():
 	}
 	<-p.closeToken
 	logging.Info("all the long conn in pool closed")
@@ -99,7 +98,7 @@ func (p *Processor) DispatchMsg(recvChan chan *message.Message, sendChan chan *m
 			}
 		default:
 			select {
-			case <-p.done:
+			case <-p.ctx.Done():
 				return
 			default:
 			}
