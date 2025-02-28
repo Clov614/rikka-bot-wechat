@@ -45,6 +45,7 @@ func main() {
 		}
 	}()
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel() // 确保释放ctx
 	cli := wcf.NewClientWithCtx(ctx, cancel, 30, *autoInject, false)
 	cli.Run(*wcfdebugflag) // 运行wcf客户端
 	defer cli.Close()
