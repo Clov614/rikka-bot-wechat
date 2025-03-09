@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/rand"
 	"path/filepath"
-	"regexp"
 	"sync"
 	"time"
 
@@ -197,57 +196,22 @@ func (a *Adapter) covert(msg *wcf.Message) *message.Message {
 	go metaData.runDelayTimer(cfg.AnswerDelayRandMin, cfg.AnswerDelayRandMax) // 消息随机延迟
 
 	//rself := common.GetSelf() // 获取rikka的self对象
-	var isAtMe bool
-	var AtNameList []string
-	var AtWxidList []string
-	if msg.IsGroup {
-		// 获取消息中艾特成员的成员名
-		re := regexp.MustCompile(`@([^\s]+?) `)
-		matches := re.FindAllStringSubmatch(msg.Content, -1)
-		AtNameList = make([]string, len(matches))
-		AtWxidList = make([]string, len(matches))
-
-		for i, match := range matches {
-			if len(match) > 1 {
-				AtNameList[i] = match[1]
-				// 检查 msg.RoomData 是否为 nil
-				if msg.RoomData != nil {
-					infos, err := msg.RoomData.GetMembersByNickName(match[1])
-					if err != nil {
-						logging.WarnWithErr(err, "RoomData.GetMembersByNickName fail")
-					} else {
-						// 检查 infos 是否为空切片或 nil，以及 infos[0] 是否为 nil
-						if len(infos) > 0 && infos[0] != nil {
-							AtWxidList[i] = infos[0].Wxid
-						} else {
-							logging.Warn("GetMembersByNickName 返回的 infos 为空或包含 nil 元素")
-						}
-					}
-				} else {
-					logging.Warn("msg.RoomData 为 nil")
-				}
-
-				isAtMe = match[1] == a.cli.GetSelfInfo().Name // 是否艾特自己
-			}
-		}
-	}
 	return &message.Message{
-		Msgtype:         rikkaMsgType,
-		MetaData:        metaData,
-		RawContent:      msg.Content,
-		ChatImgUrl:      chatImgUrl, // 图片url
-		Content:         msg.Content,
-		MsgId:           msg.MessageId,
-		WxId:            msg.WxId,
-		RoomId:          msg.RoomId,
-		GroupName:       metaData.GetGroupNickname(),
-		GroupAtNameList: AtNameList,
-		GroupAtWxIdList: AtWxidList,
-		IsAtMe:          isAtMe,
-		IsGroup:         msg.IsGroup,
-		IsFriend:        msg.IsSendByFriend(),
-		IsMySelf:        msg.IsSelf, // 是否为自己发送的消息
-		FileInfo:        msg.FileInfo,
+		Msgtype:    rikkaMsgType,
+		MetaData:   metaData,
+		RawContent: msg.Content,
+		ChatImgUrl: chatImgUrl, // 图片url
+		Content:    msg.Content,
+		MsgId:      msg.MessageId,
+		WxId:       msg.WxId,
+		RoomId:     msg.RoomId,
+		RoomName:   metaData.GetGroupNickname(),
+		RoomAts:    msg.RoomData.AtedMSequence,
+		IsAtMe:     msg.RoomData.IsAtSelf,
+		IsGroup:    msg.IsGroup,
+		IsFriend:   msg.IsSendByFriend(),
+		IsMySelf:   msg.IsSelf, // 是否为自己发送的消息
+		FileInfo:   msg.FileInfo,
 	}
 }
 
