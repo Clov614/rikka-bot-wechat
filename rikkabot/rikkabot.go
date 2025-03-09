@@ -64,12 +64,13 @@ func NewRikkaBot(ctx context.Context, cancel context.CancelFunc, cli *wcf.Client
 	if debug {
 		logging.SetLogLevel("debug")
 	}
+	recvChan := make(chan *message.Message)
 	// 初始化
 	return &RikkaBot{
 		ctx:        ctx,
 		cancel:     cancel,
 		sendMsg:    make(chan *message.Message),
-		recvMsg:    make(chan *message.Message),
+		recvMsg:    recvChan,
 		Processor:  processor.NewProcessor(ctx),
 		Config:     cfg,
 		cli:        cli,
@@ -157,13 +158,14 @@ func (r *RikkaBot) DispatchMsgEvent(rikkaMsg message.Message) {
 // Start 启动 rikkabot 进行消息处理
 func (r *RikkaBot) Start() {
 	logging.Info("rikka bot start")
-	go r.Processor.DispatchMsg(r.recvMsg, r.sendMsg)
+	go r.Processor.Start(r.recvMsg, r.sendMsg)
 	r.EnableProcess = true // 防止生产者阻塞
 }
 
 // Exit 主动退出 rikkabot
 func (r *RikkaBot) Exit() {
 	logging.Info("rikka bot exited")
+	r.EventPool.Close()
 	r.Processor.Close()
 	r.cancel()
 	r.cli.Close()
@@ -174,6 +176,7 @@ func (r *RikkaBot) ExitWithErr(code int, msg string) {
 	logging.Info("rikka bot exited")
 	logging.Error("异常退出")
 	logging.Error(msg, map[string]interface{}{"exit code": code})
+	r.EventPool.Close()
 	r.Processor.Close()
 	r.cancel()
 	r.cli.Close()

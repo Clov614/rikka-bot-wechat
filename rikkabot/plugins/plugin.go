@@ -1,0 +1,357 @@
+// Package plugins
+// @Author Clover
+// @Data 2025/3/6 下午9:46:00
+// @Desc
+package plugins
+
+import (
+	"context"
+	"errors"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/matcher"
+	"sync"
+	"time"
+
+	"github.com/Clov614/logging"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
+)
+
+var (
+	ErrRecvMsgNull = errors.New("receive message is null")
+	ErrUnCheck     = errors.New("un check rules")
+)
+
+type PluginHandler interface {
+	HandleRecv(ctx context.Context)
+	Close()
+}
+
+type ActionHandler struct {
+	Name    string          // Action 的名称，方便识别和管理
+	Matcher matcher.Matcher // 核心：用于匹配消息的 Matcher 接口
+	Action  ActionFunc      // 核心：实际执行的动作函数
+	//priority int        // 可选：优先级，用于控制执行顺序（如果需要）
+	Children []*ActionHandler // 子操作，递归执行
+	// ... 其他元数据，例如描述、启用状态等
+	IsEnable bool // 是否启用
+	mu       sync.RWMutex
+}
+
+func DefaultActionHandler(name string, isEnable bool) *ActionHandler {
+	return &ActionHandler{
+		Name:     name,
+		IsEnable: isEnable,
+	}
+}
+
+func (ah *ActionHandler) AsMatcher(matcher matcher.Matcher) *ActionHandler {
+	ah.Matcher = matcher
+	return ah
+}
+
+func (ah *ActionHandler) AsActionFunc(action ActionFunc) *ActionHandler {
+	ah.Action = action
+	return ah
+}
+
+func (ah *ActionHandler) AsChild(child *ActionHandler) *ActionHandler {
+	if ah.Children == nil {
+		ah.Children = make([]*ActionHandler, 0)
+	}
+	ah.Children = append(ah.Children, child)
+	return ah
+}
+
+func (ah *ActionHandler) AsMather(mather matcher.Matcher) *ActionHandler {
+	ah.Matcher = mather
+	return ah
+}
+
+func (ah *ActionHandler) IsEnabled() bool {
+	ah.mu.RLock()
+	defer ah.mu.RUnlock()
+	return ah.IsEnable
+}
+
+func (ah *ActionHandler) Enable() {
+	ah.mu.Lock()
+	defer ah.mu.Unlock()
+	ah.IsEnable = true
+}
+
+func (ah *ActionHandler) Disable() {
+	ah.mu.Lock()
+	defer ah.mu.Unlock()
+	ah.IsEnable = false
+}
+
+// ActionFunc 动作函数类型
+type ActionFunc func(ctx context.Context, recvMsg *message.Message) (reply message.Message, err error)
+
+func (ah *ActionHandler) doAction(ctx context.Context, recvMsg *message.Message) (replies []message.Message, err error) {
+	if recvMsg == nil {
+		return nil, ErrRecvMsgNull
+	}
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+	replies = make([]message.Message, 0)
+	// 1. 执行当前 Action 的 action
+	if ah.Action != nil {
+		rMsg, err := ah.Action(ctx, recvMsg)
+		if err != nil {
+			return nil, err // 如果 action 执行出错，立即返回错误
+		}
+		replies = append(replies, rMsg)
+	}
+
+	// 2. 递归处理子 Action
+	if ah.Children != nil {
+		for _, child := range ah.Children {
+			if child.Matcher.Match(ctx, recvMsg) { // **重要: 子 Action 仍然需要 Matcher 匹配**
+				childReplies, childErr := child.doAction(ctx, recvMsg) // 递归调用 doAction
+				if childErr != nil {
+					return nil, childErr // 如果子 Action 出错，立即返回错误
+				}
+				replies = append(replies, childReplies...) // 合并子 Action 的 replies
+			}
+		}
+	}
+
+	return replies, nil // 成功执行，返回 replies 和 nil error
+}
+
+type IPlugin interface {
+	HandleRecv(ctx context.Context, recv *message.Message, sendChan chan<- *message.Message) (execute bool)
+	GetName() string
+	GetLevel() PluginLevel
+	GetPluginOpt() PluginOpt
+	Close()
+}
+
+type Plugin struct {
+	// 外部控制
+	sendChan chan<- *message.Message // 消息发送通道
+	// end
+	Name              string // 插件名称
+	PluginOpt                // 插件设置
+	ActionHandlerList []*ActionHandler
+	pluginCancel      context.CancelFunc
+	wg                sync.WaitGroup // 用于等待所有 ActionHandler 完成
+}
+
+func DefaultPlugin(name string) *Plugin {
+	return &Plugin{
+		Name: name,
+		PluginOpt: PluginOpt{
+			IsExclusion: false,           // 默认不排斥
+			Level:       MediumLevel,     // 默认中等优先级
+			LifeTime:    time.Minute * 2, // 默认存活 2 分钟
+		},
+		ActionHandlerList: make([]*ActionHandler, 0), // 初始化为空切片
+	}
+}
+
+func (p *Plugin) AsEnable() *Plugin {
+	p.PluginOpt.Enable = true
+	return p
+}
+
+func (p *Plugin) AsDisable() *Plugin {
+	p.PluginOpt.Enable = false
+	return p
+}
+
+func (p *Plugin) AsAction(ah *ActionHandler) *Plugin {
+	if p.ActionHandlerList == nil {
+		p.ActionHandlerList = make([]*ActionHandler, 0)
+	}
+	p.ActionHandlerList = append(p.ActionHandlerList, ah)
+	return p
+}
+
+func (p *Plugin) AsLevel(l PluginLevel) *Plugin {
+	p.PluginOpt.Level = l
+	return p
+}
+
+func (p *Plugin) AsPluginOpt(opt PluginOpt) *Plugin {
+	p.PluginOpt = opt
+	return p
+}
+
+func (p *Plugin) AsLifeTime(life time.Duration) *Plugin {
+	p.LifeTime = life
+	return p
+}
+
+func (p *Plugin) GetName() string {
+	return p.Name
+}
+func (p *Plugin) GetLevel() PluginLevel {
+	return p.PluginOpt.Level
+}
+
+func (p *Plugin) GetPluginOpt() PluginOpt {
+	return p.PluginOpt
+}
+
+func (p *Plugin) HandleRecv(ctx context.Context, recv *message.Message, sendChan chan<- *message.Message) (execute bool) {
+	deadlineCtx, cancelFunc := context.WithDeadline(ctx, time.Now().Add(p.PluginOpt.LifeTime)) // 使用 Plugin 的上下文作为基础
+	p.pluginCancel = cancelFunc
+	defer cancelFunc()
+	if !p.Enable { // 插件被禁用了
+		return false
+	}
+	p.sendChan = sendChan
+	select {
+	case <-ctx.Done(): // 外部上下文取消
+		cancelFunc() // 通知内层消息处理退出
+		return false
+	case <-deadlineCtx.Done(): // Plugin 超时
+		return false
+	default:
+		return p.handleMessage(deadlineCtx, recv) // 处理每条接收到的消息
+	}
+}
+
+func (p *Plugin) Close() {
+	if p.pluginCancel != nil {
+		p.pluginCancel() // 取消 Plugin 的上下文，停止所有相关的 goroutine (如果 Action 中使用了上下文)
+	}
+	p.wg.Wait() // 等待所有 ActionHandler 的 goroutine 完成
+	logging.Info("Plugin stopped and all actions finished.")
+}
+
+func (p *Plugin) handleMessage(ctx context.Context, recvMsg *message.Message) (isMatch bool) {
+	if recvMsg == nil {
+		logging.Error("received nil message")
+		return
+	}
+	for _, actionHandler := range p.ActionHandlerList {
+		actionHandler := actionHandler
+		p.wg.Add(1)
+		go func(ah *ActionHandler, msg *message.Message) {
+			defer p.wg.Done()
+			if !ah.Matcher.Match(ctx, msg) { // 不匹配直接退出
+				return
+			}
+			isMatch = true                        // 匹配
+			replies, err := ah.doAction(ctx, msg) // 获取 reply 和 childActions
+			if err != nil {
+				logging.ErrorWithErr(err, "doAction err", map[string]interface{}{"actionName": ah.Name})
+				logging.Debug("doAction err", map[string]interface{}{"actionName": ah.Name, "msg": msg})
+			}
+			if replies != nil && len(replies) > 0 {
+				for _, reply := range replies {
+					select {
+					case p.sendChan <- &reply:
+					case <-ctx.Done():
+						return
+					}
+				}
+			}
+		}(actionHandler, recvMsg)
+	}
+	p.wg.Wait()
+	return
+}
+
+type PluginLevel uint8
+
+const (
+	VeryHighLevel PluginLevel = 0
+	HighLevel                 = iota
+	UpperLevel
+	DownLevel
+	MediumLevel
+	LowLevel
+	VeryLowLevel
+)
+
+const LevelSize = 7
+
+type PluginOpt struct {
+	Enable      bool          // 是否启用
+	IsExclusion bool          // todo 是否排斥其他模块
+	Level       PluginLevel   // 模块等级
+	LifeTime    time.Duration // 存活时间
+}
+
+type AutoRegister struct {
+	pluginLevelList []map[string]IPlugin // 分级模块列表
+	size            int                  // 已注册个数
+	enableSize      int                  // 启用插件个数
+	mu              sync.Mutex
+}
+
+var autoRegister AutoRegister
+
+func (ag *AutoRegister) RegisterPlugin(p IPlugin) {
+	if ag.pluginLevelList == nil {
+		ag.pluginLevelList = make([]map[string]IPlugin, LevelSize)
+	}
+	if ag.pluginLevelList[p.GetLevel()] == nil {
+		ag.pluginLevelList[p.GetLevel()] = make(map[string]IPlugin)
+	}
+	ag.mu.Lock()
+	defer ag.mu.Unlock()
+
+	ag.pluginLevelList[p.GetLevel()][p.GetName()] = p
+	if p.GetPluginOpt().Enable {
+		ag.enableSize++
+	}
+	ag.size++
+}
+
+func (ag *AutoRegister) Plugins() []*IPlugin {
+	ag.mu.Lock()
+	plugins := make([]*IPlugin, 0)
+	for _, m := range ag.pluginLevelList {
+		for _, plugin := range m {
+			plugins = append(plugins, &plugin)
+		}
+	}
+	ag.mu.Unlock()
+
+	return plugins
+}
+
+func (ag *AutoRegister) DisableByName(name string) bool {
+	ag.mu.Lock()
+	defer ag.mu.Unlock()
+	for _, pluginMap := range ag.pluginLevelList {
+		p, ok := pluginMap[name]
+		if ok {
+			plugin, ok := p.(*Plugin)
+			if ok && plugin.Enable {
+				ag.enableSize--
+			}
+			plugin.Enable = false
+			return true
+		}
+	}
+	return false
+}
+
+func (ag *AutoRegister) EnableByName(name string) bool {
+	ag.mu.Lock()
+	defer ag.mu.Unlock()
+	for _, pluginMap := range ag.pluginLevelList {
+		p, ok := pluginMap[name]
+		if ok {
+			plugin, ok := p.(*Plugin)
+			if ok && !plugin.Enable {
+				ag.enableSize++
+			}
+			plugin.Enable = true
+			return true
+		}
+	}
+	return false
+}
+
+func GetAutoRegister() *AutoRegister {
+	return &autoRegister
+}

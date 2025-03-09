@@ -33,11 +33,7 @@ var (
 
 const (
 	defaultDBName = "/rikka.db"
-
-	imgBucketName = "chat_image"
 )
-
-var ic *imgCache
 
 // nolint
 func init() {
@@ -52,27 +48,6 @@ func init() {
 	db, err = bbolt.Open(mDBPath, 0600, nil)
 	if err != nil {
 		log.Fatal().Err(fmt.Errorf("err: %w detail: %w", ErrDefaultDB, err)).Msg("cannot open db")
-	}
-	// 初始化聊天图片桶
-	err = db.Update(func(tx *bbolt.Tx) error {
-		_, e := tx.CreateBucketIfNotExists([]byte(imgBucketName))
-		if e != nil {
-			return fmt.Errorf("创建聊天图片桶失败: %w", e)
-		}
-		return nil
-	})
-	if err != nil {
-		log.Fatal().Err(err).Msg("cannot init db")
-	}
-	// 初始化图片缓存
-	var isCacheByFile bool
-	if cfg.ImgSaveType == "file" {
-		isCacheByFile = true
-	}
-	ic = &imgCache{
-		ImgValidDuration: cfg.ImgValidDuration,      // 图片有效期
-		CheckInterval:    cfg.ImgCacheCheckInterval, // 检查是否过期间隔
-		IsCacheByFile:    isCacheByFile,             // 是否文件方式存储图片
 	}
 }
 
@@ -120,13 +95,6 @@ func LoadCache(cache any) (any, error) {
 	}
 	logging.Debug("load cache in rikka.db", map[string]interface{}{"cache": cache})
 	return cache, nil
-}
-
-// imgCache 图片存储相关
-type imgCache struct {
-	ImgValidDuration int  // 有效日期单位为天
-	CheckInterval    int  // 单位为小时
-	IsCacheByFile    bool // 是否文件方式缓存
 }
 
 // CloseDB 关闭数据库

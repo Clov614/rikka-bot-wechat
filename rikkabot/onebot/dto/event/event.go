@@ -159,10 +159,10 @@ func (ep *EventPool) StartProcessing(handlers ...func(event IEvent)) {
 
 // Close closes the event pool
 func (ep *EventPool) Close() {
-	time.Sleep(1 * time.Second)
+	//time.Sleep(1 * time.Second)
 	ep.once.Do(func() {
 		close(ep.quit)
-		close(ep.Events)
+		close(ep.Events) // fixme: event通道关闭后仍然会有心跳事件向已关闭的通道发送导致panic
 	})
 	ep.wg.Wait()
 }

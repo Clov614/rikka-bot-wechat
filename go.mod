@@ -8,7 +8,7 @@ require (
 	github.com/Clov614/bilibili v0.1.2
 	github.com/Clov614/go-ai-sdk v0.4.4
 	github.com/Clov614/logging v0.1.4
-	github.com/Clov614/wcf-rpc-sdk v0.3.14
+	github.com/Clov614/wcf-rpc-sdk v0.4.1
 	github.com/eatmoreapple/openwechat v1.4.10
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-ego/gse v0.80.3
@@ -21,7 +21,7 @@ require (
 )
 
 //replace github.com/eatmoreapple/openwechat => github.com/Clov614/openwechat v1.4.8
-//replace github.com/Clov614/wcf-rpc-sdk v0.3.14 => E:\Applications_Dev\Go_workspace\github.com\Clov614\wcf-rpc-sdk
+//replace github.com/Clov614/wcf-rpc-sdk v0.4.1 => E:\Applications_Dev\Go_workspace\github.com\Clov614\wcf-rpc-sdk
 
 require (
 	github.com/Microsoft/go-winio v0.5.2 // indirect

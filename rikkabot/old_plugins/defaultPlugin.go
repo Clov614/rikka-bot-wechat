@@ -1,8 +1,8 @@
-// Package plugins
+// Package old_plugins
 // @Author Clover
 // @Data 2024/7/6 下午11:21:00
 // @Desc 系统自带的插件
-package plugins
+package old_plugins
 
 import (
 	"bytes"
@@ -10,11 +10,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Clov614/logging"
-	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/admin"         // 需要副作用 init注册方法
-	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/ai"            // 需要副作用 init注册方法
-	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/biliUrlDecode" // 需要副作用 init注册方法
-	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/game"          // 需要副作用 init注册方法
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control/dialog"
+	//_ "github.com/Clov614/rikka-bot-wechat/rikkabot/old_plugins/admin"         // 需要副作用 init注册方法
+	//_ "github.com/Clov614/rikka-bot-wechat/rikkabot/old_plugins/ai"            // 需要副作用 init注册方法
+	//_ "github.com/Clov614/rikka-bot-wechat/rikkabot/old_plugins/biliUrlDecode" // 需要副作用 init注册方法
+	//_ "github.com/Clov614/rikka-bot-wechat/rikkabot/old_plugins/game"          // 需要副作用 init注册方法
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/old_processor/control/dialog"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/msgutil"
 )
 

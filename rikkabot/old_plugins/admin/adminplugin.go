@@ -11,10 +11,10 @@ import (
 
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/common"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/cache"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control/dialog"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/register"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/old_processor/cache"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/old_processor/control"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/old_processor/control/dialog"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/old_processor/register"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/msgutil"
 )
 

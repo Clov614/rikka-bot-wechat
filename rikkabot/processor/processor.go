@@ -1,150 +1,212 @@
 // Package processor
 // @Author Clover
-// @Data 2024/7/6 下午8:24:00
-// @Desc 全局处理器
+// @Data 2025/3/7 下午8:17:00
+// @Desc 模块处理器
 package processor
 
 import (
 	"context"
-	"github.com/Clov614/logging"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
-	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins" // 需要副作用
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/cache"
-	dpkg "github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control/dialog"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/register"
 	"sync"
+	"sync/atomic"
+	"time"
+
+	"github.com/Clov614/logging"
+
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/plugins"
+
+	/* 下方为插件的导入 */
+	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/admin" // 管理员模块
+	/* 从上到下对应优先级由高到低 */ //
 )
 
 type Processor struct {
-	ctx          context.Context
-	*cache.Cache // 处理器缓存
-	pluginPool   *register.PluginRegister
-
-	mu           sync.RWMutex
-	longConnPool map[chan message.Message]*dpkg.State // 长连接池（保存消息接收通道）
-	closeToken   chan bool                            // 长连接互斥令牌
+	ctx        context.Context
+	cancel     context.CancelFunc
+	LevelLayer []*Layer
+	inputChan  chan *message.Message // 接收外部消息的入口 channel
+	sendChan   chan *message.Message // 发送消息的 channel
+	busyMu     sync.RWMutex
 }
 
 func NewProcessor(ctx context.Context) *Processor {
-	return &Processor{
-		ctx:          ctx,
-		Cache:        cache.Init(),
-		pluginPool:   register.GetPluginPool(),
-		longConnPool: make(map[chan message.Message]*dpkg.State),
-		closeToken:   make(chan bool, 1),
+	ctx, cancel := context.WithCancel(ctx)
+	p := &Processor{
+		ctx:        ctx,
+		cancel:     cancel,
+		LevelLayer: make([]*Layer, plugins.LevelSize), // 初始化 Layer 切片
 	}
+	return p
 }
 
-// Block 阻塞不退出
-func (p *Processor) Block() {
-	<-p.ctx.Done()
-}
-
-// Close 关闭阻塞
-func (p *Processor) Close() {
-	p.closeToken <- true
-	// 关闭 长连接的所有连接
-	for msgChan := range p.getLongconns() {
-		select {
-		case <-msgChan:
-		default:
+func (p *Processor) initLayer() {
+	// 初始化 Layer
+	var nextLayer *Layer = nil                    // 最后一层的 NextLayer 为 nil
+	for i := plugins.LevelSize - 1; i >= 0; i-- { // 倒序初始化，方便设置 NextLayer
+		layer := &Layer{
+			Level:        plugins.PluginLevel(i),
+			RecvChan:     make(chan *message.Message), // 每层 Layer 创建自己的 RecvChan
+			SendChan:     p.sendChan,
+			Plugins:      make([]*plugins.IPlugin, 0), // 初始化插件列表
+			NextLayer:    nextLayer,                   // 设置 NextLayer
+			processorCtx: p.ctx,                       // 传递 Processor 的 Context
 		}
-		p.unregistLongconn(msgChan)
+		layer.active.Store(true)
+		p.LevelLayer[i] = layer
+		nextLayer = layer // 当前层的 RecvChan 成为下一层的 NextLayer
 	}
-	select {
-	case <-p.ctx.Done():
-	}
-	<-p.closeToken
-	logging.Info("all the long conn in pool closed")
-	p.Cache.Close() // 关闭缓存
-	logging.Info("processor closed")
 }
 
-// DispatchMsg 处理器分发消息，并触发方法，管理长对话
-func (p *Processor) DispatchMsg(recvChan chan *message.Message, sendChan chan *message.Message) {
+// startLayerHandle 处理器启动层处理
+func (p *Processor) startLayerHandle() {
+	p.busyMu.Lock()
+	for _, layer := range p.LevelLayer {
+		go layer.StartHandle()
+	}
+	p.busyMu.Unlock()
+}
+
+type Layer struct {
+	Level        plugins.PluginLevel
+	RecvChan     chan *message.Message
+	SendChan     chan *message.Message
+	Plugins      []*plugins.IPlugin
+	mu           sync.RWMutex
+	active       atomic.Bool
+	NextLayer    *Layer          // 下一层级
+	processorCtx context.Context // Processor 的 Context，用于传递取消信号
+}
+
+func (l *Layer) Close() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.active.Store(false)
+	// 排空 RecvChan
+	for len(l.RecvChan) > 0 {
+		<-l.RecvChan
+	}
+	close(l.RecvChan) // 关闭通道读取
+}
+
+func (l *Layer) StartHandle() { // todo 恐慌恢复
 	for {
 		select {
-		case msg := <-recvChan:
-			tempMsg := *msg
-			p.broadcastRecv(tempMsg)                                   // 长连接分发消息
-			pluginMapLevelList := p.pluginPool.GetPluginMapLevelList() // 获取等级划分的插件群
-			isTrigger := false                                         // 优先级更高的方法触发标识
-			for _, pluginMapLevel := range pluginMapLevelList {
-				if isTrigger { // 优先级更高的插件已经触发，本次不执行优先级低的方法
-					break
-				}
-				if pluginMapLevel == nil {
-					continue
-				}
-				for name, plugin := range pluginMapLevel {
-					if p.IsEnable(name) { // 是否启用插件
-						dialog := plugin.(dpkg.IDialog)
-						if checkedMsg, ok, _ := p.IsHandle(dialog.GetProcessRules(), tempMsg); ok {
-							isTrigger = true
-							recvConn := make(chan message.Message, 1)
-							done := dpkg.NewState()
-							p.registLongConn(recvConn, done)
-							select { // 发送二手消息
-							case recvConn <- checkedMsg:
-							default:
-								// skip send
-							}
-							go func() {
-								dialog.RunPlugin(sendChan, recvConn, done)
-							}()
-						}
-					}
-				}
+		case msg, ok := <-l.RecvChan:
+			if msg == nil { // 通道关闭
+				continue
 			}
-		default:
-			select {
-			case <-p.ctx.Done():
+			if !ok {
+				logging.Debug("处理器层接收通道关闭")
 				return
-			default:
 			}
+			handled := l.handleMessage(msg) // 处理消息，并获取是否被处理的结果
+			if !handled && l.NextLayer != nil && l.NextLayer.active.Load() {
+				l.NextLayer.mu.RLock()
+				l.NextLayer.RecvChan <- msg // 如果当前层级没有处理，且有下一层级，则传递到下一层级
+				l.NextLayer.mu.RUnlock()
+			}
+		case <-l.processorCtx.Done(): // 监听 Processor 的取消信号
+			return
 		}
 	}
 }
 
-func (p *Processor) broadcastRecv(recvMsg message.Message) {
-	p.closeToken <- true
-	for c, state := range p.getLongconns() {
-		conn := c
-		done := state.Done
-		select {
-		case <-done: // 对话已关闭
-			p.unregistLongconn(conn)
-		default:
+func (l *Layer) handleMessage(msg *message.Message) bool {
+	handled := false // 标记消息是否被处理
+	var wg sync.WaitGroup
+	for _, plugin := range l.Plugins {
+		plugin := *plugin
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if !handled { // 只有消息未被处理时才处理
+				pluginHandled := plugin.HandleRecv(l.processorCtx, msg, l.SendChan) // 调用 Plugin 的消息处理方法
+				if pluginHandled {
+					handled = true // 只要有一个插件处理成功，就标记为已处理
+				}
+			}
+		}()
+	}
+	wg.Wait()
+	return handled // 返回消息是否被处理的结果
+}
+
+func (l *Layer) GetPlugins() []*plugins.IPlugin {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	return l.Plugins
+}
+
+// RegisterPlugin 注册插件到指定层级
+func (p *Processor) RegisterPlugin(level plugins.PluginLevel, plugin *plugins.IPlugin) {
+	if level >= 0 && level < plugins.LevelSize {
+		layer := p.LevelLayer[level]
+		layer.mu.Lock()
+		layer.Plugins = append(layer.Plugins, plugin)
+		layer.mu.Unlock()
+	}
+}
+
+// Start 启动 Processor 的消息接收和分发
+func (p *Processor) Start(recvChan chan *message.Message, sendChan chan *message.Message) {
+	// 自动注册插件
+	autoRegister := plugins.GetAutoRegister()
+	p.sendChan = sendChan
+	p.initLayer() // 初始化层
+	for _, plugin := range autoRegister.Plugins() {
+		p.RegisterPlugin((*plugin).GetLevel(), plugin)
+	}
+	p.inputChan = recvChan
+	p.startLayerHandle() // 启动各层消息处理
+
+	go func() {
+		for {
 			select {
-			case conn <- recvMsg:
-			default:
-				// 阻塞就跳过发送
+			case msg, ok := <-p.inputChan: // 接收外部消息
+				if msg == nil {
+					if !ok {
+						return // inputChan 关闭
+					}
+					continue // 空消息不处理
+				}
+				logging.Debug("处理器接收到外部消息", map[string]interface{}{"msg": msg})
+				if len(p.LevelLayer) > 0 && p.LevelLayer[0].RecvChan != nil {
+					p.LevelLayer[0].RecvChan <- msg // 将消息发送到第一层级的 RecvChan
+				}
+			case <-p.ctx.Done(): // 监听 Processor 的取消信号
+				return
 			}
-
 		}
+	}()
+}
+
+// Close 关闭 Processor，停止所有 Layer 和 Plugin 的处理
+func (p *Processor) Close() {
+	p.busyMu.Lock()
+	defer p.busyMu.Unlock()
+	// 先停止接收新的消息
+	close(p.inputChan)
+	// 等待所有消息处理完成, 或者超时
+	done := make(chan struct{})
+	go func() {
+		for _, layer := range p.LevelLayer {
+			for _, plugin := range layer.Plugins {
+				(*plugin).Close() // 关闭每个 Plugin
+			}
+		}
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(time.Second * 5): // 设置一个超时时间
+		logging.Error("关闭 Processor 超时")
 	}
-	<-p.closeToken
-}
+	p.cancel()
 
-func (p *Processor) registLongConn(recvChan chan message.Message, done *dpkg.State) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	p.longConnPool[recvChan] = done
-}
-
-func (p *Processor) getLongconns() map[chan message.Message]*dpkg.State {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-	copyconnPool := make(map[chan message.Message]*dpkg.State)
-	for k, v := range p.longConnPool {
-		copyconnPool[k] = v
+	for _, layer := range p.LevelLayer {
+		layer.Close() // 关闭对应层
 	}
-	return copyconnPool
-}
-
-func (p *Processor) unregistLongconn(recvChan chan message.Message) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	delete(p.longConnPool, recvChan)
-	close(recvChan)
+	// 关闭消息发送通道
+	close(p.sendChan)
 }

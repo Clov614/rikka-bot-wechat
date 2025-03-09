@@ -8,7 +8,6 @@ import (
 	"github.com/Clov614/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/common"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor"
 	"github.com/eatmoreapple/openwechat"
 	"testing"
 )

@@ -12,7 +12,7 @@ import (
 	"github.com/Clov614/go-ai-sdk/global"
 	"github.com/Clov614/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/config"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/ai/cron"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/old_plugins/ai/cron"
 	"strings"
 )
 

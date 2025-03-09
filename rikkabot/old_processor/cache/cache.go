@@ -10,7 +10,7 @@ import (
 	"github.com/Clov614/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/config"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/manager"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/register"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/old_processor/register"
 	"github.com/rs/zerolog/log"
 	"sync"
 	"time"
@@ -376,4 +376,8 @@ func Init() *Cache {
 	// 启动独立线程定时持久化 cache
 	cache.cycleSave()
 	return cache
+}
+
+func init() {
+	Init()
 }

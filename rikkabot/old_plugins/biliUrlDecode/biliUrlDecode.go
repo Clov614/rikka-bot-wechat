@@ -5,9 +5,9 @@ import (
 	"encoding/xml"
 	"github.com/Clov614/bilibili"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control/dialog"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/register"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/old_processor/control"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/old_processor/control/dialog"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/old_processor/register"
 	"github.com/rs/zerolog/log"
 	"regexp"
 	"strconv"
@@ -16,18 +16,7 @@ import (
 func init() { // todo 图片 || 富文本
 	// 允许群组 白名单允许
 	rules := &control.ProcessRules{EnableGroup: true, CostomTrigger: func(rikkaMsg message.Message) bool {
-		if rikkaMsg.Msgtype == message.MsgTypeApp {
-			var xmlMsg message.XMLMsg
-			err := xml.Unmarshal([]byte(rikkaMsg.Content), &xmlMsg)
-			if err != nil {
-				log.Err(err).Msg("xml.Unmarshal fail at biliPlugin")
-				return false
-			}
-			// 解析链接
-			if xmlMsg.AppInfo.AppName == "哔哩哔哩" {
-				return true
-			}
-		} else if rikkaMsg.Msgtype == message.MsgTypeText {
+		if rikkaMsg.Msgtype == message.MsgTypeText {
 			regexBV := regexp.MustCompile(`(BV[\w\d]+)`)
 			regexBilibili := regexp.MustCompile(`https:\/\/www\.bilibili\.com\/video\/(BV[\w\d]+)\/?`)
 			regexShort := regexp.MustCompile(`https:\/\/b23\.tv\/([\w\d]+)`)

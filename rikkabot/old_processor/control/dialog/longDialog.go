@@ -7,8 +7,8 @@ package dialog
 import (
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/common"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/cache"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/old_processor/cache"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/old_processor/control"
 	"time"
 )
 

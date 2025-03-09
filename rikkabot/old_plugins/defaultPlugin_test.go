@@ -1,8 +1,8 @@
-// Package plugins
+// Package old_plugins
 // @Author Clover
 // @Data 2024/12/30 下午1:38:00
 // @Desc
-package plugins
+package old_plugins
 
 import (
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/msgutil"

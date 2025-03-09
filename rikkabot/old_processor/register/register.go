@@ -4,7 +4,7 @@
 package register
 
 import (
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/control"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/old_processor/control"
 	"sync"
 )
 
@@ -52,7 +52,7 @@ func (p *PluginRegister) GetPluginMap() map[string]IPlugin {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
-	// create a copy of the plugins map
+	// create a copy of the old_plugins map
 	pluginsCopy := make(map[string]IPlugin, len(p.Plugins))
 	for name, plugin := range p.Plugins {
 		pluginsCopy[name] = plugin
