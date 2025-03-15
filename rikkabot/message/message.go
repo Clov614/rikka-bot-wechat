@@ -45,7 +45,8 @@ type Message struct {
 
 type IMeta interface {
 	GetRawMsg() interface{}
-	GetMsgSenderNickname() string                        // todo 获取消息发送者昵称
+	GetMsgSenderNickname() string // todo 获取消息发送者昵称
+	GetMsgSenderAlias() string
 	GetGroupNickname() string                            // todo  获取群组消息的群名
 	GetRoomNameByRoomId(nickname string) (string, error) // todo 根据RoomId 获得RoomName
 	GetImgData() []byte

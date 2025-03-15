@@ -10,7 +10,6 @@ import (
 	"github.com/Clov614/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/config"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/manager"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/old_processor/register"
 	"github.com/rs/zerolog/log"
 	"sync"
 	"time"
@@ -42,27 +41,27 @@ type cacheExported struct {
 
 // region Cache crud
 
-// EnablePluginMap 获取插件状态列表 插件名-状态
-func (c *Cache) EnablePluginMap() map[string]bool {
-	c.mu.RLock()
-	cpEnablePlugins := make(map[string]bool, len(c.EnablePlugins))
-	needDelPlugins := make([]string, 0, len(c.EnablePlugins))
-	for k, _ := range c.EnablePlugins { // 需要删除的插件信息
-		if !register.GetPluginPool().IsExistPlugin(k) { // 已经不在注册列表中
-			needDelPlugins = append(needDelPlugins, k)
-		}
-	}
-	for k, v := range c.EnablePlugins {
-		if register.GetPluginPool().IsExistPlugin(k) {
-			cpEnablePlugins[k] = v
-		}
-	}
-	c.mu.RUnlock()
-	for _, plugin := range needDelPlugins { // 删除插件信息
-		c.delPlugin(plugin)
-	}
-	return cpEnablePlugins
-}
+//// EnablePluginMap 获取插件状态列表 插件名-状态
+//func (c *Cache) EnablePluginMap() map[string]bool {
+//	c.mu.RLock()
+//	cpEnablePlugins := make(map[string]bool, len(c.EnablePlugins))
+//	needDelPlugins := make([]string, 0, len(c.EnablePlugins))
+//	for k, _ := range c.EnablePlugins { // 需要删除的插件信息
+//		if !register.GetPluginPool().IsExistPlugin(k) { // 已经不在注册列表中
+//			needDelPlugins = append(needDelPlugins, k)
+//		}
+//	}
+//	for k, v := range c.EnablePlugins {
+//		if register.GetPluginPool().IsExistPlugin(k) {
+//			cpEnablePlugins[k] = v
+//		}
+//	}
+//	c.mu.RUnlock()
+//	for _, plugin := range needDelPlugins { // 删除插件信息
+//		c.delPlugin(plugin)
+//	}
+//	return cpEnablePlugins
+//}
 
 // 删除插件信息
 func (c *Cache) delPlugin(pluginName string) {
@@ -284,19 +283,19 @@ func (c *Cache) AdminUserIdSets() map[string]bool {
 
 //endregion
 
-// 同步新插入的插件/初始化载入插件信息
-func (c *Cache) initEnablePlugins() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	pluginPool := register.GetPluginPool()
-	for name := range pluginPool.GetPluginMap() {
-		_, ok := c.EnablePlugins[name]
-		if ok {
-			continue
-		}
-		c.EnablePlugins[name] = true
-	}
-}
+//// 同步新插入的插件/初始化载入插件信息
+//func (c *Cache) initEnablePlugins() {
+//	c.mu.Lock()
+//	defer c.mu.Unlock()
+//	pluginPool := register.GetPluginPool()
+//	for name := range pluginPool.GetPluginMap() {
+//		_, ok := c.EnablePlugins[name]
+//		if ok {
+//			continue
+//		}
+//		c.EnablePlugins[name] = true
+//	}
+//}
 
 // 定时持久化cache
 func (c *Cache) cycleSave() {
@@ -370,7 +369,7 @@ func Init() *Cache {
 	logging.Debug("init read cache", map[string]interface{}{"cache": cache})
 
 	// 同步新插件或者初始化插件状态
-	cache.initEnablePlugins()
+	//cache.initEnablePlugins()
 	cache.handleSave(true)
 
 	// 启动独立线程定时持久化 cache

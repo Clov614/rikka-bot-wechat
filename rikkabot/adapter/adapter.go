@@ -11,7 +11,6 @@ import (
 
 	"github.com/Clov614/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/common"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/config"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/testutil"
@@ -32,9 +31,6 @@ var (
 )
 
 func NewAdapter(ctx context.Context, cli *wcf.Client, bot *rikkabot.RikkaBot) *Adapter {
-	common.InitSelf(context.TODO(), cli) // 将cli初始化至一个独立的模块便于插件的直接调用
-	bot.SetSelf(common.GetSelf())
-
 	return &Adapter{
 		ctx:      ctx,
 		cli:      cli,
@@ -95,18 +91,13 @@ func (md *MetaData) GetRawMsg() interface{} {
 
 // GetMsgSenderNickname 获取消息发送者昵称 test
 func (md *MetaData) GetMsgSenderNickname() string {
-	member, err := md.cli.GetMember(md.RawMsg.WxId)
-	if err != nil {
-		logging.ErrorWithErr(err, "GetMsgSenderNickName fail")
-	}
-	if 0 == len(member) {
-		logging.WarnWithErr(ErrNull, "GetMsgSenderNickname fail")
-		return ""
-	} else if nil == member[0] {
-		logging.WarnWithErr(ErrNull, "GetMsgSenderNickname fail")
-		return ""
-	}
-	return member[0].NickName
+	member := md.cli.GetMember(md.RawMsg.WxId, true)
+	return member.NickName
+}
+
+// GetMsgSenderAlias 获取群成员昵称 test
+func (md *MetaData) GetMsgSenderAlias() string {
+	return "" // todo
 }
 
 // GetGroupNickname 获取群组消息的群名 test
@@ -114,28 +105,17 @@ func (md *MetaData) GetGroupNickname() string {
 	if !md.RawMsg.IsGroup { // 不是群组直接返回空
 		return ""
 	}
-	member, err := md.cli.GetMember(md.RawMsg.RoomId)
-	if err != nil || 0 == len(member) {
-		logging.WarnWithErr(ErrNull, "GetMsgGroupNickname fail")
-		return ""
-	} else if nil == member[0] {
-		logging.WarnWithErr(ErrNull, "GetMsgGroupNickname fail")
-		return ""
-	}
-	return member[0].NickName
+	room := md.cli.GetMember(md.RawMsg.RoomId, true) // todo 【优化】不通过Member查询，通过Contact查群聊信息
+	return room.NickName
 }
 
 // GetRoomNameByRoomId 根据RoomId 获得群名 test
 func (md *MetaData) GetRoomNameByRoomId(id string) (string, error) {
-	member, err := md.cli.GetMember(id)
-	if err != nil {
+	member := md.cli.GetMember(id, true)
+	if member == nil || member.NickName == "" {
+		return "", ErrNotGroupMsg
 	}
-	if 0 == len(member) {
-		return "", ErrNull
-	} else if nil == member[0] {
-		return "", ErrNull
-	}
-	return member[0].NickName, nil
+	return member.NickName, nil
 }
 
 // GetImgData 获取图片数据

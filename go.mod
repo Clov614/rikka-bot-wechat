@@ -5,15 +5,11 @@ go 1.22
 toolchain go1.22.5
 
 require (
-	github.com/Clov614/bilibili v0.1.2
-	github.com/Clov614/go-ai-sdk v0.4.4
 	github.com/Clov614/logging v0.1.4
 	github.com/Clov614/wcf-rpc-sdk v0.4.1
 	github.com/eatmoreapple/openwechat v1.4.10
 	github.com/gin-gonic/gin v1.10.0
-	github.com/go-ego/gse v0.80.3
 	github.com/google/uuid v1.6.0
-	github.com/robfig/cron/v3 v3.0.0
 	github.com/rs/zerolog v1.33.0
 	github.com/zwgblue/yaml-encoder v0.0.0-20221226083717-a0bdbda0d998
 	go.etcd.io/bbolt v1.3.11
@@ -50,7 +46,6 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
-	github.com/vcaesar/cedar v0.20.2 // indirect
 	go.nanomsg.org/mangos/v3 v3.4.2 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
