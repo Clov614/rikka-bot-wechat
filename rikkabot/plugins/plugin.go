@@ -61,11 +61,6 @@ func (ah *ActionHandler) AsChild(child *ActionHandler) *ActionHandler {
 	return ah
 }
 
-func (ah *ActionHandler) AsMather(mather matcher.Matcher) *ActionHandler {
-	ah.Matcher = mather
-	return ah
-}
-
 func (ah *ActionHandler) IsEnabled() bool {
 	ah.mu.RLock()
 	defer ah.mu.RUnlock()

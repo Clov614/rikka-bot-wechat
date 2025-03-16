@@ -25,19 +25,19 @@ func init() {
 		cache:  cache.GetCache(),
 		Plugin: plugins.DefaultPlugin("admin").AsLevel(plugins.VeryHighLevel).AsEnable(),
 	}
-	adminJudge := &matcher.CustomMatcher{MatchFunc: func(msg *message.Message) bool {
+	adminJudge := &matcher.Custom{MatchFunc: func(msg *message.Message) bool {
 		return admin.cache.HasAdminUserId(msg.WxId)
 	}}
 	actionHandler := plugins.DefaultActionHandler("op", true).AsMatcher(matcher.DefaultAnd(&matcher.PrefixMatcher{Prefix: "op", IsCaseSensitive: false, IsCut: true}, matcher.DefaultOr(&matcher.BaseMatcher{
 		Rules:        matcher.IsSelf,
 		AllowMsgType: message.MsgTypeText,
 	}, adminJudge)))
-	help := plugins.DefaultActionHandler("help", true).AsMather(matcher.DefaultAnd(&matcher.PrefixMatcher{Prefix: "help", IsCaseSensitive: false, IsCut: true}, matcher.DefaultOr(&matcher.BaseMatcher{
+	help := plugins.DefaultActionHandler("help", true).AsMatcher(matcher.DefaultAnd(&matcher.PrefixMatcher{Prefix: "help", IsCaseSensitive: false, IsCut: true}, matcher.DefaultOr(&matcher.BaseMatcher{
 		Rules:        matcher.IsSelf,
 		AllowMsgType: message.MsgTypeText,
 	}, adminJudge)))
 	// 删除管理员
-	delOp := plugins.DefaultActionHandler("-d", true).AsMather(matcher.DefaultAnd(&matcher.PrefixMatcher{Prefix: "-d", IsCaseSensitive: false, IsCut: true}, matcher.DefaultOr(&matcher.BaseMatcher{
+	delOp := plugins.DefaultActionHandler("-d", true).AsMatcher(matcher.DefaultAnd(&matcher.PrefixMatcher{Prefix: "-d", IsCaseSensitive: false, IsCut: true}, matcher.DefaultOr(&matcher.BaseMatcher{
 		Rules:        matcher.IsSelf,
 		AllowMsgType: message.MsgTypeText,
 	}, adminJudge)))
@@ -49,8 +49,8 @@ func init() {
 		recvMsg.Content = content
 		return *recvMsg, nil
 	})
-	actionHandler.AsChild(delOp)
 	// 子action
+	actionHandler.AsChild(delOp)
 	actionHandler.AsChild(help.AsActionFunc(func(ctx context.Context, recvMsg *message.Message) (reply message.Message, err error) {
 		recvMsg.Content = admin.help()
 		return *recvMsg, nil

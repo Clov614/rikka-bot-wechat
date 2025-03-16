@@ -6,79 +6,143 @@ package matcher
 
 import (
 	"context"
-	"regexp"
-	"strings"
 
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
 )
 
-// Matcher 接口，你需要定义具体的 Matcher 接口
+// Matcher 接口
 type Matcher interface {
 	Match(ctx context.Context, msg *message.Message) bool
 }
 
-// PrefixMatcher  前缀匹配器
-type PrefixMatcher struct {
-	Prefix          string
-	IsCaseSensitive bool
-	IsCut           bool // 是否切除匹配
+// MatcherMode 定义 DefaultMatcher 的组合模式
+type MatcherMode int
+
+const (
+	AndMode  MatcherMode = iota // AND 模式: 所有子 Matcher 都必须匹配
+	OrMode                      // OR 模式: 至少一个子 Matcher 匹配
+	NandMode                    // NAND 模式: 与 AND 模式相反
+	NorMode                     // NOR 模式: 与 OR 模式相反
+)
+
+// DefaultMatcher 默认匹配器 (支持嵌套和组合)
+type DefaultMatcher struct {
+	Matchers []Matcher       // 子 Matcher 列表
+	Mode     MatcherMode     // 组合模式 (And, Or, Nand, Nor)
+	last     *DefaultMatcher // 指向上一个 DefaultMatcher，用于嵌套
 }
 
-func (pm *PrefixMatcher) Match(ctx context.Context, msg *message.Message) bool {
-	if msg == nil || msg.Content == "" {
-		return false
-	}
-	var flag bool
-	if pm.IsCaseSensitive {
-		flag = strings.HasPrefix(strings.ToLower(msg.Content), strings.ToLower(pm.Prefix))
-	} else {
-		flag = strings.HasPrefix(msg.Content, pm.Prefix)
-	}
-	if pm.IsCut {
-		msg.Content = strings.TrimSpace(strings.TrimPrefix(msg.Content, pm.Prefix))
-	}
-	return flag
+// Default 创建一个默认的 DefaultMatcher，初始模式为 OrMode
+func Default() *DefaultMatcher {
+	return &DefaultMatcher{Mode: OrMode}
 }
 
-// RegexMatcher 正则表达式匹配器
-type RegexMatcher struct {
-	Regex *regexp.Regexp
-}
-
-func (rm *RegexMatcher) Match(ctx context.Context, msg *message.Message) bool {
-	if msg == nil || msg.Content == "" {
-		return false
+// And 将当前 DefaultMatcher 的模式设置为 AndMode，并返回一个新的 DefaultMatcher (用于链式调用)
+func (dm *DefaultMatcher) And() *DefaultMatcher {
+	if dm.last == nil {
+		dm.Mode = AndMode
 	}
-	return rm.Regex.MatchString(msg.Content)
+	return &DefaultMatcher{Mode: AndMode, last: dm}
 }
 
-// KeywordMatcher 关键词匹配器
-type KeywordMatcher struct {
-	Keywords []string
-}
-
-func (km *KeywordMatcher) Match(ctx context.Context, msg *message.Message) bool {
-	if msg == nil || msg.Content == "" {
-		return false
+// Or 将当前 DefaultMatcher 的模式设置为 OrMode，并返回一个新的 DefaultMatcher (用于链式调用)
+func (dm *DefaultMatcher) Or() *DefaultMatcher {
+	if dm.last == nil {
+		dm.Mode = OrMode
 	}
-	for _, keyword := range km.Keywords {
-		if strings.Contains(msg.Content, keyword) {
-			return true
+	return &DefaultMatcher{Mode: OrMode, last: dm}
+}
+
+// Nand 将当前 DefaultMatcher 的模式设置为 NandMode，并返回一个新的 DefaultMatcher (用于链式调用)
+func (dm *DefaultMatcher) Nand() *DefaultMatcher {
+	if dm.last == nil {
+		dm.Mode = NandMode
+	}
+	return &DefaultMatcher{Mode: NandMode, last: dm}
+}
+
+// Nor 将当前 DefaultMatcher 的模式设置为 NorMode，并返回一个新的 DefaultMatcher (用于链式调用)
+func (dm *DefaultMatcher) Nor() *DefaultMatcher {
+	if dm.last == nil {
+		dm.Mode = NorMode
+	}
+	return &DefaultMatcher{Mode: NorMode, last: dm}
+}
+
+// N 添加 n 个 Matcher 到当前 DefaultMatcher
+func (dm *DefaultMatcher) N(matchers ...Matcher) *DefaultMatcher {
+	dm.Matchers = append(dm.Matchers, matchers...)
+	return dm
+}
+
+func (dm *DefaultMatcher) match(ctx context.Context, msg *message.Message) (bool, bool) {
+	var lastResult bool
+
+	if dm.last != nil {
+		lastResult, _ = dm.last.match(ctx, msg)
+	}
+
+	// 如果当前 DefaultMatcher 没有子 Matcher，则根据模式返回默认值
+	if len(dm.Matchers) == 0 {
+		if dm.last == nil {
+			return dm.Mode == AndMode || dm.Mode == NorMode, true
+		} else {
+			return lastResult, false
 		}
 	}
-	return false
-}
 
-// FunctionMatcher 自定义函数匹配器
-type FunctionMatcher struct {
-	MatchFunc func(ctx context.Context, msg *message.Message) bool
-}
-
-func (fm *FunctionMatcher) Match(ctx context.Context, msg *message.Message) bool {
-	if fm.MatchFunc == nil {
-		return false
+	var currentResult bool
+	switch dm.Mode {
+	case AndMode:
+		currentResult = true
+		for _, matcher := range dm.Matchers {
+			if !matcher.Match(ctx, msg) {
+				currentResult = false
+				break
+			}
+		}
+	case OrMode:
+		currentResult = false
+		for _, matcher := range dm.Matchers {
+			if matcher.Match(ctx, msg) {
+				currentResult = true
+				break
+			}
+		}
+	case NandMode:
+		currentResult = false
+		for _, matcher := range dm.Matchers {
+			if !matcher.Match(ctx, msg) {
+				currentResult = true
+				break
+			}
+		}
+	case NorMode:
+		currentResult = true
+		for _, matcher := range dm.Matchers {
+			if matcher.Match(ctx, msg) {
+				currentResult = false
+				break
+			}
+		}
 	}
-	return fm.MatchFunc(ctx, msg)
+	switch dm.Mode {
+	case AndMode:
+		return currentResult && lastResult, false
+	case OrMode:
+		return currentResult || lastResult, false
+	case NandMode:
+		return !(currentResult && lastResult), false
+	case NorMode:
+		return !(currentResult || lastResult), false
+	}
+	return currentResult, false
+}
+
+// Match 检查消息是否匹配当前 DefaultMatcher 的规则
+func (dm *DefaultMatcher) Match(ctx context.Context, msg *message.Message) bool {
+	ok, _ := dm.match(ctx, msg)
+	return ok
 }
 
 // BaseMatcherRule 定义 BaseMatcher 的规则常量，使用位运算
@@ -129,18 +193,18 @@ func (bm *BaseMatcher) Match(ctx context.Context, msg *message.Message) bool {
 	return true
 }
 
-// CompositeAndMatcher  与组合匹配器，需要所有子匹配器都匹配成功
-type CompositeAndMatcher struct {
+// AndMatcher  与组合匹配器，需要所有子匹配器都匹配成功
+type AndMatcher struct {
 	Matchers []Matcher
 }
 
-func DefaultAnd(ml ...Matcher) *CompositeAndMatcher {
-	return &CompositeAndMatcher{
+func DefaultAnd(ml ...Matcher) *AndMatcher {
+	return &AndMatcher{
 		Matchers: ml,
 	}
 }
 
-func (cam *CompositeAndMatcher) AsAnd(m Matcher) *CompositeAndMatcher {
+func (cam *AndMatcher) AsAnd(m Matcher) *AndMatcher {
 	if cam == nil {
 		cam.Matchers = []Matcher{m}
 		return cam
@@ -149,7 +213,7 @@ func (cam *CompositeAndMatcher) AsAnd(m Matcher) *CompositeAndMatcher {
 	return cam
 }
 
-func (cam *CompositeAndMatcher) Match(ctx context.Context, msg *message.Message) bool {
+func (cam *AndMatcher) Match(ctx context.Context, msg *message.Message) bool {
 	if len(cam.Matchers) == 0 {
 		return true // 没有子匹配器时，默认匹配成功 (可以根据需求调整)
 	}
@@ -161,18 +225,18 @@ func (cam *CompositeAndMatcher) Match(ctx context.Context, msg *message.Message)
 	return true // 所有子匹配器都匹配成功，返回 true
 }
 
-// CompositeOrMatcher  或组合匹配器，只要有一个子匹配器匹配成功
-type CompositeOrMatcher struct {
+// OrMatcher  或组合匹配器，只要有一个子匹配器匹配成功
+type OrMatcher struct {
 	Matchers []Matcher
 }
 
-func DefaultOr(ml ...Matcher) *CompositeOrMatcher {
-	return &CompositeOrMatcher{
+func DefaultOr(ml ...Matcher) *OrMatcher {
+	return &OrMatcher{
 		Matchers: ml,
 	}
 }
 
-func (com *CompositeOrMatcher) AsOr(m Matcher) *CompositeOrMatcher {
+func (com *OrMatcher) AsOr(m Matcher) *OrMatcher {
 	if com == nil {
 		com.Matchers = []Matcher{m}
 		return com
@@ -181,7 +245,7 @@ func (com *CompositeOrMatcher) AsOr(m Matcher) *CompositeOrMatcher {
 	return com
 }
 
-func (com *CompositeOrMatcher) Match(ctx context.Context, msg *message.Message) bool {
+func (com *OrMatcher) Match(ctx context.Context, msg *message.Message) bool {
 	if len(com.Matchers) == 0 {
 		return false // 没有子匹配器时，默认匹配失败 (可以根据需求调整)
 	}
@@ -193,11 +257,11 @@ func (com *CompositeOrMatcher) Match(ctx context.Context, msg *message.Message) 
 	return false // 所有子匹配器都匹配失败，返回 false
 }
 
-type CustomMatcher struct {
+type Custom struct {
 	MatchFunc func(msg *message.Message) bool
 }
 
-func (cm *CustomMatcher) Match(ctx context.Context, msg *message.Message) bool {
+func (cm *Custom) Match(ctx context.Context, msg *message.Message) bool {
 	if cm != nil && cm.MatchFunc != nil && cm.MatchFunc(msg) {
 		return true
 	}

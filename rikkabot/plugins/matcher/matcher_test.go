@@ -2,9 +2,10 @@ package matcher
 
 import (
 	"context"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
 	"regexp"
 	"testing"
+
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
 )
 
 func TestPrefixMatcher_Match(t *testing.T) {
@@ -434,9 +435,9 @@ func TestCompositeAndMatcher_Match(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cam := &CompositeAndMatcher{Matchers: tt.matchers}
+			cam := &AndMatcher{Matchers: tt.matchers}
 			if got := cam.Match(context.Background(), &message.Message{Content: "test"}); got != tt.want {
-				t.Errorf("CompositeAndMatcher.Match() = %v, want %v", got, tt.want)
+				t.Errorf("AndMatcher.Match() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -466,7 +467,7 @@ func TestCompositeOrMatcher_Match(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			com := &CompositeOrMatcher{Matchers: tt.matchers}
+			com := &OrMatcher{Matchers: tt.matchers}
 			if got := com.Match(context.Background(), &message.Message{Content: "test"}); got != tt.want {
 				t.Errorf("CompositeOrMatcher.Match() = %v, want %v", got, tt.want)
 			}
@@ -474,11 +475,124 @@ func TestCompositeOrMatcher_Match(t *testing.T) {
 	}
 }
 
-//// MockMatcher for testing CompositeMatcher
-//type MockMatcher struct {
-//	matchResult bool
-//}
-//
-//func (m *MockMatcher) Match(ctx context.Context, msg *message.Message) bool {
-//	return m.matchResult
-//}
+// MockMatcher for testing CompositeMatcher
+type MockMatcher struct {
+	matchResult bool
+}
+
+func (m *MockMatcher) Match(ctx context.Context, msg *message.Message) bool {
+	return m.matchResult
+}
+
+func TestDefaultMatcher_Match(t *testing.T) {
+	// 创建一些 MockMatcher 用于测试
+	m1 := &MockMatcher{matchResult: true}
+	m2 := &MockMatcher{matchResult: false}
+	m3 := &MockMatcher{matchResult: true}
+	m4 := &MockMatcher{matchResult: false}
+
+	tests := []struct {
+		name    string
+		matcher *DefaultMatcher
+		want    bool
+	}{
+		{
+			name:    "Empty DefaultMatcher should return false",
+			matcher: Default(), // 默认
+			want:    false,
+		},
+		{
+			name:    "Empty DefaultMatcher.Or() should return false",
+			matcher: Default().Or(), // 默认
+			want:    false,
+		},
+		{
+			name:    "Empty DefaultMatcher.AND() should return true",
+			matcher: Default().And(), // 默认
+			want:    true,
+		},
+		{
+			name:    "Empty DefaultMatcher.Nor() should return true",
+			matcher: Default().Nor(), // 默认
+			want:    true,
+		},
+		{
+			name:    "(m1 OR m2) - m1 true, m2 false",
+			matcher: Default().N(m1, m2), // 默认是 OR
+			want:    true,
+		},
+		{
+			name:    "(m1 AND m2) - m1 true, m2 false",
+			matcher: Default().And().N(m1, m2),
+			want:    false,
+		},
+		{
+			name:    "(m1 AND m3) - m1 true, m3 true",
+			matcher: Default().And().N(m1, m3),
+			want:    true,
+		},
+		{
+			name:    "(m2 OR m4) - m2 false, m4 false",
+			matcher: Default().Or().N(m2, m4),
+			want:    false,
+		},
+		{
+			name:    "(m1 or m2) AND (m3 and m4)  true && false == false",
+			matcher: Default().Or().N(m1, m2).And().N(m3, m4),
+			want:    false,
+		},
+		{
+			name:    "m1 and m2 or m3 or m4  true",
+			matcher: Default().And().N(m1, m2).Or().N(m3, m4),
+			want:    true,
+		},
+		{
+			name:    "((m1 AND m3) OR (m2 AND m4)) ",
+			matcher: Default().And().N(m1, m3).Or().N(m2, m4),
+			want:    true,
+		},
+		{
+			name:    "((m1 OR m2) NAND (m3 OR m4)) ",
+			matcher: Default().Or().N(m1, m2).Nand().N(m3, m4),
+			want:    false,
+		},
+		{
+			name:    "m1 or m2 Nand (m3 Nand m4)  false",
+			matcher: Default().Or().N(m1, m2).Nand().N(m3, m4),
+			want:    false,
+		},
+		{
+			name:    "m1 AND m2 AND (m3 AND m4) ",
+			matcher: Default().And().N(m1, m2).And().N(m3, m4),
+			want:    false,
+		},
+		{
+			name:    "m1 AND m3 NOR (m2 NOR m4): true NOR true",
+			matcher: Default().And().N(m1, m3).Nor().N(m2, m4),
+			want:    false,
+		},
+		{
+			name:    "(true OR false) Nor true == false",
+			matcher: Default().Or().N(m1, m2).Nor().N(m1),
+			want:    false,
+		},
+		{
+			name:    "(true OR false AND true) Nor true == false",
+			matcher: Default().Or().N(m1, m2).And().N(m1).Nor().N(m1),
+			want:    false,
+		},
+		{
+			name:    "(true OR false AND false) Nor true == false",
+			matcher: Default().And().N(m2, m1).Or().N(m1).Nor().N(m1),
+			want:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.matcher.Match(context.Background(), &message.Message{}); got != tt.want {
+				t.Errorf("DefaultMatcher.Match() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
