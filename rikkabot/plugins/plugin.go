@@ -229,30 +229,36 @@ func (p *Plugin) handleMessage(ctx context.Context, recvMsg *message.Message) (i
 		logging.Error("received nil message")
 		return
 	}
+
+	ahFunc := func(ah *ActionHandler, msg *message.Message) {
+		defer p.wg.Done()
+		if !ah.Matcher.Match(ctx, msg) { // 不匹配直接退出
+			return
+		}
+		isMatch = true                        // 匹配
+		replies, err := ah.doAction(ctx, msg) // 获取 reply 和 childActions
+		if err != nil {
+			logging.ErrorWithErr(err, "doAction err", map[string]interface{}{"actionName": ah.Name})
+			logging.Debug("doAction err", map[string]interface{}{"actionName": ah.Name, "msg": msg})
+		}
+		if replies != nil && len(replies) > 0 {
+			for _, reply := range replies {
+				select {
+				case p.sendChan <- &reply:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+	}
 	for _, actionHandler := range p.ActionHandlerList {
 		actionHandler := actionHandler
 		p.wg.Add(1)
-		go func(ah *ActionHandler, msg *message.Message) {
-			defer p.wg.Done()
-			if !ah.Matcher.Match(ctx, msg) { // 不匹配直接退出
-				return
-			}
-			isMatch = true                        // 匹配
-			replies, err := ah.doAction(ctx, msg) // 获取 reply 和 childActions
-			if err != nil {
-				logging.ErrorWithErr(err, "doAction err", map[string]interface{}{"actionName": ah.Name})
-				logging.Debug("doAction err", map[string]interface{}{"actionName": ah.Name, "msg": msg})
-			}
-			if replies != nil && len(replies) > 0 {
-				for _, reply := range replies {
-					select {
-					case p.sendChan <- &reply:
-					case <-ctx.Done():
-						return
-					}
-				}
-			}
-		}(actionHandler, recvMsg)
+		if p.PluginOpt.ActionAsync {
+			go ahFunc(actionHandler, recvMsg)
+		} else {
+			ahFunc(actionHandler, recvMsg) // 串行
+		}
 	}
 	p.wg.Wait()
 	return
@@ -275,6 +281,7 @@ const LevelSize = 7
 type PluginOpt struct {
 	Enable      bool          // 是否启用
 	IsExclusion bool          // todo 是否排斥其他模块
+	ActionAsync bool          // 同级action是否异步
 	Level       PluginLevel   // 模块等级
 	LifeTime    time.Duration // 存活时间
 }
