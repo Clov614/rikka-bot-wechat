@@ -222,7 +222,6 @@ func (r *RikkaBot) GetImgDataByPath(path string) []byte {
 // SendMsg 统一发送消息接口 消息类型 是否群组 发送数据 群/好友 id
 // nolint
 func (r *RikkaBot) SendMsg(msgType message.MsgType, data any, sendId string) error {
-	// todo 发送消息回调消息id 并保存sendmsg，提供过期控制、根据id查询发送的消息
 	var err error
 	switch msgType {
 	case message.MsgTypeText:
@@ -240,9 +239,11 @@ func (r *RikkaBot) SendMsg(msgType message.MsgType, data any, sendId string) err
 			return fmt.Errorf("`SendMsg of image` must be a string(src:<ImgPath or URL>): %w", ErrSendMsg)
 		}
 		err = r.cli.SendImage(sendId, src)
-		return fmt.Errorf("send image to %s error: %w", sendId, err)
+		if err != nil {
+			return fmt.Errorf("send image to %s error: %w", sendId, err)
+		}
 	default:
-		err = fmt.Errorf("`SendMsg of type` must be either text or image: %w", ErrSendMsg)
+		return fmt.Errorf("`SendMsg of type` must be either text or image: %w", ErrSendMsg)
 	}
-	return err
+	return nil
 }
