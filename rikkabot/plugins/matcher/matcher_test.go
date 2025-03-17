@@ -411,70 +411,6 @@ func TestBaseMatcher_Match(t *testing.T) {
 	}
 }
 
-func TestCompositeAndMatcher_Match(t *testing.T) {
-
-	tests := []struct {
-		name     string
-		matchers []Matcher
-		want     bool
-	}{
-		{
-			name: "All Matchers Match",
-			want: true,
-		},
-		{
-			name: "One Matcher Not Match",
-			want: false,
-		},
-		{
-			name:     "Empty Matchers List", // 没有 matcher 默认匹配成功
-			matchers: []Matcher{},
-			want:     true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cam := &AndMatcher{Matchers: tt.matchers}
-			if got := cam.Match(context.Background(), &message.Message{Content: "test"}); got != tt.want {
-				t.Errorf("AndMatcher.Match() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestCompositeOrMatcher_Match(t *testing.T) {
-
-	tests := []struct {
-		name     string
-		matchers []Matcher
-		want     bool
-	}{
-		{
-			name: "One Matcher Match",
-			want: true,
-		},
-		{
-			name: "All Matchers Not Match",
-			want: false,
-		},
-		{
-			name:     "Empty Matchers List", // 没有 matcher 默认匹配失败
-			matchers: []Matcher{},
-			want:     false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			com := &OrMatcher{Matchers: tt.matchers}
-			if got := com.Match(context.Background(), &message.Message{Content: "test"}); got != tt.want {
-				t.Errorf("CompositeOrMatcher.Match() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 // MockMatcher for testing CompositeMatcher
 type MockMatcher struct {
 	matchResult bool
@@ -493,7 +429,7 @@ func TestDefaultMatcher_Match(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		matcher *DefaultMatcher
+		matcher DefaultMatcher
 		want    bool
 	}{
 		{
@@ -585,6 +521,26 @@ func TestDefaultMatcher_Match(t *testing.T) {
 			name:    "(true OR false AND false) Nor true == false",
 			matcher: Default().And().N(m2, m1).Or().N(m1).Nor().N(m1),
 			want:    false,
+		},
+		{
+			name:    "true AND (false OR false) == false",
+			matcher: Default().And().N(m1, Default().Or().N(m2, m2)),
+			want:    false,
+		},
+		{
+			name:    "true AND (true OR false) == true",
+			matcher: Default().And().N(m1, Default().Or().N(m1, m2)),
+			want:    true,
+		},
+		{
+			name:    "true AND (true OR false) == true",
+			matcher: Default().And().N(m1, Default().Or().N(m1, m2)),
+			want:    true,
+		},
+		{
+			name:    "true And (true OR false) AND Not false",
+			matcher: Default().And().N(m1, Default().Or().N(m1, m2)).And().N(m2),
+			want:    true,
 		},
 	}
 

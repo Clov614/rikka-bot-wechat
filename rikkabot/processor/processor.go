@@ -6,6 +6,7 @@ package processor
 
 import (
 	"context"
+	wcf "github.com/Clov614/wcf-rpc-sdk"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -24,15 +25,17 @@ type Processor struct {
 	ctx        context.Context
 	cancel     context.CancelFunc
 	LevelLayer []*Layer
+	cli        *wcf.Client
 	inputChan  chan *message.Message // 接收外部消息的入口 channel
 	sendChan   chan *message.Message // 发送消息的 channel
 	busyMu     sync.RWMutex
 }
 
-func NewProcessor(ctx context.Context) *Processor {
+func NewProcessor(ctx context.Context, cli *wcf.Client) *Processor {
 	ctx, cancel := context.WithCancel(ctx)
 	p := &Processor{
 		ctx:        ctx,
+		cli:        cli,
 		cancel:     cancel,
 		LevelLayer: make([]*Layer, plugins.LevelSize), // 初始化 Layer 切片
 	}
@@ -139,6 +142,9 @@ func (l *Layer) GetPlugins() []*plugins.IPlugin {
 
 // RegisterPlugin 注册插件到指定层级
 func (p *Processor) RegisterPlugin(level plugins.PluginLevel, plugin *plugins.IPlugin) {
+	// 给插件设置cli
+	(*plugin).SetCli(p.cli)
+	// 注册到每层
 	if level >= 0 && level < plugins.LevelSize {
 		layer := p.LevelLayer[level]
 		layer.mu.Lock()

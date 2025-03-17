@@ -55,3 +55,37 @@ type IMeta interface {
 //type ISelf interface {
 //	Self() interface{}
 //}
+
+func (m *Message) DeepCopy() *Message {
+	newMessage := &Message{
+		Msgtype:    m.Msgtype,
+		MetaData:   m.MetaData, // 注意：这里是浅拷贝
+		RawContent: m.RawContent,
+		ChatImgUrl: m.ChatImgUrl,
+		Content:    m.Content,
+		MsgId:      m.MsgId,
+		WxId:       m.WxId,
+		RoomId:     m.RoomId,
+		RoomName:   m.RoomName,
+		SenderName: m.SenderName,
+		IsAtMe:     m.IsAtMe,
+		IsGroup:    m.IsGroup,
+		IsFriend:   m.IsFriend,
+		IsGH:       m.IsGH,
+		IsMySelf:   m.IsMySelf,
+		IsSystem:   m.IsSystem,
+		FileInfo:   m.FileInfo, // 注意：这里是浅拷贝，FileInfo 通常包含指针
+	}
+
+	if m.RoomAts != nil {
+		newMessage.RoomAts = make([]*wcf.ContactInfo, len(m.RoomAts))
+		for i, v := range m.RoomAts {
+			if v != nil {
+				newContactInfo := *v
+				newMessage.RoomAts[i] = &newContactInfo
+			}
+		}
+	}
+
+	return newMessage
+}

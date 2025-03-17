@@ -18,7 +18,7 @@ type PrefixMatcher struct {
 	IsCut           bool // 是否切除匹配
 }
 
-func (pm *PrefixMatcher) Match(ctx context.Context, msg *message.Message) bool {
+func (pm PrefixMatcher) Match(ctx context.Context, msg *message.Message) bool {
 	if msg == nil || msg.Content == "" {
 		return false
 	}
@@ -39,7 +39,7 @@ type RegexMatcher struct {
 	Regex *regexp.Regexp
 }
 
-func (rm *RegexMatcher) Match(ctx context.Context, msg *message.Message) bool {
+func (rm RegexMatcher) Match(ctx context.Context, msg *message.Message) bool {
 	if msg == nil || msg.Content == "" {
 		return false
 	}
@@ -51,7 +51,7 @@ type KeywordMatcher struct {
 	Keywords []string
 }
 
-func (km *KeywordMatcher) Match(ctx context.Context, msg *message.Message) bool {
+func (km KeywordMatcher) Match(ctx context.Context, msg *message.Message) bool {
 	if msg == nil || msg.Content == "" {
 		return false
 	}

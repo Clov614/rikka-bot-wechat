@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/matcher"
+	wcf "github.com/Clov614/wcf-rpc-sdk"
 	"sync"
 	"time"
 
@@ -122,6 +123,10 @@ type IPlugin interface {
 	GetName() string
 	GetLevel() PluginLevel
 	GetPluginOpt() PluginOpt
+	SetCli(cli *wcf.Client)
+	GetCli() *wcf.Client
+	EnableP()  // 启用插件
+	DisableP() // 禁用插件
 	Close()
 }
 
@@ -129,8 +134,9 @@ type Plugin struct {
 	// 外部控制
 	sendChan chan<- *message.Message // 消息发送通道
 	// end
-	Name              string // 插件名称
-	PluginOpt                // 插件设置
+	Name              string      // 插件名称
+	PluginOpt                     // 插件设置
+	Cli               *wcf.Client // wcf客户端
 	ActionHandlerList []*ActionHandler
 	pluginCancel      context.CancelFunc
 	wg                sync.WaitGroup // 用于等待所有 ActionHandler 完成
@@ -192,6 +198,22 @@ func (p *Plugin) GetPluginOpt() PluginOpt {
 	return p.PluginOpt
 }
 
+func (p *Plugin) SetCli(cli *wcf.Client) {
+	p.Cli = cli
+}
+
+func (p *Plugin) GetCli() *wcf.Client {
+	return p.Cli
+}
+
+func (p *Plugin) EnableP() {
+	p.PluginOpt.Enable = true
+}
+
+func (p *Plugin) DisableP() {
+	p.PluginOpt.Enable = false
+}
+
 func (p *Plugin) HandleRecv(ctx context.Context, recv *message.Message, sendChan chan<- *message.Message) (execute bool) {
 	deadlineCtx, cancelFunc := context.WithDeadline(ctx, time.Now().Add(p.PluginOpt.LifeTime)) // 使用 Plugin 的上下文作为基础
 	p.pluginCancel = cancelFunc
@@ -246,13 +268,15 @@ func (p *Plugin) handleMessage(ctx context.Context, recvMsg *message.Message) (i
 			}
 		}
 	}
+	var msg *message.Message
 	for _, actionHandler := range p.ActionHandlerList {
+		msg = recvMsg.DeepCopy()
 		actionHandler := actionHandler
 		p.wg.Add(1)
 		if p.PluginOpt.ActionAsync {
-			go ahFunc(actionHandler, recvMsg)
+			go ahFunc(actionHandler, msg)
 		} else {
-			ahFunc(actionHandler, recvMsg) // 串行
+			ahFunc(actionHandler, msg) // 串行
 		}
 	}
 	p.wg.Wait()

@@ -96,6 +96,12 @@ func GetNicknameByAt(atcontent string) (nickname string) {
 	return match[0][1]
 }
 
+func IsAtOne(atText string) bool { // test 待测试有效性
+	re := regexp.MustCompile(`@([^\s]+?) `)
+	matches := re.FindAllStringSubmatch(atText, -1)
+	return len(matches) > 0
+}
+
 // AtSomeOne 根据昵称返回艾特文本
 func AtSomeOne(username string) (atText string) {
 	return "@" + username + " "

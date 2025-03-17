@@ -16,7 +16,7 @@ type Matcher interface {
 }
 
 // MatcherMode 定义 DefaultMatcher 的组合模式
-type MatcherMode int
+type MatcherMode uint8
 
 const (
 	AndMode  MatcherMode = iota // AND 模式: 所有子 Matcher 都必须匹配
@@ -33,49 +33,53 @@ type DefaultMatcher struct {
 }
 
 // Default 创建一个默认的 DefaultMatcher，初始模式为 OrMode
-func Default() *DefaultMatcher {
-	return &DefaultMatcher{Mode: OrMode}
+func Default() DefaultMatcher {
+	return DefaultMatcher{Mode: OrMode}
 }
 
 // And 将当前 DefaultMatcher 的模式设置为 AndMode，并返回一个新的 DefaultMatcher (用于链式调用)
-func (dm *DefaultMatcher) And() *DefaultMatcher {
-	if dm.last == nil {
-		dm.Mode = AndMode
+func (dm DefaultMatcher) And() DefaultMatcher {
+	newDm := dm.deepCopy()
+	if newDm.last == nil {
+		newDm.Mode = AndMode
 	}
-	return &DefaultMatcher{Mode: AndMode, last: dm}
+	return DefaultMatcher{Mode: AndMode, last: newDm}
 }
 
 // Or 将当前 DefaultMatcher 的模式设置为 OrMode，并返回一个新的 DefaultMatcher (用于链式调用)
-func (dm *DefaultMatcher) Or() *DefaultMatcher {
-	if dm.last == nil {
-		dm.Mode = OrMode
+func (dm DefaultMatcher) Or() DefaultMatcher {
+	newDm := dm.deepCopy()
+	if newDm.last == nil {
+		newDm.Mode = OrMode
 	}
-	return &DefaultMatcher{Mode: OrMode, last: dm}
+	return DefaultMatcher{Mode: OrMode, last: newDm}
 }
 
 // Nand 将当前 DefaultMatcher 的模式设置为 NandMode，并返回一个新的 DefaultMatcher (用于链式调用)
-func (dm *DefaultMatcher) Nand() *DefaultMatcher {
-	if dm.last == nil {
-		dm.Mode = NandMode
+func (dm DefaultMatcher) Nand() DefaultMatcher {
+	newDm := dm.deepCopy()
+	if newDm.last == nil {
+		newDm.Mode = NandMode
 	}
-	return &DefaultMatcher{Mode: NandMode, last: dm}
+	return DefaultMatcher{Mode: NandMode, last: newDm}
 }
 
 // Nor 将当前 DefaultMatcher 的模式设置为 NorMode，并返回一个新的 DefaultMatcher (用于链式调用)
-func (dm *DefaultMatcher) Nor() *DefaultMatcher {
-	if dm.last == nil {
-		dm.Mode = NorMode
+func (dm DefaultMatcher) Nor() DefaultMatcher {
+	newDm := dm.deepCopy()
+	if newDm.last == nil {
+		newDm.Mode = NorMode
 	}
-	return &DefaultMatcher{Mode: NorMode, last: dm}
+	return DefaultMatcher{Mode: NorMode, last: newDm}
 }
 
 // N 添加 n 个 Matcher 到当前 DefaultMatcher
-func (dm *DefaultMatcher) N(matchers ...Matcher) *DefaultMatcher {
+func (dm DefaultMatcher) N(matchers ...Matcher) DefaultMatcher {
 	dm.Matchers = append(dm.Matchers, matchers...)
 	return dm
 }
 
-func (dm *DefaultMatcher) match(ctx context.Context, msg *message.Message) (bool, bool) {
+func (dm DefaultMatcher) match(ctx context.Context, msg *message.Message) (bool, bool) {
 	var lastResult bool
 
 	if dm.last != nil {
@@ -140,9 +144,27 @@ func (dm *DefaultMatcher) match(ctx context.Context, msg *message.Message) (bool
 }
 
 // Match 检查消息是否匹配当前 DefaultMatcher 的规则
-func (dm *DefaultMatcher) Match(ctx context.Context, msg *message.Message) bool {
+func (dm DefaultMatcher) Match(ctx context.Context, msg *message.Message) bool {
 	ok, _ := dm.match(ctx, msg)
 	return ok
+}
+
+// Not 匹配结果取反
+type Not struct {
+	m Matcher
+}
+
+func DefaultNot(m Matcher) Not {
+	return Not{m}
+}
+
+func (n Not) N(m Matcher) Not {
+	n.m = m
+	return n
+}
+
+func (n Not) Match(ctx context.Context, msg *message.Message) bool {
+	return !n.m.Match(ctx, msg)
 }
 
 // BaseMatcherRule 定义 BaseMatcher 的规则常量，使用位运算
@@ -162,7 +184,7 @@ type BaseMatcher struct {
 	AllowMsgType message.MsgType
 }
 
-func (bm *BaseMatcher) Match(ctx context.Context, msg *message.Message) bool {
+func (bm BaseMatcher) Match(ctx context.Context, msg *message.Message) bool {
 	if msg == nil {
 		return false
 	}
@@ -193,77 +215,23 @@ func (bm *BaseMatcher) Match(ctx context.Context, msg *message.Message) bool {
 	return true
 }
 
-// AndMatcher  与组合匹配器，需要所有子匹配器都匹配成功
-type AndMatcher struct {
-	Matchers []Matcher
-}
-
-func DefaultAnd(ml ...Matcher) *AndMatcher {
-	return &AndMatcher{
-		Matchers: ml,
-	}
-}
-
-func (cam *AndMatcher) AsAnd(m Matcher) *AndMatcher {
-	if cam == nil {
-		cam.Matchers = []Matcher{m}
-		return cam
-	}
-	cam.Matchers = append(cam.Matchers, m)
-	return cam
-}
-
-func (cam *AndMatcher) Match(ctx context.Context, msg *message.Message) bool {
-	if len(cam.Matchers) == 0 {
-		return true // 没有子匹配器时，默认匹配成功 (可以根据需求调整)
-	}
-	for _, matcher := range cam.Matchers {
-		if !matcher.Match(ctx, msg) {
-			return false // 只要有一个子匹配器不匹配，就返回 false
-		}
-	}
-	return true // 所有子匹配器都匹配成功，返回 true
-}
-
-// OrMatcher  或组合匹配器，只要有一个子匹配器匹配成功
-type OrMatcher struct {
-	Matchers []Matcher
-}
-
-func DefaultOr(ml ...Matcher) *OrMatcher {
-	return &OrMatcher{
-		Matchers: ml,
-	}
-}
-
-func (com *OrMatcher) AsOr(m Matcher) *OrMatcher {
-	if com == nil {
-		com.Matchers = []Matcher{m}
-		return com
-	}
-	com.Matchers = append(com.Matchers, m)
-	return com
-}
-
-func (com *OrMatcher) Match(ctx context.Context, msg *message.Message) bool {
-	if len(com.Matchers) == 0 {
-		return false // 没有子匹配器时，默认匹配失败 (可以根据需求调整)
-	}
-	for _, matcher := range com.Matchers {
-		if matcher.Match(ctx, msg) {
-			return true // 只要有一个子匹配器匹配成功，就返回 true
-		}
-	}
-	return false // 所有子匹配器都匹配失败，返回 false
-}
-
 type Custom struct {
 	MatchFunc func(msg *message.Message) bool
 }
 
-func (cm *Custom) Match(ctx context.Context, msg *message.Message) bool {
-	if cm != nil && cm.MatchFunc != nil && cm.MatchFunc(msg) {
+func (cm Custom) Match(ctx context.Context, msg *message.Message) bool {
+	if cm.MatchFunc != nil && cm.MatchFunc(msg) {
 		return true
 	}
 	return false
+}
+
+func (dm DefaultMatcher) deepCopy() *DefaultMatcher {
+	newDm := &DefaultMatcher{
+		Mode:     dm.Mode,
+		Matchers: make([]Matcher, len(dm.Matchers)),
+		last:     dm.last,
+	}
+	copy(newDm.Matchers, dm.Matchers)
+	return newDm
 }

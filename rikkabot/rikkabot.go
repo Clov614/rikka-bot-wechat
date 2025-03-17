@@ -68,7 +68,7 @@ func NewRikkaBot(ctx context.Context, cancel context.CancelFunc, cli *wcf.Client
 		cancel:     cancel,
 		sendMsg:    make(chan *message.Message),
 		recvMsg:    recvChan,
-		Processor:  processor.NewProcessor(ctx),
+		Processor:  processor.NewProcessor(ctx, cli),
 		Config:     cfg,
 		cli:        cli,
 		EventPool:  event.NewEventPool(cfg.HttpServer.EventBufferSize),
