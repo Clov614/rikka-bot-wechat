@@ -35,6 +35,10 @@ func TestAdminMatcher_Match(t *testing.T) {
 			text: "op -d @123456 ",
 			want: true,
 		},
+		{
+			text: "op -p list",
+			want: true,
+		},
 	}
 	sendChan := make(chan *message.Message, len(tests))
 	defer close(sendChan)

@@ -14,6 +14,7 @@ import (
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/matcher"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/cache"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/msgutil"
+	"strings"
 )
 
 type Admin struct {
@@ -53,9 +54,23 @@ func init() {
 	delOp := delOpFunc(isSelfJudge, adminJudge, admin)
 	// op list
 	opList := opListFunc(isSelfJudge, adminJudge, admin)
+	// op -p 插件管理领域
+	_, opPBase := opPluginFunc(isSelfJudge, adminJudge) // op -p
+	// op -p list 插件列表
+	PL := PLFunc()
+	// op -p on 启用某插件
+	onP := onPFunc()
+	// op -p off
+	offP := offPFunc()
+
+	opPBase.AsChild(PL)   // 显示插件列表
+	opPBase.AsChild(onP)  // 启用某插件
+	opPBase.AsChild(offP) // 禁用插件
+
 	// 子action
 	opMulAction.AsChild(delOp)
 	opMulAction.AsChild(opList)
+	opMulAction.AsChild(opPBase) // 插件管理父行动
 	opMulAction.AsChild(help.AsActionFunc(func(ctx context.Context, recvMsg *message.Message) (reply message.Message, err error) {
 		recvMsg.Content = admin.help()
 		return *recvMsg, nil
@@ -78,6 +93,61 @@ func init() {
 	plugins.GetAutoRegister().RegisterPlugin(admin) // 注册插件
 }
 
+func PLFunc() *plugins.ActionHandler {
+	PLM := matcher.Default().And().N(matcher.PrefixMatcher{Prefix: "list", IsCut: true, IsCaseSensitive: false})
+	PL := plugins.DefaultActionHandler("op -p list", true).AsMatcher(PLM).AsActionFunc(func(ctx context.Context, recvMsg *message.Message) (reply message.Message, err error) {
+		var buf bytes.Buffer
+		buf.WriteString("插件列表\n")
+		register := plugins.GetAutoRegister()
+		for i, p := range register.Plugins() {
+			buf.WriteString(fmt.Sprintf("【%d 插件名称: %s \n状态: %v\n等级: 第%d级 】", i+1, (*p).GetName(), (*p).GetPluginOpt().Enable, (*p).GetPluginOpt().Level))
+		}
+		recvMsg.Content = buf.String()
+		return *recvMsg, nil
+	})
+	return PL
+}
+
+func onPFunc() *plugins.ActionHandler {
+	onPM := matcher.Default().And().N(matcher.PrefixMatcher{Prefix: "on", IsCut: true, IsCaseSensitive: false})
+	onP := plugins.DefaultActionHandler("op -p on", true).AsMatcher(onPM).AsActionFunc(func(ctx context.Context, recvMsg *message.Message) (reply message.Message, err error) {
+		name := strings.TrimSpace(recvMsg.Content)
+		ar := plugins.GetAutoRegister()
+		if name == "admin" {
+			recvMsg.Content = "管理员插件禁止操作"
+			return *recvMsg, nil
+		}
+		b := ar.EnableByName(name) // 启用某插件
+		if b {
+			recvMsg.Content = fmt.Sprintf("启用 %s 成功", name)
+		} else {
+			recvMsg.Content = fmt.Sprintf("启用 %s 失败", name)
+		}
+		return *recvMsg, nil
+	})
+	return onP
+}
+
+func offPFunc() *plugins.ActionHandler {
+	offPM := matcher.Default().And().N(matcher.PrefixMatcher{Prefix: "off", IsCut: true, IsCaseSensitive: false})
+	offP := plugins.DefaultActionHandler("op -p on", true).AsMatcher(offPM).AsActionFunc(func(ctx context.Context, recvMsg *message.Message) (reply message.Message, err error) {
+		name := strings.TrimSpace(recvMsg.Content)
+		ar := plugins.GetAutoRegister()
+		if name == "admin" {
+			recvMsg.Content = "管理员插件禁止操作"
+			return *recvMsg, nil
+		}
+		b := ar.DisableByName(name) // 启用某插件
+		if b {
+			recvMsg.Content = fmt.Sprintf("禁用 %s 成功", name)
+		} else {
+			recvMsg.Content = fmt.Sprintf("禁用 %s 失败", name)
+		}
+		return *recvMsg, nil
+	})
+	return offP
+}
+
 func helpFunc(isSelfJudge matcher.BaseMatcher, adminJudge matcher.Custom) *plugins.ActionHandler {
 	helpM := matcher.Default().And().N(matcher.PrefixMatcher{Prefix: "help", IsCaseSensitive: false, IsCut: true}, matcher.Default().Or().N(isSelfJudge, adminJudge))
 	help := plugins.DefaultActionHandler("op help", true).AsMatcher(helpM)
@@ -96,6 +166,12 @@ func delOpFunc(isSelfJudge matcher.BaseMatcher, adminJudge matcher.Custom, admin
 		return *recvMsg, nil
 	})
 	return delOp
+}
+
+func opPluginFunc(isSelfJudge matcher.BaseMatcher, adminJudge matcher.Custom) (matcher.DefaultMatcher, *plugins.ActionHandler) {
+	pluginM := matcher.Default().And().N(matcher.PrefixMatcher{Prefix: "-p", IsCaseSensitive: false, IsCut: true}, matcher.Default().Or().N(isSelfJudge, adminJudge))
+	pluginOp := plugins.DefaultActionHandler("op -p", true).AsMatcher(pluginM)
+	return pluginM, pluginOp
 }
 
 func opListFunc(isSelfJudge matcher.BaseMatcher, adminJudge matcher.Custom, admin *Admin) *plugins.ActionHandler {
@@ -134,17 +210,17 @@ func (a *Admin) help() string {
 	buf.WriteString("启用模块 op -p on <plugin name>\n")
 	buf.WriteString("禁用模块 op -p off <plugin name>\n")
 
-	buf.WriteString("添加群组白名单(在群聊中使用) op -w \n")
-	buf.WriteString("移除群组白名单(在群聊中使用) op -w off \n")
-	//buf.WriteString("显示群组白名单 op -w list\n")
-
-	buf.WriteString("添加群组黑名单(在群聊中使用) op -b \n")
-	buf.WriteString("移除群组黑名单(在群聊中使用) op -b off\n")
-	//buf.WriteString("显示群组黑名单 op -b list\n")
-
-	buf.WriteString("添加用户黑名单 op -u kick <@someone>\n")
-	buf.WriteString("移除用户黑名单 op -u save <@someone>\n")
-	buf.WriteString("显示用户黑名单 op -u \n")
+	//buf.WriteString("添加群组白名单(在群聊中使用) op -w \n")
+	//buf.WriteString("移除群组白名单(在群聊中使用) op -w off \n")
+	////buf.WriteString("显示群组白名单 op -w list\n")
+	//
+	//buf.WriteString("添加群组黑名单(在群聊中使用) op -b \n")
+	//buf.WriteString("移除群组黑名单(在群聊中使用) op -b off\n")
+	////buf.WriteString("显示群组黑名单 op -b list\n")
+	//
+	//buf.WriteString("添加用户黑名单 op -u kick <@someone>\n")
+	//buf.WriteString("移除用户黑名单 op -u save <@someone>\n")
+	//buf.WriteString("显示用户黑名单 op -u \n")
 	return buf.String()
 }
 

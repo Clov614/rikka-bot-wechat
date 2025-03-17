@@ -295,6 +295,16 @@ const (
 	VeryLowLevel
 )
 
+var Level2Str = map[uint8]string{
+	uint8(VeryHighLevel): "VeryHighLevel",
+	HighLevel:            "HighLevel",
+	UpperLevel:           "UpperLevel",
+	DownLevel:            "DownLevel",
+	MediumLevel:          "MediumLevel",
+	LowLevel:             "LowLevel",
+	VeryLowLevel:         "VeryLowLevel",
+}
+
 const LevelSize = 7
 
 type PluginOpt struct {
