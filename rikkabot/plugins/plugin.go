@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/matcher"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/cache"
 	wcf "github.com/Clov614/wcf-rpc-sdk"
 	"sync"
 	"time"
@@ -81,41 +82,46 @@ func (ah *ActionHandler) Disable() {
 }
 
 // ActionFunc 动作函数类型
-type ActionFunc func(ctx context.Context, recvMsg *message.Message) (reply message.Message, err error)
+type ActionFunc func(ctx context.Context, recvMsg *message.Message) (reply message.Message, ok bool, err error)
 
-func (ah *ActionHandler) doAction(ctx context.Context, recvMsg *message.Message) (replies []message.Message, err error) {
+func (ah *ActionHandler) doAction(ctx context.Context, recvMsg *message.Message) (replies []message.Message, ok bool, err error) {
 	if recvMsg == nil {
-		return nil, ErrRecvMsgNull
+		return nil, false, ErrRecvMsgNull
 	}
 	select {
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return nil, false, ctx.Err()
 	default:
 	}
 	replies = make([]message.Message, 0)
 	// 1. 执行当前 Action 的 action
 	if ah.Action != nil {
-		rMsg, err := ah.Action(ctx, recvMsg)
+		rMsg, ok, err := ah.Action(ctx, recvMsg)
 		if err != nil {
-			return nil, err // 如果 action 执行出错，立即返回错误
+			return nil, false, err // 如果 action 执行出错，立即返回错误
 		}
-		replies = append(replies, rMsg)
+		if ok { // ok判断是否回复
+			replies = append(replies, rMsg)
+		}
 	}
 
 	// 2. 递归处理子 Action
 	if ah.Children != nil {
 		for _, child := range ah.Children {
 			if child.Matcher.Match(ctx, recvMsg) { // **重要: 子 Action 仍然需要 Matcher 匹配**
-				childReplies, childErr := child.doAction(ctx, recvMsg) // 递归调用 doAction
+				childReplies, okChild, childErr := child.doAction(ctx, recvMsg) // 递归调用 doAction
 				if childErr != nil {
-					return nil, childErr // 如果子 Action 出错，立即返回错误
+					return nil, false, childErr // 如果子 Action 出错，立即返回错误
 				}
-				replies = append(replies, childReplies...) // 合并子 Action 的 replies
+				if okChild {
+					replies = append(replies, childReplies...) // 合并子 Action 的 replies
+				}
+
 			}
 		}
 	}
 
-	return replies, nil // 成功执行，返回 replies 和 nil error
+	return replies, true, nil // 成功执行，返回 replies 和 nil error
 }
 
 type IPlugin interface {
@@ -252,8 +258,8 @@ func (p *Plugin) handleMessage(ctx context.Context, recvMsg *message.Message) (i
 		if !ah.Matcher.Match(ctx, msg) { // 不匹配直接退出
 			return
 		}
-		isMatch = true                        // 匹配
-		replies, err := ah.doAction(ctx, msg) // 获取 reply 和 childActions
+		isMatch = true                           // 匹配
+		replies, _, err := ah.doAction(ctx, msg) // 获取 reply 和 childActions
 		if err != nil {
 			logging.ErrorWithErr(err, "doAction err", map[string]interface{}{"actionName": ah.Name})
 			logging.Debug("doAction err", map[string]interface{}{"actionName": ah.Name, "msg": msg})
@@ -317,14 +323,25 @@ type PluginOpt struct {
 
 type AutoRegister struct {
 	pluginLevelList []map[string]IPlugin // 分级模块列表
-	size            int                  // 已注册个数
-	enableSize      int                  // 启用插件个数
 	mu              sync.Mutex
 }
 
 var autoRegister AutoRegister
 
 func (ag *AutoRegister) RegisterPlugin(p IPlugin) {
+	c := cache.GetCache()
+	plugin, b := c.GetPluginInfo(p.GetName())
+	if b { // 检查缓存信息中插件是否开启
+		iPlugin, ok := plugin.(IPlugin)
+		if ok {
+			opt := iPlugin.GetPluginOpt()
+			if opt.Enable {
+				p.EnableP()
+			} else {
+				p.DisableP()
+			}
+		}
+	}
 	if ag.pluginLevelList == nil {
 		ag.pluginLevelList = make([]map[string]IPlugin, LevelSize)
 	}
@@ -335,10 +352,6 @@ func (ag *AutoRegister) RegisterPlugin(p IPlugin) {
 	defer ag.mu.Unlock()
 
 	ag.pluginLevelList[p.GetLevel()][p.GetName()] = p
-	if p.GetPluginOpt().Enable {
-		ag.enableSize++
-	}
-	ag.size++
 }
 
 func (ag *AutoRegister) Plugins() []*IPlugin {
@@ -360,11 +373,7 @@ func (ag *AutoRegister) DisableByName(name string) bool {
 	for _, pluginMap := range ag.pluginLevelList {
 		p, ok := pluginMap[name]
 		if ok {
-			plugin, ok := p.(*Plugin)
-			if ok && plugin.Enable {
-				ag.enableSize--
-			}
-			plugin.Enable = false
+			p.DisableP()
 			return true
 		}
 	}
@@ -377,15 +386,19 @@ func (ag *AutoRegister) EnableByName(name string) bool {
 	for _, pluginMap := range ag.pluginLevelList {
 		p, ok := pluginMap[name]
 		if ok {
-			plugin, ok := p.(*Plugin)
-			if ok && !plugin.Enable {
-				ag.enableSize++
-			}
-			plugin.Enable = true
+			p.EnableP()
 			return true
 		}
 	}
 	return false
+}
+
+func (ag *AutoRegister) CachePlugins() {
+	c := cache.GetCache()
+	for _, p := range ag.Plugins() { // fixme: 退出时无法持久化至rikkadb 可能退出顺序相关
+		logging.Debug("缓存插件信息", map[string]interface{}{"plugin_name": (*p).GetName()})
+		c.CachePluginInfo((*p).GetName(), p) // 缓存插件信息
+	}
 }
 
 func GetAutoRegister() *AutoRegister {

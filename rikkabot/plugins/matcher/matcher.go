@@ -192,19 +192,14 @@ func (bm BaseMatcher) Match(ctx context.Context, msg *message.Message) bool {
 		return false
 	}
 	if bm.Rules != 0 {
-		switch {
-		case bm.Rules&IsGroupRule != 0:
-			if !msg.IsGroup {
-				return false
-			}
-		case bm.Rules&IsAtMeRule != 0:
-			if !msg.IsAtMe {
-				return false
-			}
-		case bm.Rules&IsSelf != 0:
-			if !msg.IsMySelf {
-				return false
-			}
+		if bm.Rules&IsGroupRule != 0 && !msg.IsGroup {
+			return false
+		}
+		if bm.Rules&IsAtMeRule != 0 && !msg.IsAtMe {
+			return false
+		}
+		if bm.Rules&IsSelf != 0 && !msg.IsMySelf {
+			return false
 		}
 	}
 	select {

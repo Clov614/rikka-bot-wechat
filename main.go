@@ -3,6 +3,11 @@ package main
 import (
 	"context"
 	"flag"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/Clov614/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/adapter"
@@ -10,7 +15,6 @@ import (
 	wcf "github.com/Clov614/wcf-rpc-sdk"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
-	"time"
 )
 
 func main() {
@@ -82,6 +86,18 @@ func main() {
 		rbot.PushLogOutNoticeEvent(1101, "微信未登录或掉线")
 		time.Sleep(1 * time.Second) // 1s 延迟退出
 		rbot.ExitWithErr(1101, "微信未登录或掉线")
+	}()
+
+	// 捕获 Ctrl + C 信号
+	sigCh := make(chan os.Signal, 1)
+	defer close(sigCh)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	// 启动一个 goroutine 来处理信号
+	go func() {
+		<-sigCh // 阻塞，直到接收到信号
+		logging.Info("接收到退出信号 (Ctrl + C)，正在退出...")
+		rbot.Exit() // 优雅地退出 RikkaBot
 	}()
 
 	// 阻塞主goroutine, 直到发生异常或者用户主动退出

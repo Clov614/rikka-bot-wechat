@@ -6,19 +6,20 @@ package processor
 
 import (
 	"context"
-	wcf "github.com/Clov614/wcf-rpc-sdk"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/Clov614/logging"
+	wcf "github.com/Clov614/wcf-rpc-sdk"
 
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/plugins"
 
 	/* 下方为插件的导入 */
 	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/admin" // 管理员模块
-	/* 从上到下对应优先级由高到低 */ //
+	/* 从上到下对应优先级由高到低 */
+	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/biliDecoder" // bilibili链接解析
 )
 
 type Processor struct {
@@ -29,6 +30,7 @@ type Processor struct {
 	inputChan  chan *message.Message // 接收外部消息的入口 channel
 	sendChan   chan *message.Message // 发送消息的 channel
 	busyMu     sync.RWMutex
+	closeOnce  sync.Once
 }
 
 func NewProcessor(ctx context.Context, cli *wcf.Client) *Processor {
@@ -190,29 +192,40 @@ func (p *Processor) Start(recvChan chan *message.Message, sendChan chan *message
 func (p *Processor) Close() {
 	p.busyMu.Lock()
 	defer p.busyMu.Unlock()
-	// 先停止接收新的消息
-	close(p.inputChan)
-	// 等待所有消息处理完成, 或者超时
-	done := make(chan struct{})
-	go func() {
-		for _, layer := range p.LevelLayer {
-			for _, plugin := range layer.Plugins {
-				(*plugin).Close() // 关闭每个 Plugin
-			}
+	p.closeOnce.Do(func() {
+		// 先停止接收新的消息
+		if p.inputChan != nil {
+			close(p.inputChan)
+			p.inputChan = nil // 将 p.inputChan 设置为 nil
 		}
-		close(done)
-	}()
+		// 等待所有消息处理完成, 或者超时
+		done := make(chan struct{})
+		go func() {
+			for _, layer := range p.LevelLayer {
+				for _, plugin := range layer.Plugins {
+					(*plugin).Close() // 关闭每个 Plugin
+				}
+			}
+			close(done)
+		}()
+		// 缓存插件设置信息
+		ag := plugins.GetAutoRegister()
+		ag.CachePlugins()
 
-	select {
-	case <-done:
-	case <-time.After(time.Second * 5): // 设置一个超时时间
-		logging.Error("关闭 Processor 超时")
-	}
-	p.cancel()
+		select {
+		case <-done:
+		case <-time.After(time.Second * 5): // 设置一个超时时间
+			logging.Error("关闭 Processor 超时")
+		}
+		p.cancel()
 
-	for _, layer := range p.LevelLayer {
-		layer.Close() // 关闭对应层
-	}
-	// 关闭消息发送通道
-	close(p.sendChan)
+		for _, layer := range p.LevelLayer {
+			layer.Close() // 关闭对应层
+		}
+		// 关闭消息发送通道
+		if p.sendChan != nil {
+			close(p.sendChan)
+			p.sendChan = nil // 将p.sendChan设置为nil
+		}
+	})
 }

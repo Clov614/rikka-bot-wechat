@@ -223,6 +223,9 @@ func (a *Adapter) receiveMsg(msg *wcf.Message) {
 }
 
 func (a *Adapter) sendMsg(sendMsg *message.Message) error {
+	if sendMsg == nil {
+		return fmt.Errorf("sendMsg is nil")
+	}
 	if sendMsg.MetaData == nil {
 		logging.Debug("MetaData is nil", map[string]interface{}{"sendMsg": sendMsg})
 		return fmt.Errorf("can't send msg, sendMsg err: %w", ErrMetaDateNil)

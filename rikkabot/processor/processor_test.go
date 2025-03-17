@@ -6,6 +6,7 @@ package processor
 
 import (
 	"context"
+	wcf "github.com/Clov614/wcf-rpc-sdk"
 	"testing"
 	"time"
 
@@ -47,10 +48,10 @@ func TestProcessor_RegisterAndStart(t *testing.T) {
 		Name:     "test action",
 		Matcher:  &pTestMatcher{true},
 		IsEnable: true,
-		Action: func(ctx context.Context, recvMsg *message.Message) (reply message.Message, err error) {
+		Action: func(ctx context.Context, recvMsg *message.Message) (reply message.Message, ok bool, err error) {
 			plugin.AddExecCount(1)
 			recvMsg.Content = "add 1 execute count"
-			return *recvMsg, nil
+			return *recvMsg, true, nil
 		},
 	})
 
@@ -58,9 +59,9 @@ func TestProcessor_RegisterAndStart(t *testing.T) {
 	autoRegister.RegisterPlugin(plugin)
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()
-	inputChan := make(chan *message.Message)    // 创建 inputChan
-	sendChan := make(chan *message.Message, 10) // 发送通道
-	processor := NewProcessor(ctx)              // 将 inputChan 传递给 NewProcessor
+	inputChan := make(chan *message.Message)                        // 创建 inputChan
+	sendChan := make(chan *message.Message, 10)                     // 发送通道
+	processor := NewProcessor(ctx, wcf.NewClient(10, false, false)) // 将 inputChan 传递给 NewProcessor
 
 	// 启动 Processor
 	processor.Start(inputChan, sendChan)
@@ -99,9 +100,9 @@ func TestProcessor_MessageFlow(t *testing.T) {
 		Name:     "high level action",
 		Matcher:  &pTestMatcher{false}, // Matcher 返回 false，此插件不会执行
 		IsEnable: true,
-		Action: func(ctx context.Context, recvMsg *message.Message) (reply message.Message, err error) {
+		Action: func(ctx context.Context, recvMsg *message.Message) (reply message.Message, ok bool, err error) {
 			highLevelPlugin.AddExecCount(1) // 实际不会执行到这里
-			return *recvMsg, nil
+			return *recvMsg, true, nil
 		},
 	})
 
@@ -111,10 +112,10 @@ func TestProcessor_MessageFlow(t *testing.T) {
 		Name:     "test action",
 		Matcher:  &pTestMatcher{true}, // Matcher 返回 true，此插件会执行
 		IsEnable: true,
-		Action: func(ctx context.Context, recvMsg *message.Message) (reply message.Message, err error) {
+		Action: func(ctx context.Context, recvMsg *message.Message) (reply message.Message, ok bool, err error) {
 			mediumLevelPlugin.AddExecCount(1)
 			recvMsg.Content = "add 1 execute count"
-			return *recvMsg, nil
+			return *recvMsg, true, nil
 		},
 	})
 
@@ -126,7 +127,7 @@ func TestProcessor_MessageFlow(t *testing.T) {
 	defer cancelFunc()
 	inputChan := make(chan *message.Message)
 	sendChan := make(chan *message.Message, 10) // 发送通道
-	processor := NewProcessor(ctx)
+	processor := NewProcessor(ctx, wcf.NewClient(10, false, false))
 
 	processor.Start(inputChan, sendChan)
 
