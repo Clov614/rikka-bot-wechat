@@ -6,28 +6,23 @@ package processor
 
 import (
 	"context"
-	wcf "github.com/Clov614/wcf-rpc-sdk"
 	"testing"
 	"time"
 
+	wcf "github.com/Clov614/wcf-rpc-sdk"
+
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/plugins"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/cache"
 )
 
-type pTestMatcher struct {
-	isThought bool
-}
-
-func (m *pTestMatcher) Match(ctx context.Context, msg *message.Message) bool {
-	return m.isThought
-}
-
-// TestPlugin 是一个真实的插件，用于测试
+// 定义一个专门用于测试的 TestPlugin 结构体
 type TestPlugin struct {
-	*plugins.Plugin // 嵌入标准的 Plugin 结构
-	executeCount    int
+	*plugins.Plugin     // 嵌入标准的 Plugin 结构
+	executeCount    int // 执行计数器
 }
 
+// AddExecCount 增加执行计数
 func (p *TestPlugin) AddExecCount(delta int) {
 	p.executeCount += delta
 }
@@ -35,10 +30,18 @@ func (p *TestPlugin) AddExecCount(delta int) {
 // NewTestPlugin 创建一个新的 TestPlugin 实例
 func NewTestPlugin(name string, level plugins.PluginLevel) *TestPlugin {
 	p := &TestPlugin{
-		Plugin: plugins.DefaultPlugin(name).AsEnable(), // 使用默认的 Plugin 初始化 // 设置插件名称
+		Plugin: plugins.DefaultPlugin(name).AsEnable(), // 使用默认的 Plugin 初始化并启用
 	}
 	p.Plugin.PluginOpt.Level = level // 设置插件级别
 	return p
+}
+
+type pTestMatcher struct {
+	isThought bool
+}
+
+func (m *pTestMatcher) Match(ctx context.Context, msg *message.Message) bool {
+	return m.isThought
 }
 
 // TestProcessor_RegisterAndStart 测试插件注册和启动流程
@@ -152,4 +155,103 @@ func TestProcessor_MessageFlow(t *testing.T) {
 	for outputMsg := range sendChan { // 发送通道消息输出
 		t.Logf("Sending message: %s", outputMsg.Content)
 	}
+}
+
+// TestProcessor_CloseAndCache 测试 Processor 的 Close 方法、cache 的联动以及重启后的加载
+func TestProcessor_CloseAndCache(t *testing.T) {
+	// 准备阶段：创建并注册插件
+	pluginName := "testCloseAndCache-01"
+	plugin := NewTestPlugin(pluginName, plugins.MediumLevel)
+	plugin.AsAction(&plugins.ActionHandler{
+		Name:    "test action",
+		Matcher: &pTestMatcher{true},
+		Action: func(ctx context.Context, recvMsg *message.Message) (reply message.Message, ok bool, err error) {
+			plugin.AddExecCount(1) // 增加执行计数
+			return *recvMsg, true, nil
+		},
+	})
+	plugins.GetAutoRegister().RegisterPlugin(plugin) // 直接获取并注册
+
+	// 阶段 1: 首次运行并关闭，测试缓存
+	func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		inputChan := make(chan *message.Message)
+		sendChan := make(chan *message.Message, 10)
+		processor := NewProcessor(ctx, wcf.NewClient(10, false, false))
+
+		processor.Start(inputChan, sendChan)
+		inputChan <- &message.Message{Content: "test message"} // 触发插件执行
+		<-time.After(time.Second * 1)                          // 等待执行
+
+		processor.Close() // 关闭并触发缓存
+
+		// 验证插件执行次数和缓存状态
+		if plugin.executeCount != 1 {
+			t.Errorf("Expected plugin executeCount to be 1, got: %d", plugin.executeCount)
+		}
+		cachedPlugin, ok := cache.GetCache().GetPluginInfo(pluginName)
+		if !ok {
+			t.Fatalf("Plugin %s not found in cache", pluginName)
+		}
+		// 验证缓存的是 PluginOpt
+		cachedOpt, ok := cachedPlugin.(plugins.PluginOpt)
+		if !ok {
+			t.Fatalf("Expected cached plugin info to be PluginOpt, got: %T", cachedPlugin)
+		}
+		if !cachedOpt.Enable {
+			t.Errorf("Expected plugin %s to be enabled in cache", pluginName)
+		}
+	}() // 使用匿名函数隔离作用域
+
+	// 阶段 2: 重启并验证加载
+	func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		inputChan := make(chan *message.Message)
+		sendChan := make(chan *message.Message, 10)
+		processor := NewProcessor(ctx, wcf.NewClient(10, false, false))
+
+		// 注意：这里不需要重新注册插件，因为 AutoRegister 会从 cache 加载
+		processor.Start(inputChan, sendChan)
+
+		// 验证插件已从 cache 加载
+		registeredPlugins := processor.LevelLayer[plugins.MediumLevel].GetPlugins()
+		// 遍历找到我们的测试插件
+		var plugin2 *TestPlugin
+		for _, p := range registeredPlugins {
+			if (*p).GetName() == pluginName {
+				var ok bool
+				plugin2, ok = (*p).(*TestPlugin)
+				if !ok {
+					t.Fatalf("Expected plugin '%s' to be *TestPlugin, got: %T", pluginName, *p)
+				}
+				break
+			}
+		}
+
+		if plugin2 == nil {
+			t.Fatalf("Plugin '%s' not found in registered plugins", pluginName)
+		}
+
+		// 从缓存中恢复
+		cachedOpt, ok := cache.GetCache().GetPluginInfo(pluginName)
+		if !ok {
+			t.Fatalf("Plugin %s not found in cache", pluginName)
+		}
+		plugin2.PluginOpt = cachedOpt.(plugins.PluginOpt)
+
+		if !plugin2.PluginOpt.Enable {
+			t.Errorf("Expected plugin %s to be enabled after restart", pluginName)
+		}
+
+		// 再次触发插件执行，验证其功能
+		inputChan <- &message.Message{Content: "test message"}
+		<-time.After(time.Second * 1)
+		if plugin2.executeCount != 2 { // 执行次数应为 2
+			t.Errorf("Expected plugin executeCount to be 2, got: %d", plugin2.executeCount)
+		}
+
+		processor.Close() // 关闭
+	}() // 使用匿名函数隔离作用域
 }

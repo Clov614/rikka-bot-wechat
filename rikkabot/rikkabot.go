@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/Clov614/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/config"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
@@ -12,8 +15,6 @@ import (
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/timeutil"
 	wcf "github.com/Clov614/wcf-rpc-sdk"
 	"github.com/google/uuid"
-	"sync"
-	"time"
 )
 
 type RikkaBot struct {
@@ -155,35 +156,32 @@ func (r *RikkaBot) Start() {
 	r.EnableProcess = true // 防止生产者阻塞
 }
 
+var onceExit sync.Once
+
 // Exit 主动退出 rikkabot
 func (r *RikkaBot) Exit() {
-	logging.Info("rikka bot exited")
-	r.EventPool.Close()
-	r.Processor.Close()
-	r.cancel()
-	r.cli.Close()
+	onceExit.Do(func() {
+		logging.Info("rikka bot exited")
+		r.EventPool.Close()
+		r.Processor.Close()
+		r.cli.Close()
+		r.cancel()
+	})
 }
 
 // ExitWithErr 异常退出 rikkabot
 func (r *RikkaBot) ExitWithErr(code int, msg string) {
-	logging.Info("rikka bot exited")
 	logging.Error("异常退出")
 	logging.Error(msg, map[string]interface{}{"exit code": code})
-	r.EventPool.Close()
-	r.Processor.Close()
-	r.cancel()
-	r.cli.Close()
+	r.Exit()
 }
-
-var onceExit sync.Once
 
 // Block 当发生错误，该方法会立即返回，否则会一直阻塞
 func (r *RikkaBot) Block() error {
 	<-r.ctx.Done()
-	onceExit.Do(func() { r.Exit() })
-	logging.Close() // 关闭日志文件
-	logging.Info("主程序将在5s后退出...")
-	time.Sleep(5 * time.Second) // 增加一个固定延迟，简单的确保退出 todo perf -> wg
+	r.Exit()
+	logging.Info("主程序将在10s后退出...")
+	time.Sleep(10 * time.Second) // 增加一个固定延迟，简单的确保退出 todo perf -> wg
 	return r.err
 }
 

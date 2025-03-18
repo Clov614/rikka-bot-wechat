@@ -20,8 +20,9 @@ type Cache struct {
 	*cacheExported // 隐藏字段
 	config         *config.CommonConfig
 
-	done chan struct{}
-	wg   sync.WaitGroup
+	done      chan struct{}
+	wg        sync.WaitGroup
+	closeOnce sync.Once
 }
 
 var (
@@ -308,9 +309,12 @@ func (c *Cache) cycleSave() {
 }
 
 func (c *Cache) Close() {
-	close(c.done)
-	c.wg.Wait()
-	logging.Info("cache closed")
+	c.closeOnce.Do(func() {
+		c.handleSave(false)
+		close(c.done)
+		c.wg.Wait()
+		logging.Info("cache closed")
+	})
 }
 
 func (c *Cache) handleSave(firstLoad bool) {

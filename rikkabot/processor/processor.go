@@ -10,6 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/cache"
+
 	"github.com/Clov614/logging"
 	wcf "github.com/Clov614/wcf-rpc-sdk"
 
@@ -17,10 +19,12 @@ import (
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/plugins"
 
 	/* 下方为插件的导入 */
-	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/admin" // 管理员模块
-	/* 从上到下对应优先级由高到低 */
+	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/admin"       // 管理员模块
 	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/biliDecoder" // bilibili链接解析
-)
+
+	/* 从上到下对应优先级由高到低 */
+	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/ai" // AI对话
+	/* 从上到下对应优先级由高到低 */)
 
 type Processor struct {
 	ctx        context.Context
@@ -207,11 +211,15 @@ func (p *Processor) Close() {
 				}
 			}
 			close(done)
+			logging.Debug("所有插件关闭完成")
 		}()
 		// 缓存插件设置信息
 		ag := plugins.GetAutoRegister()
 		ag.CachePlugins()
+		logging.Debug("保存插件信息完毕")
 
+		c := cache.GetCache()
+		c.Close() // 保存并关闭缓存
 		select {
 		case <-done:
 		case <-time.After(time.Second * 5): // 设置一个超时时间

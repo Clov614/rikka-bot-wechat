@@ -43,7 +43,7 @@ func (a *Adapter) HandleCovert() {
 		for {
 			select {
 			case <-a.ctx.Done():
-				logging.ErrorWithErr(a.ctx.Err(), "handle covert exit")
+				logging.WarnWithErr(a.ctx.Err(), "handle covert exit")
 				return
 			case msg := <-a.cli.GetMsgChan(): // 转换收到的消息
 				logging.Debug("rikka-bot received message", map[string]interface{}{"sdk-msg": msg})
@@ -57,12 +57,15 @@ func (a *Adapter) HandleCovert() {
 		for {
 			select {
 			case <-a.ctx.Done():
-				logging.ErrorWithErr(a.ctx.Err(), "handle send exit")
+				logging.WarnWithErr(a.ctx.Err(), "handle send exit")
 				return
 			case respMsg := <-sendChan: // 接收到回复消息
 				logging.Debug("rikka-bot send message", map[string]interface{}{"sdk-msg": respMsg})
 				//rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 				//time.Sleep(time.Duration((rnd.Intn(1000) + 1000)) * time.Millisecond)
+				if respMsg == nil {
+					continue
+				}
 				err := a.sendMsg(respMsg)
 				if err != nil {
 					logging.ErrorWithErr(err, "sendMsg fail skip send")
