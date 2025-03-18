@@ -173,8 +173,9 @@ type BaseMatcherRule uint32
 const (
 	MatchTypeRule BaseMatcherRule = 1 << iota // 消息类型规则 (1 << 0)
 	IsGroupRule                               // 群组消息规则 (1 << 1)
-	IsAtMeRule                                // @Me 规则 (1 << 2)
-	IsSelf                                    // 是否是自己的消息
+	IsFriendRule
+	IsAtMeRule // @Me 规则 (1 << 2)
+	IsSelf     // 是否是自己的消息
 	// 可以继续添加其他规则，例如 IsFriendRule, IsSystemRule 等
 )
 
@@ -199,6 +200,9 @@ func (bm BaseMatcher) Match(ctx context.Context, msg *message.Message) bool {
 			return false
 		}
 		if bm.Rules&IsSelf != 0 && !msg.IsMySelf {
+			return false
+		}
+		if bm.Rules&IsFriendRule != 0 && (msg.IsGroup || msg.IsGH) { // 不是群聊 不是公众号则为私聊消息
 			return false
 		}
 	}

@@ -10,6 +10,7 @@ require (
 	github.com/Clov614/wcf-rpc-sdk v0.4.2
 	github.com/eatmoreapple/openwechat v1.4.10
 	github.com/gin-gonic/gin v1.10.0
+	github.com/go-ego/gse v0.80.3
 	github.com/google/uuid v1.6.0
 	github.com/rs/zerolog v1.33.0
 	github.com/zwgblue/yaml-encoder v0.0.0-20221226083717-a0bdbda0d998
@@ -21,6 +22,7 @@ require (
 //replace github.com/Clov614/wcf-rpc-sdk v0.4.2 => E:\Applications_Dev\Go_workspace\github.com\Clov614\wcf-rpc-sdk
 
 require (
+	github.com/Clov614/go-ai-sdk v0.4.4 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/antchfx/xmlquery v1.4.4 // indirect
 	github.com/antchfx/xpath v1.3.3 // indirect
@@ -45,8 +47,10 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
+	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
+	github.com/vcaesar/cedar v0.20.2 // indirect
 	go.nanomsg.org/mangos/v3 v3.4.2 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.31.0 // indirect

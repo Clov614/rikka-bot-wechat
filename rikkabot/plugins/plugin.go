@@ -6,7 +6,9 @@ package plugins
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/matcher"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/cache"
 	wcf "github.com/Clov614/wcf-rpc-sdk"
@@ -244,7 +246,6 @@ func (p *Plugin) Close() {
 		p.pluginCancel() // 取消 Plugin 的上下文，停止所有相关的 goroutine (如果 Action 中使用了上下文)
 	}
 	p.wg.Wait() // 等待所有 ActionHandler 的 goroutine 完成
-	logging.Info("Plugin stopped and all actions finished.")
 }
 
 func (p *Plugin) handleMessage(ctx context.Context, recvMsg *message.Message) (isMatch bool) {
@@ -330,11 +331,13 @@ var autoRegister AutoRegister
 
 func (ag *AutoRegister) RegisterPlugin(p IPlugin) {
 	c := cache.GetCache()
-	plugin, b := c.GetPluginInfo(p.GetName())
+	pluginInfo, b := c.GetPluginInfo(p.GetName())
+
 	if b { // 检查缓存信息中插件是否开启
-		iPlugin, ok := plugin.(IPlugin)
-		if ok {
-			opt := iPlugin.GetPluginOpt()
+		pB, _ := json.Marshal(pluginInfo)
+		opt := PluginOpt{}
+		err := json.Unmarshal(pB, &opt)
+		if err == nil {
 			if opt.Enable {
 				p.EnableP()
 			} else {
@@ -348,6 +351,8 @@ func (ag *AutoRegister) RegisterPlugin(p IPlugin) {
 	if ag.pluginLevelList[p.GetLevel()] == nil {
 		ag.pluginLevelList[p.GetLevel()] = make(map[string]IPlugin)
 	}
+	// 打印注册模块信息
+	logging.Info(fmt.Sprintf("加载模块: %s 状态: %v 注册等级: %v 存活时间: %v", p.GetName(), p.GetPluginOpt().Enable, p.GetPluginOpt().Level, p.GetPluginOpt().LifeTime))
 	ag.mu.Lock()
 	defer ag.mu.Unlock()
 
@@ -397,7 +402,7 @@ func (ag *AutoRegister) CachePlugins() {
 	c := cache.GetCache()
 	for _, p := range ag.Plugins() { // fixme: 退出时无法持久化至rikkadb 可能退出顺序相关
 		logging.Debug("缓存插件信息", map[string]interface{}{"plugin_name": (*p).GetName()})
-		c.CachePluginInfo((*p).GetName(), p) // 缓存插件信息
+		c.CachePluginInfo((*p).GetName(), (*p).GetPluginOpt()) // 缓存插件信息
 	}
 }
 
