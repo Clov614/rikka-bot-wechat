@@ -21,7 +21,7 @@ import (
 	/* 下方为插件的导入 */
 	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/admin"       // 管理员模块
 	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/biliDecoder" // bilibili链接解析
-
+	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/hentai"      // 车来
 	/* 从上到下对应优先级由高到低 */
 	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/ai" // AI对话
 	/* 从上到下对应优先级由高到低 */)
