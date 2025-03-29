@@ -6,14 +6,15 @@ package matcher
 
 import (
 	"context"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
 	"regexp"
 	"strings"
+
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
 )
 
 // PrefixMatcher  前缀匹配器
 type PrefixMatcher struct {
-	Prefix          string
+	Prefixes        []string
 	IsCaseSensitive bool
 	IsCut           bool // 是否切除匹配
 }
@@ -23,27 +24,60 @@ func (pm PrefixMatcher) Match(ctx context.Context, msg *message.Message) bool {
 		return false
 	}
 	var flag bool
-	if pm.IsCaseSensitive {
-		flag = strings.HasPrefix(strings.ToLower(msg.Content), strings.ToLower(pm.Prefix))
-	} else {
-		flag = strings.HasPrefix(msg.Content, pm.Prefix)
+	for _, prefix := range pm.Prefixes {
+		if pm.IsCaseSensitive {
+			flag = strings.HasPrefix(strings.ToLower(msg.Content), strings.ToLower(prefix))
+		} else {
+			flag = strings.HasPrefix(msg.Content, prefix)
+		}
+		if flag {
+			if pm.IsCut {
+				msg.Content = strings.TrimSpace(strings.TrimPrefix(msg.Content, prefix))
+			}
+			return true
+		}
 	}
-	if pm.IsCut {
-		msg.Content = strings.TrimSpace(strings.TrimPrefix(msg.Content, pm.Prefix))
+	return false
+}
+
+func NewPrefixMatcher(isCaseSensitive bool, isCut bool, prefixes ...string) PrefixMatcher {
+	return PrefixMatcher{
+		Prefixes:        prefixes,
+		IsCaseSensitive: isCaseSensitive,
+		IsCut:           isCut,
 	}
-	return flag
 }
 
 // RegexMatcher 正则表达式匹配器
 type RegexMatcher struct {
-	Regex *regexp.Regexp
+	Regexs []*regexp.Regexp
+	IsCut  bool // 是否切除匹配
 }
 
 func (rm RegexMatcher) Match(ctx context.Context, msg *message.Message) bool {
 	if msg == nil || msg.Content == "" {
 		return false
 	}
-	return rm.Regex.MatchString(msg.Content)
+	for _, regex := range rm.Regexs {
+		if regex.MatchString(msg.Content) {
+			if rm.IsCut {
+				msg.Content = strings.TrimSpace(regex.ReplaceAllString(msg.Content, ""))
+			}
+			return true
+		}
+	}
+	return false
+}
+
+func NewRegexMatcher(isCut bool, regexs ...string) RegexMatcher {
+	regexps := make([]*regexp.Regexp, 0, len(regexs))
+	for _, regex := range regexs {
+		regexps = append(regexps, regexp.MustCompile(regex))
+	}
+	return RegexMatcher{
+		Regexs: regexps,
+		IsCut:  isCut,
+	}
 }
 
 // KeywordMatcher 关键词匹配器
@@ -61,4 +95,10 @@ func (km KeywordMatcher) Match(ctx context.Context, msg *message.Message) bool {
 		}
 	}
 	return false
+}
+
+func NewKeywordMatcher(keywords ...string) KeywordMatcher {
+	return KeywordMatcher{
+		Keywords: keywords,
+	}
 }

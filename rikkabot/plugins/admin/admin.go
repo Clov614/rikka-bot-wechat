@@ -45,7 +45,7 @@ func init() {
 		Rules: matcher.IsSelf,
 	}
 	// op指令 基础规则
-	opM := matcher.Default().And().N(allowText, matcher.PrefixMatcher{Prefix: "op", IsCaseSensitive: false, IsCut: true}, matcher.Default().Or().N(isSelfJudge, adminJudge))
+	opM := matcher.Default().And().N(allowText, matcher.PrefixMatcher{Prefixes: []string{"op"}, IsCaseSensitive: false, IsCut: true}, matcher.Default().Or().N(isSelfJudge, adminJudge))
 	// op父操作
 	opMulAction := plugins.DefaultActionHandler("op", true).AsMatcher(opM.And().N(matcher.DefaultNot(atSomeOneM)))
 
@@ -94,7 +94,7 @@ func init() {
 }
 
 func PLFunc() *plugins.ActionHandler {
-	PLM := matcher.Default().And().N(matcher.PrefixMatcher{Prefix: "list", IsCut: true, IsCaseSensitive: false})
+	PLM := matcher.Default().And().N(matcher.PrefixMatcher{Prefixes: []string{"list"}, IsCut: true, IsCaseSensitive: false})
 	PL := plugins.DefaultActionHandler("op -p list", true).AsMatcher(PLM).AsActionFunc(func(ctx context.Context, recvMsg *message.Message) (reply message.Message, ok bool, err error) {
 		var buf bytes.Buffer
 		buf.WriteString("插件列表\n")
@@ -109,7 +109,7 @@ func PLFunc() *plugins.ActionHandler {
 }
 
 func onPFunc() *plugins.ActionHandler {
-	onPM := matcher.Default().And().N(matcher.PrefixMatcher{Prefix: "on", IsCut: true, IsCaseSensitive: false})
+	onPM := matcher.Default().And().N(matcher.PrefixMatcher{Prefixes: []string{"on"}, IsCut: true, IsCaseSensitive: false})
 	onP := plugins.DefaultActionHandler("op -p on", true).AsMatcher(onPM).AsActionFunc(func(ctx context.Context, recvMsg *message.Message) (reply message.Message, ok bool, err error) {
 		name := strings.TrimSpace(recvMsg.Content)
 		ar := plugins.GetAutoRegister()
@@ -129,7 +129,7 @@ func onPFunc() *plugins.ActionHandler {
 }
 
 func offPFunc() *plugins.ActionHandler {
-	offPM := matcher.Default().And().N(matcher.PrefixMatcher{Prefix: "off", IsCut: true, IsCaseSensitive: false})
+	offPM := matcher.Default().And().N(matcher.PrefixMatcher{Prefixes: []string{"off"}, IsCut: true, IsCaseSensitive: false})
 	offP := plugins.DefaultActionHandler("op -p on", true).AsMatcher(offPM).AsActionFunc(func(ctx context.Context, recvMsg *message.Message) (reply message.Message, ok bool, err error) {
 		name := strings.TrimSpace(recvMsg.Content)
 		ar := plugins.GetAutoRegister()
@@ -149,13 +149,13 @@ func offPFunc() *plugins.ActionHandler {
 }
 
 func helpFunc(isSelfJudge matcher.BaseMatcher, adminJudge matcher.Custom) *plugins.ActionHandler {
-	helpM := matcher.Default().And().N(matcher.PrefixMatcher{Prefix: "help", IsCaseSensitive: false, IsCut: true}, matcher.Default().Or().N(isSelfJudge, adminJudge))
+	helpM := matcher.Default().And().N(matcher.PrefixMatcher{Prefixes: []string{"help"}, IsCaseSensitive: false, IsCut: true}, matcher.Default().Or().N(isSelfJudge, adminJudge))
 	help := plugins.DefaultActionHandler("op help", true).AsMatcher(helpM)
 	return help
 }
 
 func delOpFunc(isSelfJudge matcher.BaseMatcher, adminJudge matcher.Custom, admin *Admin) *plugins.ActionHandler {
-	delM := matcher.Default().And().N(matcher.PrefixMatcher{Prefix: "-d", IsCaseSensitive: false, IsCut: true}, matcher.Default().Or().N(isSelfJudge, adminJudge))
+	delM := matcher.Default().And().N(matcher.PrefixMatcher{Prefixes: []string{"-d"}, IsCaseSensitive: false, IsCut: true}, matcher.Default().Or().N(isSelfJudge, adminJudge))
 	delOp := plugins.DefaultActionHandler("op -d", true).AsMatcher(delM)
 	delOp.AsActionFunc(func(ctx context.Context, recvMsg *message.Message) (reply message.Message, ok bool, err error) {
 		content, ok := admin.delOpByAt(recvMsg)
@@ -169,13 +169,13 @@ func delOpFunc(isSelfJudge matcher.BaseMatcher, adminJudge matcher.Custom, admin
 }
 
 func opPluginFunc(isSelfJudge matcher.BaseMatcher, adminJudge matcher.Custom) (matcher.DefaultMatcher, *plugins.ActionHandler) {
-	pluginM := matcher.Default().And().N(matcher.PrefixMatcher{Prefix: "-p", IsCaseSensitive: false, IsCut: true}, matcher.Default().Or().N(isSelfJudge, adminJudge))
+	pluginM := matcher.Default().And().N(matcher.PrefixMatcher{Prefixes: []string{"-p"}, IsCaseSensitive: false, IsCut: true}, matcher.Default().Or().N(isSelfJudge, adminJudge))
 	pluginOp := plugins.DefaultActionHandler("op -p", true).AsMatcher(pluginM)
 	return pluginM, pluginOp
 }
 
 func opListFunc(isSelfJudge matcher.BaseMatcher, adminJudge matcher.Custom, admin *Admin) *plugins.ActionHandler {
-	opListM := matcher.Default().And().N(matcher.PrefixMatcher{Prefix: "list", IsCaseSensitive: false, IsCut: true}, matcher.Default().Or().N(isSelfJudge, adminJudge))
+	opListM := matcher.Default().And().N(matcher.PrefixMatcher{Prefixes: []string{"list"}, IsCaseSensitive: false, IsCut: true}, matcher.Default().Or().N(isSelfJudge, adminJudge))
 	opList := plugins.DefaultActionHandler("op list", true).AsMatcher(opListM)
 	opList.Action = func(ctx context.Context, recvMsg *message.Message) (reply message.Message, ok bool, err error) {
 		var buf bytes.Buffer

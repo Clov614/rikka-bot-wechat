@@ -31,9 +31,9 @@ func init() {
 		cache:  cache.GetCache(),
 		Plugin: plugins.DefaultPlugin("biliDecoder").AsLevel(plugins.MediumLevel).AsEnable(),
 	}
-	decoderM := baseM.And().N(matcher.Default().Or().N(matcher.RegexMatcher{Regex: regexp.MustCompile(`(BV[\w\d]+)`)},
-		matcher.RegexMatcher{Regex: regexp.MustCompile(`https:\/\/www\.biliDecoder\.com\/video\/(BV[\w\d]+)\/?`)},
-		matcher.RegexMatcher{Regex: regexp.MustCompile(`https:\/\/b23\.tv\/([\w\d]+)`)}))
+	decoderM := baseM.And().N(matcher.Default().Or().N(matcher.NewRegexMatcher(false, `(BV[\w\d]+)`),
+		matcher.NewRegexMatcher(false, `https:\/\/www\.biliDecoder\.com\/video\/(BV[\w\d]+)\/?`),
+		matcher.NewRegexMatcher(false, `https:\/\/b23\.tv\/([\w\d]+)`)))
 	decoderAction := plugins.DefaultActionHandler("url decoder", true).AsMatcher(decoderM)
 	decoderActionFunc(decoderAction, bili) // 关键逻辑
 
