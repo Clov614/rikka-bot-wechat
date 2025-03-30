@@ -128,7 +128,7 @@ func (l *Layer) handleMessage(msg *message.Message) bool {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if !handled { // 只有消息未被处理时才处理
+			if !handled { // 只有消息未被处理时才处理  todo {同级插件互斥选项}
 				pluginHandled := plugin.HandleRecv(l.processorCtx, msg, l.SendChan) // 调用 Plugin 的消息处理方法
 				if pluginHandled {
 					handled = true // 只要有一个插件处理成功，就标记为已处理

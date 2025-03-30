@@ -13,6 +13,7 @@ import (
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/cache"
 	wcf "github.com/Clov614/wcf-rpc-sdk"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Clov614/logging"
@@ -225,7 +226,6 @@ func (p *Plugin) DisableP() {
 func (p *Plugin) HandleRecv(ctx context.Context, recv *message.Message, sendChan chan<- *message.Message) (execute bool) {
 	deadlineCtx, cancelFunc := context.WithDeadline(ctx, time.Now().Add(p.PluginOpt.LifeTime)) // 使用 Plugin 的上下文作为基础
 	p.pluginCancel = cancelFunc
-	defer cancelFunc()
 	if !p.Enable { // 插件被禁用了
 		return false
 	}
@@ -248,46 +248,45 @@ func (p *Plugin) Close() {
 	p.wg.Wait() // 等待所有 ActionHandler 的 goroutine 完成
 }
 
-func (p *Plugin) handleMessage(ctx context.Context, recvMsg *message.Message) (isMatch bool) {
+func (p *Plugin) handleMessage(ctx context.Context, recvMsg *message.Message) bool {
+	var isMatch atomic.Bool
 	if recvMsg == nil {
 		logging.Error("received nil message")
-		return
-	}
-
-	ahFunc := func(ah *ActionHandler, msg *message.Message) {
-		defer p.wg.Done()
-		if !ah.Matcher.Match(ctx, msg) { // 不匹配直接退出
-			return
-		}
-		isMatch = true                           // 匹配
-		replies, _, err := ah.doAction(ctx, msg) // 获取 reply 和 childActions
-		if err != nil {
-			logging.ErrorWithErr(err, "doAction err", map[string]interface{}{"actionName": ah.Name})
-			logging.Debug("doAction err", map[string]interface{}{"actionName": ah.Name, "msg": msg})
-		}
-		if replies != nil && len(replies) > 0 {
-			for _, reply := range replies {
-				select {
-				case p.sendChan <- &reply:
-				case <-ctx.Done():
-					return
-				}
-			}
-		}
+		return false
 	}
 	var msg *message.Message
 	for _, actionHandler := range p.ActionHandlerList {
 		msg = recvMsg.DeepCopy()
-		actionHandler := actionHandler
+		ah := actionHandler
 		p.wg.Add(1)
-		if p.PluginOpt.ActionAsync {
-			go ahFunc(actionHandler, msg)
-		} else {
-			ahFunc(actionHandler, msg) // 串行
+		if !ah.Matcher.Match(ctx, msg) { // 不匹配则下个acH
+			p.wg.Done()
+			continue
+		}
+		isMatch.Store(true) // 匹配
+		go func() {         // 执行行动
+			defer p.wg.Done()
+			replies, _, err := ah.doAction(ctx, msg) // 获取 reply 和 childActions
+			if err != nil {
+				logging.ErrorWithErr(err, "doAction err", map[string]interface{}{"actionName": ah.Name})
+				logging.Debug("doAction err", map[string]interface{}{"actionName": ah.Name, "msg": msg})
+			}
+			if replies != nil && len(replies) > 0 {
+				for _, reply := range replies {
+					select {
+					case p.sendChan <- &reply:
+					case <-ctx.Done():
+						return
+					}
+				}
+			}
+		}()
+		if false == p.PluginOpt.IsWaitAllAcMatch {
+			break // 仅匹配一个
 		}
 	}
-	p.wg.Wait()
-	return
+
+	return isMatch.Load()
 }
 
 type PluginLevel uint8
@@ -315,11 +314,11 @@ var Level2Str = map[uint8]string{
 const LevelSize = 7
 
 type PluginOpt struct {
-	Enable      bool          // 是否启用
-	IsExclusion bool          // todo 是否排斥其他模块
-	ActionAsync bool          // 同级action是否异步
-	Level       PluginLevel   // 模块等级
-	LifeTime    time.Duration // 存活时间
+	Enable           bool          // 是否启用
+	IsExclusion      bool          // todo 是否排斥其他模块
+	IsWaitAllAcMatch bool          // 是否等待所有同级ac匹配规则（默认false情况匹配到一个ac后其余ac将不匹配） 是否匹配所有ac
+	Level            PluginLevel   // 模块等级
+	LifeTime         time.Duration // 存活时间
 }
 
 type AutoRegister struct {
