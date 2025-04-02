@@ -2,8 +2,6 @@ module github.com/Clov614/rikka-bot-wechat
 
 go 1.22
 
-toolchain go1.22.5
-
 require (
 	github.com/Clov614/bilibili v0.1.2
 	github.com/Clov614/go-ai-sdk v0.4.4
@@ -14,7 +12,7 @@ require (
 	github.com/go-ego/gse v0.80.3
 	github.com/google/uuid v1.6.0
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/rs/zerolog v1.33.0
+	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.10.0
 	github.com/zwgblue/yaml-encoder v0.0.0-20221226083717-a0bdbda0d998
 	go.etcd.io/bbolt v1.3.11
