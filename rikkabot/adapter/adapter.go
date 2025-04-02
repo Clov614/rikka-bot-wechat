@@ -93,6 +93,7 @@ func (md *MetaData) GetRawMsg() interface{} {
 }
 
 // GetMsgSenderNickname 获取消息发送者昵称 test
+// deprecated
 func (md *MetaData) GetMsgSenderNickname() string {
 	member := md.cli.GetMember(md.RawMsg.WxId, true)
 	return member.NickName

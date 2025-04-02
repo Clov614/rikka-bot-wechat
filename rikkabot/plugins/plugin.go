@@ -9,12 +9,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/matcher"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/cache"
-	wcf "github.com/Clov614/wcf-rpc-sdk"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/matcher"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/cache"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/Queue"
+	wcf "github.com/Clov614/wcf-rpc-sdk"
 
 	"github.com/Clov614/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
@@ -127,6 +129,142 @@ func (ah *ActionHandler) doAction(ctx context.Context, recvMsg *message.Message)
 	return replies, true, nil // 成功执行，返回 replies 和 nil error
 }
 
+// AHConnPool 长连接池
+type AHConnPool struct {
+	Pool map[string]*AHConn
+	once sync.Once
+}
+
+func NewAHConnPool() *AHConnPool {
+	pool := &AHConnPool{
+		Pool: make(map[string]*AHConn),
+	}
+	return pool
+}
+
+func (p *AHConnPool) CheckTimeOut(ctx context.Context) { // 确保执行检测
+	p.once.Do(func() {
+		go func() {
+			timer := time.NewTimer(5 * time.Minute)
+			defer timer.Stop() // 确保 timer 在函数退出时停止，尽管在这个无限循环的场景下可能不会执行到
+
+			for {
+				select {
+				case <-timer.C:
+					for s, conn := range p.Pool {
+						// 检查 conn 是否为 nil 是个好习惯，尽管在当前逻辑下可能不会是 nil
+						if conn != nil && conn.IsTimeOut() {
+							// 从 map 中删除过期的连接，而不是设置为 nil
+							delete(p.Pool, s)
+							// 可以考虑在这里添加 conn.Close() 或类似的方法来释放连接内部资源（如果需要）
+							logging.Debug("AHConn timed out and removed", map[string]interface{}{"id": s})
+						}
+					}
+
+					// 重置计时器。注意：Reset 必须在 timer 到期或者被 Stop 后调用
+					// 由于 <-timer.C 保证了 timer 已到期，这里直接 Reset 是安全的
+					timer.Reset(5 * time.Minute)
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
+	})
+}
+
+func (p *AHConnPool) AddNewConn(m *message.Message, conn *AHConn) {
+	id := mixId(m)
+	p.Pool[id] = conn
+}
+
+func (p *AHConnPool) EachMsg(m *message.Message, sendChan chan<- *message.Message) bool {
+	conn, b := p.Pool[mixId(m)]
+	if !b {
+		return false
+	}
+	conn.sendChan = sendChan // 传入sendchan发送消息使用
+	return conn.ExecAC(m)
+}
+
+func mixId(m *message.Message) string {
+	var id = m.WxId
+	if m.IsGroup && "" != m.RoomId {
+		id = m.RoomId + "-" + id
+	}
+	return id
+}
+
+// AHConn actionHandler长期存在版 多步骤池
+type AHConn struct {
+	Name     string
+	LifeTime time.Duration // 存活时间
+	sendChan chan<- *message.Message
+	acQueue  *Queue.Queue[*ActionHandler] // actionH 队列
+	ctx      context.Context              // 受外部模块发起那时刻的超时时间约束
+}
+
+func NewAHConn(ctx context.Context, name string, lifeTime time.Duration) *AHConn {
+	deadline, _ := context.WithDeadline(ctx, time.Now().Add(lifeTime))
+	return &AHConn{
+		ctx:      deadline,
+		Name:     name,
+		LifeTime: lifeTime,
+		acQueue:  Queue.NewQueue[*ActionHandler](),
+	}
+}
+
+func (ahc *AHConn) IsTimeOut() bool {
+	select {
+	case <-ahc.ctx.Done():
+		return true
+	default:
+	}
+	return false
+}
+
+// AddAC 动态往行动池添加行动
+func (ahc *AHConn) AddAC(acL ...*ActionHandler) *AHConn {
+	for _, ac := range acL {
+		ahc.acQueue.Enqueue(ac)
+	}
+	return ahc
+}
+
+// ExecAC 执行 <isRet: 执行后是否放回队列>
+func (ahc *AHConn) ExecAC(m *message.Message) bool {
+	if ahc.acQueue.IsEmpty() {
+		return false
+	}
+	ac, err := ahc.acQueue.Peek()
+	if err != nil {
+		logging.Debug("ExecAcErr", map[string]interface{}{"error": err.Error(), "AHConn": ahc})
+		return false
+	}
+	if !ac.Matcher.Match(ahc.ctx, m) { // 不匹配
+		logging.Debug("ExecAc NoMatch", map[string]interface{}{"error": ErrUnCheck, "AHConn": ahc})
+		return false
+	}
+	ahc.acQueue.Dequeue() // 执行前出队 （每次执行都会出队以保证每个ac只执行一次）
+	replies, _, err := ac.doAction(ahc.ctx, m)
+	if err != nil {
+		logging.ErrorWithErr(err, "doAction err", map[string]interface{}{"actionName": ahc.Name})
+		logging.Debug("doAction err", map[string]interface{}{"actionName": ahc.Name, "msg": m})
+	}
+	if replies != nil && len(replies) > 0 {
+		for _, reply := range replies {
+			select {
+			case ahc.sendChan <- &reply:
+			case <-ahc.ctx.Done():
+				return false // 退出取消发送
+			}
+		}
+	}
+	//if isRet {
+	//	ahc.AddAC(ac) // 放回队列
+	//}
+	return true
+}
+
 type IPlugin interface {
 	HandleRecv(ctx context.Context, recv *message.Message, sendChan chan<- *message.Message) (execute bool)
 	GetName() string
@@ -140,6 +278,7 @@ type IPlugin interface {
 }
 
 type Plugin struct {
+	ACPool *AHConnPool // 多步骤行动池（用于一次多行动跟踪）（标识是RoomId + WxId）
 	// 外部控制
 	sendChan chan<- *message.Message // 消息发送通道
 	// end
@@ -153,7 +292,8 @@ type Plugin struct {
 
 func DefaultPlugin(name string) *Plugin {
 	return &Plugin{
-		Name: name,
+		Name:   name,
+		ACPool: NewAHConnPool(),
 		PluginOpt: PluginOpt{
 			IsExclusion: false,           // 默认不排斥
 			Level:       MediumLevel,     // 默认中等优先级
@@ -226,7 +366,8 @@ func (p *Plugin) DisableP() {
 func (p *Plugin) HandleRecv(ctx context.Context, recv *message.Message, sendChan chan<- *message.Message) (execute bool) {
 	deadlineCtx, cancelFunc := context.WithDeadline(ctx, time.Now().Add(p.PluginOpt.LifeTime)) // 使用 Plugin 的上下文作为基础
 	p.pluginCancel = cancelFunc
-	if !p.Enable { // 插件被禁用了
+	p.ACPool.CheckTimeOut(ctx) // 释放过期长连接
+	if !p.Enable {             // 插件被禁用了
 		return false
 	}
 	p.sendChan = sendChan
@@ -237,6 +378,7 @@ func (p *Plugin) HandleRecv(ctx context.Context, recv *message.Message, sendChan
 	case <-deadlineCtx.Done(): // Plugin 超时
 		return false
 	default:
+		go p.ACPool.EachMsg(recv, sendChan)       // 先看看连接池内有无动态添加的行动，先执行
 		return p.handleMessage(deadlineCtx, recv) // 处理每条接收到的消息
 	}
 }

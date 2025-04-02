@@ -180,8 +180,8 @@ func (r *RikkaBot) ExitWithErr(code int, msg string) {
 func (r *RikkaBot) Block() error {
 	<-r.ctx.Done()
 	r.Exit()
-	logging.Info("主程序将在10s后退出...")
-	time.Sleep(10 * time.Second) // 增加一个固定延迟，简单的确保退出 todo perf -> wg
+	logging.Info("主程序将在2s后退出...")
+	time.Sleep(2 * time.Second) // 增加一个固定延迟，简单的确保退出 todo perf -> wg
 	return r.err
 }
 
