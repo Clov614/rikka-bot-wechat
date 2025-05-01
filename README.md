@@ -10,6 +10,8 @@
 [![](https://github.com/Clov614/rikka-bot-wechat/actions/workflows/release.yml/badge.svg)](https://github.com/Clov614/rikka-bot-wechat/actions/workflows/release.yml "go-releaser")
 [![](https://img.shields.io/github/contributors/Clov614/rikka-bot-wechat)](https://github.com/Clov614/rikka-bot-wechat/graphs/contributors "贡献者")
 [![](https://img.shields.io/github/license/Clov614/rikka-bot-wechat)](https://github.com/Clov614/rikka-bot-wechat/blob/main/LICENSE "许可协议")
+[![](https://img.shields.io/badge/rikka_bot_wechat-deepwiki-blue?link=https%3A%2F%2Fdeepwiki.com%2FClov614%2Frikka-bot-wechat
+)](https://deepwiki.com/Clov614/rikka-bot-wechat "DeepWiki")
 </div>
 
 ## [OneBot V12 标准](https://12.onebot.dev/)
