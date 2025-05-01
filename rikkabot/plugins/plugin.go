@@ -407,7 +407,12 @@ func (p *Plugin) handleMessage(ctx context.Context, recvMsg *message.Message) bo
 		}
 		isMatch.Store(true) // 匹配
 		go func() {         // 执行行动
-			defer p.wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					logging.Error("Panic recovered in plugin action execution", map[string]interface{}{"plugin": p.Name, "action": ah.Name, "error": r})
+				}
+				p.wg.Done()
+			}()
 			replies, _, err := ah.doAction(ctx, msg) // 获取 reply 和 childActions
 			if err != nil {
 				logging.ErrorWithErr(err, "doAction err", map[string]interface{}{"actionName": ah.Name})
