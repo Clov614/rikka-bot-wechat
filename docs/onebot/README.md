@@ -29,7 +29,7 @@ start cmd /K rikka-bot-wechat.exe -http -autoInject
 ## HTTP 正向
 
 > [!TIP]
-> HTTP正向 请参考  [接口请求API](https://apifox.com/apidoc/shared-a79a48e7-1352-483b-b9fc-3268bf88ae0d)
+> HTTP正向 请参考  [接口请求API](https://apifox.com/apidoc/shared/a79a48e7-1352-483b-b9fc-3268bf88ae0d/api-297213510)
 
 目前 `http正向` 仅实现了发送消息 `send_message` 这一个动作请求
 
