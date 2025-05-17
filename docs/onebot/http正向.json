@@ -305,7 +305,7 @@
             "schema": {
               "type": "string"
             },
-            "example": "Bearer YOUR_TOKEN"
+            "example": "Bearer {{ACCESS_TOKEN}}"
           },
           {
             "name": "Content-Type",
@@ -411,7 +411,7 @@
             "schema": {
               "type": "string"
             },
-            "example": "Bearer YOUR_TOKEN"
+            "example": "Bearer {{ACCESS_TOKEN}}"
           },
           { "name": "action", "in": "query", "required": true, "schema": { "type": "string"}, "description": "固定为 'send_message'", "example": "send_message" },
           { "name": "echo", "in": "query", "schema": { "type": "string" }, "description": "原样返回字段", "example": "my_echo_get_1" },
@@ -470,7 +470,7 @@
             "schema": {
               "type": "string"
             },
-            "example": "Bearer YOUR_TOKEN"
+            "example": "Bearer {{ACCESS_TOKEN}}"
           },
           {
             "name": "Content-Type",
@@ -545,7 +545,7 @@
             "schema": {
               "type": "string"
             },
-            "example": "Bearer YOUR_TOKEN"
+            "example": "Bearer {{ACCESS_TOKEN}}"
           },
           {
             "name": "Content-Type",
@@ -620,7 +620,7 @@
             "schema": {
               "type": "string"
             },
-            "example": "Bearer YOUR_TOKEN"
+            "example": "Bearer {{ACCESS_TOKEN}}"
           },
           {
             "name": "Content-Type",
@@ -695,7 +695,7 @@
             "schema": {
               "type": "string"
             },
-            "example": "Bearer YOUR_TOKEN"
+            "example": "Bearer {{ACCESS_TOKEN}}"
           },
           {
             "name": "Content-Type",
@@ -771,7 +771,7 @@
             "schema": {
               "type": "string"
             },
-            "example": "Bearer YOUR_TOKEN"
+            "example": "Bearer {{ACCESS_TOKEN}}"
           },
           { "name": "action", "in": "query", "required": true, "schema": { "type": "string" }, "description": "固定为 'get_groups'", "example": "get_groups" },
           { "name": "echo", "in": "query", "schema": { "type": "string" }, "description": "原样返回字段", "example": "echo_get_groups_get" }
@@ -817,7 +817,7 @@
             "schema": {
               "type": "string"
             },
-            "example": "Bearer YOUR_TOKEN"
+            "example": "Bearer {{ACCESS_TOKEN}}"
           },
           {
             "name": "Content-Type",
@@ -892,7 +892,7 @@
             "schema": {
               "type": "string"
             },
-            "example": "Bearer YOUR_TOKEN"
+            "example": "Bearer {{ACCESS_TOKEN}}"
           },
           {
             "name": "Content-Type",
@@ -967,7 +967,7 @@
             "schema": {
               "type": "string"
             },
-            "example": "Bearer YOUR_TOKEN"
+            "example": "Bearer {{ACCESS_TOKEN}}"
           },
           {
             "name": "Content-Type",
@@ -1043,7 +1043,7 @@
             "schema": {
               "type": "string"
             },
-            "example": "Bearer YOUR_TOKEN"
+            "example": "Bearer {{ACCESS_TOKEN}}"
           },
           { "name": "action", "in": "query", "required": true, "schema": { "type": "string"}, "description": "固定为 'get_group_members'", "example": "get_group_members" },
           { "name": "echo", "in": "query", "schema": { "type": "string" }, "description": "原样返回字段", "example": "echo_get_members_get" },
@@ -1091,7 +1091,7 @@
             "schema": {
               "type": "string"
             },
-            "example": "Bearer YOUR_TOKEN"
+            "example": "Bearer {{ACCESS_TOKEN}}"
           },
           {
             "name": "Content-Type",
@@ -1167,7 +1167,7 @@
             "schema": {
               "type": "string"
             },
-            "example": "Bearer YOUR_TOKEN"
+            "example": "Bearer {{ACCESS_TOKEN}}"
           },
           { "name": "action", "in": "query", "required": true, "schema": { "type": "string" }, "description": "固定为 'get_member_groups'", "example": "get_member_groups" },
           { "name": "echo", "in": "query", "schema": { "type": "string" }, "description": "原样返回字段", "example": "echo_get_user_groups_get" },
@@ -1215,7 +1215,7 @@
             "schema": {
               "type": "string"
             },
-            "example": "Bearer YOUR_TOKEN"
+            "example": "Bearer {{ACCESS_TOKEN}}"
           },
           {
             "name": "image_path",
