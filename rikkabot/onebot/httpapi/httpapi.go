@@ -65,13 +65,18 @@ type RemoveMemberFromGroupParams struct {
 
 // GetGroupMembersParams 定义了 /get_group_members 接口的请求参数
 type GetGroupMembersParams struct {
-	GroupID   string `json:"group_id,omitempty"`   // 目标分组ID (可选)
-	GroupName string `json:"group_name,omitempty"` // 目标分组名称 (可选，如果 group_id 未提供)
+	GroupID   string `form:"group_id" json:"group_id,omitempty"`     // <--- 修改：添加 form tag
+	GroupName string `form:"group_name" json:"group_name,omitempty"` // <--- 修改：添加 form tag
 }
 
 // GetMemberGroupsParams 定义了 /get_member_groups 接口的请求参数
 type GetMemberGroupsParams struct {
-	MemberID string `json:"member_id" binding:"required"` // 成员ID (wxid 或 room_id)
+	MemberID string `form:"member_id" json:"member_id" binding:"required"` // <--- 修改：添加 form tag
+}
+
+// GetGroupIDByNameParams 定义了 /get_group_id_by_name 接口的请求参数
+type GetGroupIDByNameParams struct {
+	GroupName string `form:"group_name" json:"group_name" binding:"required"` // <--- 修改：添加 form tag
 }
 
 // HttpServer http 服务
@@ -165,6 +170,8 @@ func (s HttpServer) globalHandler() gin.HandlerFunc {
 			s.handleGetGroupMembers(c)
 		case "/get_member_groups" == path: // 新增：获取成员所在分组
 			s.handleGetMemberGroups(c)
+		case "/get_group_id_by_name" == path: // <--- 新增路由处理
+			s.handleGetGroupIDByName(c)
 		//case "/login_callback" == path: // 获取登录回调
 		case strings.HasPrefix(path, "/chat_image/"):
 			s.handleChatImage(c, path)
@@ -261,12 +268,44 @@ func (s HttpServer) handleSendMsg(c *gin.Context) {
 	}
 
 	params := req.Params
-	var err error
-	// 注意: RikkaBot.SendMsg 不返回 messageId，我们需要生成一个或处理缺失的情况
-	// 对于群组标签发送，我们将为每个成功发送的消息记录日志，但只返回第一个虚拟ID（或特定策略）
-	virtualMessageId := uuid.NewString() // 为整个操作生成一个主虚拟ID
+	virtualMessageId := uuid.NewString()
+
+	// 获取随机延迟配置
+	cfgDelayMin := 100 // 默认最小延迟 100ms
+	cfgDelayMax := 300 // 默认最大延迟 300ms (示例值，原为1-3秒)
+
+	if s.bot != nil && s.bot.Config != nil {
+		// 假设配置中的单位是秒，我们需要转换为毫秒
+		// 或者，如果配置已经是毫秒，则直接使用
+		// 为了演示，我们假设配置是秒，并进行转换和限制
+		cfgDelayMin = s.bot.Config.AnswerDelayRandMin * 1000 // 秒转毫秒
+		cfgDelayMax = s.bot.Config.AnswerDelayRandMax * 1000 // 秒转毫秒
+	}
+
+	// 强制延迟上限为2000毫秒 (2秒)
+	const maxAllowedDelayMs = 2000
+	if cfgDelayMax > maxAllowedDelayMs {
+		cfgDelayMax = maxAllowedDelayMs
+		logging.Debug("Random send delay (max) capped at 2000ms", map[string]interface{}{"original_max_ms": s.bot.Config.AnswerDelayRandMax * 1000})
+	}
+
+	// 确保 cfgDelayMin 不大于 cfgDelayMax，且不大于 maxAllowedDelayMs
+	if cfgDelayMin > cfgDelayMax {
+		cfgDelayMin = cfgDelayMax // 如果最小比最大还大，则设置为一样
+	}
+	if cfgDelayMin > maxAllowedDelayMs { // 进一步确保最小延迟也不超过上限
+		cfgDelayMin = maxAllowedDelayMs
+	}
+	if cfgDelayMin < 0 { // 确保最小延迟不为负
+		cfgDelayMin = 0
+	}
+
+	sentCount := 0
+	var firstError error
+	totalMessagesToSend := 0
 
 	if len(params.GroupIDs) > 0 {
+		// ... (GroupIDs 发送逻辑)
 		uniqueReceivers := make(map[string]groupmanager.MemberType)
 		for _, groupID := range params.GroupIDs {
 			members, errManager := s.bot.GroupManager.GetGroupMembers(groupID)
@@ -275,7 +314,7 @@ func (s HttpServer) handleSendMsg(c *gin.Context) {
 				continue
 			}
 			for _, member := range members {
-				uniqueReceivers[member.ID] = member.Type // 使用 groupmanager 返回的类型
+				uniqueReceivers[member.ID] = member.Type
 			}
 		}
 
@@ -284,93 +323,141 @@ func (s HttpServer) handleSendMsg(c *gin.Context) {
 			return
 		}
 
-		var lastError error
-		sentCount := 0
+		totalMessagesToSend = len(params.Message) * len(uniqueReceivers)
+		var operationLastError error
 
 		for receiverID, memberType := range uniqueReceivers {
-			// 将 OneBot Message (segment array) 转换为 RikkaBot.SendMsg 所需的 msgType 和 data
-			msgType, msgData, convErr := convertOneBotMessageToRikka(params.Message)
-			if convErr != nil {
-				logging.ErrorWithErr(convErr, "消息转换失败，无法向此成员发送", map[string]interface{}{"receiverID": receiverID})
-				lastError = convErr // 记录转换错误
-				continue
-			}
+			for i, segment := range params.Message {
+				rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+				var delayTimeMs int
+				if cfgDelayMax >= cfgDelayMin {
+					delayTimeMs = rnd.Intn(cfgDelayMax-cfgDelayMin+1) + cfgDelayMin
+				} else {
+					delayTimeMs = cfgDelayMin
+					if delayTimeMs > maxAllowedDelayMs {
+						delayTimeMs = maxAllowedDelayMs
+					}
+					if delayTimeMs < 0 {
+						delayTimeMs = 0
+					}
+				}
+				delay := time.Duration(delayTimeMs) * time.Millisecond
+				time.Sleep(delay)
+				logging.Debug("发送前的随机延迟", map[string]interface{}{"delay": delay.String(), "receiver": receiverID, "segment_index": i})
 
-			// 注意: RikkaBot.SendMsg 的 sendId 参数不区分用户或群组，它就是目标ID。
-			// ContactType (friend/group) 的区分是在 RikkaBot.SendMessage 中，但我们现在用 SendMsg。
-			// SendMsg 内部可能需要根据 sendId 的格式来判断是发给个人还是群，或者 wcf SDK 会处理。
-			sendErr := s.bot.SendMsg(msgType, msgData, receiverID)
-			if sendErr != nil {
-				logging.ErrorWithErr(sendErr, "向群组标签成员发送消息失败", map[string]interface{}{
-					"receiverID": receiverID,
-					"memberType": string(memberType),
-				})
-				lastError = sendErr
-			} else {
-				sentCount++
-				logging.Info("已向群组标签成员发送消息", map[string]interface{}{
-					"receiverID":       receiverID,
-					"memberType":       string(memberType),
-					"virtualMessageId": virtualMessageId,
-				})
+				msgType, msgData, convErr := convertOneBotMessageToRikka([]event.MessageSegment{segment})
+				if convErr != nil {
+					logging.ErrorWithErr(convErr, "消息段转换失败，无法向此成员发送此段", map[string]interface{}{"receiverID": receiverID, "segment_index": i, "segment": segment})
+					if operationLastError == nil {
+						operationLastError = convErr
+					}
+					continue
+				}
+
+				sendErr := s.bot.SendMsg(msgType, msgData, receiverID)
+				if sendErr != nil {
+					logging.ErrorWithErr(sendErr, "向群组标签成员发送消息段失败", map[string]interface{}{
+						"receiverID":    receiverID,
+						"memberType":    string(memberType),
+						"segment_index": i,
+					})
+					if operationLastError == nil {
+						operationLastError = sendErr
+					}
+				} else {
+					sentCount++
+					logging.Info("已向群组标签成员发送消息段", map[string]interface{}{
+						"receiverID":       receiverID,
+						"memberType":       string(memberType),
+						"segment_index":    i,
+						"virtualMessageId": virtualMessageId,
+					})
+				}
 			}
 		}
 
-		if sentCount == 0 && lastError != nil {
-			retErr(c, fmt.Sprintf("未能向任何群组标签成员成功发送消息: %v", lastError), oneboterr.API_SEND_FAIL, failedStatus)
+		if sentCount == 0 && operationLastError != nil {
+			retErr(c, fmt.Sprintf("未能向任何群组标签成员成功发送任何消息段: %v", operationLastError), oneboterr.API_SEND_FAIL, failedStatus)
 			return
 		}
-		if sentCount < len(uniqueReceivers) && lastError != nil {
-			resp.Status = successStatus
-			resp.Retcode = oneboterr.OK
-			resp.Message = fmt.Sprintf("部分消息发送成功 (%d/%d)。最后遇到的错误: %v", sentCount, len(uniqueReceivers), lastError)
-			resp.Data = event.MsgRespData{
-				Time:      timeutil.GetTimeUnix(),
-				MessageId: virtualMessageId,
-			}
-		} else {
-			resp.Status = successStatus
-			resp.Retcode = oneboterr.OK
-			resp.Data = event.MsgRespData{
-				Time:      timeutil.GetTimeUnix(),
-				MessageId: virtualMessageId,
-			}
+		if sentCount < totalMessagesToSend && operationLastError != nil {
+			resp.Message = fmt.Sprintf("部分消息段发送成功 (%d/%d)。最后遇到的错误: %v", sentCount, totalMessagesToSend, operationLastError)
 		}
 
-	} else { // 单独发送逻辑 (非 GroupIDs)
+	} else {
 		var targetID string
-
 		if params.MessageType == event.OneBotMessageTypePrivate && params.UserId != "" {
 			targetID = params.UserId
 		} else if params.MessageType == event.OneBotMessageTypeGroup && params.GroupId != "" {
 			targetID = params.GroupId
 		} else if params.SendId != "" {
 			targetID = params.SendId
-			// 对于 SendId，其类型（用户或群组）将由底层的 s.bot.SendMsg 或 wcf SDK 自行处理或推断
 		} else {
 			retErr(c, "缺少必要的发送参数 (group_ids, 或 message_type + user_id/group_id, 或有效的 send_id)", oneboterr.BAD_PARAM, failedStatus)
 			return
 		}
 
-		msgType, msgData, convErr := convertOneBotMessageToRikka(params.Message)
-		if convErr != nil {
-			retErr(c, fmt.Sprintf("消息内容转换失败: %v", convErr), oneboterr.BAD_PARAM, failedStatus)
+		totalMessagesToSend = len(params.Message)
+		if totalMessagesToSend == 0 {
+			retErr(c, "消息数组为空，无可发送内容", oneboterr.BAD_PARAM, failedStatus)
 			return
 		}
 
-		err = s.bot.SendMsg(msgType, msgData, targetID)
-		if err != nil {
-			logging.Error("发送消息失败", map[string]interface{}{"targetID": targetID, "err": err.Error()})
-			retErr(c, err.Error(), oneboterr.API_SEND_FAIL, failedStatus)
-			return
+		for i, segment := range params.Message {
+			rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+			var delayTimeMs int
+			if cfgDelayMax >= cfgDelayMin {
+				delayTimeMs = rnd.Intn(cfgDelayMax-cfgDelayMin+1) + cfgDelayMin
+			} else {
+				delayTimeMs = cfgDelayMin
+				if delayTimeMs > maxAllowedDelayMs {
+					delayTimeMs = maxAllowedDelayMs
+				}
+				if delayTimeMs < 0 {
+					delayTimeMs = 0
+				}
+			}
+			delay := time.Duration(delayTimeMs) * time.Millisecond
+			time.Sleep(delay)
+			logging.Debug("发送前的随机延迟", map[string]interface{}{"delay": delay.String(), "target": targetID, "segment_index": i})
+
+			msgType, msgData, convErr := convertOneBotMessageToRikka([]event.MessageSegment{segment})
+			if convErr != nil {
+				logging.ErrorWithErr(convErr, "消息段转换失败", map[string]interface{}{"targetID": targetID, "segment_index": i, "segment": segment})
+				if firstError == nil {
+					firstError = convErr
+				}
+				continue
+			}
+
+			sendErr := s.bot.SendMsg(msgType, msgData, targetID)
+			if sendErr != nil {
+				logging.ErrorWithErr(sendErr, "发送消息段失败", map[string]interface{}{"targetID": targetID, "segment_index": i})
+				if firstError == nil {
+					firstError = sendErr
+				}
+				continue
+			} else {
+				sentCount++
+				logging.Info("消息段发送成功", map[string]interface{}{"targetID": targetID, "segment_index": i, "virtualMessageId": virtualMessageId})
+			}
 		}
 
-		resp.Status = successStatus
-		resp.Retcode = oneboterr.OK
-		resp.Data = event.MsgRespData{
-			Time:      timeutil.GetTimeUnix(),
-			MessageId: virtualMessageId,
+		if sentCount == 0 && firstError != nil {
+			retErr(c, fmt.Sprintf("未能成功发送任何消息段: %v", firstError), oneboterr.API_SEND_FAIL, failedStatus)
+			return
 		}
+		if sentCount < totalMessagesToSend && firstError != nil {
+			resp.Message = fmt.Sprintf("部分消息段发送成功 (%d/%d)。遇到的第一个错误: %v", sentCount, totalMessagesToSend, firstError)
+		}
+	}
+
+	// ... (统一处理响应状态)
+	resp.Status = successStatus
+	resp.Retcode = oneboterr.OK
+	resp.Data = event.MsgRespData{
+		Time:      timeutil.GetTimeUnix(),
+		MessageId: virtualMessageId,
 	}
 
 	if req.Echo != "" {
@@ -381,9 +468,11 @@ func (s HttpServer) handleSendMsg(c *gin.Context) {
 }
 
 // convertOneBotMessageToRikka 将 OneBot 的 MessageSegment 数组转换为 RikkaBot.SendMsg 所需的类型和数据
-// 简化处理：优先取第一个 text 或 image 类型的 segment
+// 修改：此函数现在被期望一次处理一个段（通过传入单元素切片），但其内部逻辑仍然是找到第一个就返回。
+// 如果希望它能拼接文本或处理更复杂场景，其内部也需要修改。
+// 目前，外部调用者通过循环并每次传递单元素切片来使用它。
 func convertOneBotMessageToRikka(segments []event.MessageSegment) (message.MsgType, interface{}, error) {
-	for _, seg := range segments {
+	for _, seg := range segments { // 实际上因为外部调用方式，这个循环只会迭代一次
 		if seg.Type == "text" && seg.Data != nil {
 			if text, ok := seg.Data["text"]; ok {
 				if textStr, okStr := text.(string); okStr {
@@ -392,7 +481,6 @@ func convertOneBotMessageToRikka(segments []event.MessageSegment) (message.MsgTy
 			}
 		}
 		if seg.Type == "image" && seg.Data != nil {
-			// 仅支持通过 url 字段获取图片
 			if url, ok := seg.Data["url"]; ok {
 				if urlStr, okStr := url.(string); okStr {
 					return message.MsgTypeImage, urlStr, nil
@@ -400,8 +488,9 @@ func convertOneBotMessageToRikka(segments []event.MessageSegment) (message.MsgTy
 			}
 		}
 		// 可以根据需要添加对其他类型 (如 at, reply 等) 的处理
+		// 但请注意，如果这里返回错误，外部的循环会捕获它并跳过当前段
 	}
-	return 0, nil, fmt.Errorf("未能从 OneBot Message 中找到可处理的文本或图片内容，或者图片消息段缺少 'url' 字段")
+	return 0, nil, fmt.Errorf("未能从提供的消息段中找到可处理的文本或图片内容，或者图片消息段缺少 'url' 字段")
 }
 
 // handleCreateGroup 处理创建分组的请求 (/create_group)
@@ -821,6 +910,67 @@ func (s *HttpServer) handleGetMemberGroups(c *gin.Context) {
 	resp.Data = groups
 
 	logging.Info("获取成员所在分组成功回执", map[string]interface{}{"response": resp})
+	c.JSON(http.StatusOK, resp)
+}
+
+// handleGetGroupIDByName 处理通过分组名称获取分组ID的请求 (/get_group_id_by_name)
+func (s *HttpServer) handleGetGroupIDByName(c *gin.Context) {
+	var req event.ActionRequest[GetGroupIDByNameParams]
+	var resp event.ActionResponse
+
+	if c.Request.Method == http.MethodGet {
+		req.Action = "get_group_id_by_name" // 假设 action 名称
+		if err := c.ShouldBindQuery(&req.Params); err != nil {
+			retErr(c, fmt.Sprintf("GET 请求参数绑定失败: %s。确保提供了 'group_name'。", err.Error()), oneboterr.BAD_PARAM, failedStatus)
+			return
+		}
+		_ = c.ShouldBindQuery(&req) // 绑定 echo 等公共字段
+	} else if c.Request.Method == http.MethodPost {
+		if err := c.ShouldBindJSON(&req); err != nil {
+			retErr(c, fmt.Sprintf("POST 请求参数绑定失败: %s。确保请求体包含 'action' 和 'params': {'group_name': '名称'}", err.Error()), oneboterr.BAD_PARAM, failedStatus)
+			return
+		}
+	} else {
+		retErr(c, "/get_group_id_by_name endpoint only accepts GET or POST requests", oneboterr.BAD_REQUEST, failedStatus)
+		return
+	}
+
+	logging.Debug("通过分组名获取ID请求参数", map[string]interface{}{"action_request": req})
+
+	// 虽然上面已经尝试绑定，但 action 检查还是需要的，以确保请求意图明确
+	if req.Action != "get_group_id_by_name" && req.Action != "" { // 允许 action 为空，如果直接通过路径调用
+		retErr(c, "/get_group_id_by_name 端点 action 必须是 'get_group_id_by_name' (或通过路径直接调用时可省略)", oneboterr.UNSUPPORTED_ACTION, failedStatus)
+		return
+	}
+
+	if req.Params.GroupName == "" {
+		retErr(c, "参数 'group_name' 不能为空", oneboterr.BAD_PARAM, failedStatus)
+		return
+	}
+
+	group, err := s.bot.GroupManager.GetGroupByName(req.Params.GroupName)
+	if err != nil {
+		logging.Warn("通过名称获取分组失败 (GetGroupIDByName)", map[string]interface{}{"group_name": req.Params.GroupName, "err": err.Error()})
+		if errors.Is(err, groupmanager.ErrGroupNotFoundByName) {
+			retErr(c, fmt.Sprintf("通过名称 '%s' 未找到分组", req.Params.GroupName), oneboterr.BAD_PARAM, failedStatus) // 或更具体的 not_found code
+		} else {
+			retErr(c, fmt.Sprintf("通过名称 '%s' 获取分组时发生内部错误: %s", req.Params.GroupName, err.Error()), oneboterr.INTERNAL_HANDLER_ERROR, failedStatus)
+		}
+		return
+	}
+	if group == nil { // 再次确认，虽然 GetGroupByName 在未找到时应该返回 ErrGroupNotFoundByName
+		retErr(c, fmt.Sprintf("通过名称 '%s' 未找到分组 (group is nil)", req.Params.GroupName), oneboterr.BAD_PARAM, failedStatus)
+		return
+	}
+
+	resp.Echo = req.Echo
+	resp.Retcode = oneboterr.OK
+	resp.Status = successStatus
+	resp.Data = gin.H{ // 返回包含 group_id 的对象
+		"group_id": group.ID,
+	}
+
+	logging.Info("通过分组名获取ID成功回执", map[string]interface{}{"response": resp})
 	c.JSON(http.StatusOK, resp)
 }
 

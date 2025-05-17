@@ -258,7 +258,7 @@ func (r *RikkaBot) SendMsg(msgType message.MsgType, data any, sendId string) err
 		if !ok {
 			return fmt.Errorf("`SendMsg of image` must be a string(src:<ImgPath or URL>): %w", ErrSendMsg)
 		}
-		err = r.cli.SendImage(sendId, src)
+		err = r.cli.SendImage(sendId, src) // todo wcf支持直接传递图片数据（非本机无法发送图片问题）（不成立）
 		if err != nil {
 			return fmt.Errorf("send image to %s error: %w", sendId, err)
 		}

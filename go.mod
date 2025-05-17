@@ -22,7 +22,7 @@ require (
 )
 
 //replace github.com/eatmoreapple/openwechat => github.com/Clov614/openwechat v1.4.8
-//replace github.com/Clov614/wcf-rpc-sdk v0.5.2 => E:\Applications_Dev\Go_workspace\github.com\Clov614\wcf-rpc-sdk
+//replace github.com/Clov614/wcf-rpc-sdk v0.6.2 => E:\Applications_Dev\Go_workspace\github.com\Clov614\wcf-rpc-sdk
 
 require (
 	github.com/Microsoft/go-winio v0.5.2 // indirect

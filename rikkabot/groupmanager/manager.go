@@ -1,10 +1,11 @@
 package groupmanager
 
 import (
+	"encoding/base64"
 	"encoding/json" // 用于json序列化和反序列化
 	"errors"
 	"fmt"
-	"strings" // 新增导入
+	"strings"
 	"sync"
 
 	"github.com/Clov614/logging"
@@ -147,13 +148,31 @@ func (gm *GroupManager) loadStateFromCache() error {
 	}
 
 	var jsonData []byte
+	var err error // <--- 为 base64.StdEncoding.DecodeString 和 json.Unmarshal 声明 err
+
 	switch v := cachedData.(type) {
 	case []byte:
 		jsonData = v
+		logging.Debug("GroupManager - Loaded state from cache as []byte.", map[string]interface{}{"key": gm.stateCacheKey, "byte_length": len(jsonData)})
 	case string:
-		jsonData = []byte(v)
+		logging.Debug("GroupManager - Loaded state from cache as string, attempting Base64 decode.", map[string]interface{}{"key": gm.stateCacheKey, "string_length": len(v)})
+		// 如果缓存中存的是字符串，我们假设它可能是 Base64 编码的 JSON 字节
+		// 尝试 Base64 解码
+		var decodedBytes []byte
+		decodedBytes, err = base64.StdEncoding.DecodeString(v) // <--- 修改: 赋值给新的局部变量
+		if err != nil {
+			// 如果解码失败，可能它本身就是一个普通的 JSON 字符串，而不是 Base64
+			// 记录一个警告，然后尝试直接将其作为 JSON 字符串处理
+			logging.Warn("GroupManager - Failed to Base64 decode string from cache, attempting to use as plain JSON string.",
+				map[string]interface{}{"key": gm.stateCacheKey, "original_string": v, "decode_error": err.Error()})
+			jsonData = []byte(v) // 直接使用原始字符串的字节
+			err = nil            // 重置错误，因为我们将尝试按原样处理它
+		} else {
+			jsonData = decodedBytes // 使用解码后的字节
+			logging.Debug("GroupManager - Successfully Base64 decoded string from cache.", map[string]interface{}{"key": gm.stateCacheKey, "decoded_byte_length": len(jsonData)})
+		}
 	default:
-		return fmt.Errorf("%w: %T", ErrUnknownStateTypeInCache, cachedData)
+		return fmt.Errorf("%w: %T for key %s", ErrUnknownStateTypeInCache, cachedData, gm.stateCacheKey)
 	}
 
 	if len(jsonData) == 0 {
@@ -162,13 +181,22 @@ func (gm *GroupManager) loadStateFromCache() error {
 			MemberToGroups: make(map[string][]string),
 			GroupToMembers: make(map[string][]Member),
 		}
-		logging.Info("GroupManager - 缓存中的状态数据为空，初始化为空状态。", map[string]interface{}{"key": gm.stateCacheKey})
+		logging.Info("GroupManager - Cache data for state is empty, initializing with empty state.", map[string]interface{}{"key": gm.stateCacheKey})
 		return nil
 	}
 
 	var loadedState GroupManagerState
-	if err := json.Unmarshal(jsonData, &loadedState); err != nil {
-		return fmt.Errorf("%w: %w", ErrDeserializeStateFailed, err)
+	// 确保在 Unmarshal 前 err 是 nil (如果上面 Base64 解码失败但我们决定继续的话)
+	if err == nil { // 只有在之前的步骤没有设置不可恢复的错误时才尝试 Unmarshal
+		err = json.Unmarshal(jsonData, &loadedState)
+		if err != nil {
+			return fmt.Errorf("%w on key '%s': %w. JSON data preview (first 100 bytes): '%s'", ErrDeserializeStateFailed, gm.stateCacheKey, err, stringOrPreview(jsonData, 100))
+		}
+	} else {
+		// 如果 err 不为 nil (例如，之前 Base64 解码失败且我们决定不继续)，则直接返回该错误
+		// 但根据当前逻辑，如果解码失败，err 会被重置为 nil，除非后续加入更严格的错误处理
+		// 为了清晰，如果真的有之前的错误需要传递，应该在这里处理。
+		// 不过，按当前改动，这里 err 应该是 nil。
 	}
 
 	if loadedState.Groups == nil {
@@ -182,6 +210,14 @@ func (gm *GroupManager) loadStateFromCache() error {
 	}
 	gm.state = &loadedState
 	return nil
+}
+
+// stringOrPreview 返回字符串或其预览（如果太长）
+func stringOrPreview(data []byte, maxLength int) string {
+	if len(data) > maxLength {
+		return string(data[:maxLength]) + "..."
+	}
+	return string(data)
 }
 
 // persistStateToCache 将当前内存状态保存到 PluginsCache

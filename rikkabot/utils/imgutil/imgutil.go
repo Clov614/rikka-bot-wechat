@@ -16,35 +16,36 @@ import (
 )
 
 func ImgFetch(path string) ([]byte, error) {
-	if isURL(path) {
-		return fetchFromURL(path)
+	if IsURL(path) {
+		return FetchFromURL(path)
 	}
 	return fetchFromFile(path)
 }
 
-func isURL(path string) bool {
+// IsURL checks if the given path is a URL.
+func IsURL(path string) bool {
 	return strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")
 }
 
-// fetchFromURL fetches the content from the URL
-func fetchFromURL(url string) ([]byte, error) {
+// FetchFromURL fetches the content from the URL.
+func FetchFromURL(url string) ([]byte, error) {
 	// 跳过 TLS 验证
 	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 	client := &http.Client{Transport: tr}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("fetchFromURL: creating request: %w", err)
+		return nil, fmt.Errorf("FetchFromURL: creating request: %w", err)
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("fetchFromURL: http.Get(%q): %w", url, err)
+		return nil, fmt.Errorf("FetchFromURL: client.Do(%q): %w", url, err)
 	}
 	defer resp.Body.Close()
 	bytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("fetchFromURL: resp.Body.ReadAll(): %w", err)
+		return nil, fmt.Errorf("FetchFromURL: resp.Body.ReadAll(): %w", err)
 	}
 	return bytes, nil
 }
