@@ -8,14 +8,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Clov614/logging"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/config"
-	"github.com/rs/zerolog/log"
-	"go.etcd.io/bbolt"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/Clov614/logging"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/config"
+	"github.com/rs/zerolog/log"
+	"go.etcd.io/bbolt"
 )
 
 var (
@@ -141,3 +142,10 @@ func ValidPath(path string, isCreate bool) (bool, error) {
 //	}
 //	return !info.IsDir()
 //}
+
+// GetDB 返回全局的 bbolt.DB 实例
+// 这个函数允许其他包访问由 bboltManager 初始化和管理的数据库连接。
+// 注意：直接访问全局数据库实例应谨慎处理，确保并发安全和资源管理得当。
+func GetDB() *bbolt.DB {
+	return db
+}

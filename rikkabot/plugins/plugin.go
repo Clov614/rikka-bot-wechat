@@ -15,7 +15,7 @@ import (
 
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/matcher"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor/cache"
-	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/Queue"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/queue"
 	wcf "github.com/Clov614/wcf-rpc-sdk"
 
 	"github.com/Clov614/logging"
@@ -199,7 +199,7 @@ type AHConn struct {
 	Name     string
 	LifeTime time.Duration // 存活时间
 	sendChan chan<- *message.Message
-	acQueue  *Queue.Queue[*ActionHandler] // actionH 队列
+	acQueue  *queue.Queue[*ActionHandler] // actionH 队列
 	ctx      context.Context              // 受外部模块发起那时刻的超时时间约束
 }
 
@@ -209,7 +209,7 @@ func NewAHConn(ctx context.Context, name string, lifeTime time.Duration) *AHConn
 		ctx:      deadline,
 		Name:     name,
 		LifeTime: lifeTime,
-		acQueue:  Queue.NewQueue[*ActionHandler](),
+		acQueue:  queue.NewQueue[*ActionHandler](),
 	}
 }
 

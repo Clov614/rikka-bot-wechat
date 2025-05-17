@@ -9,12 +9,15 @@ import (
 
 	"github.com/Clov614/logging"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/config"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/groupmanager"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/message"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/onebot/dto/event"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/processor"
+	cachepkg "github.com/Clov614/rikka-bot-wechat/rikkabot/processor/cache"
 	"github.com/Clov614/rikka-bot-wechat/rikkabot/utils/timeutil"
 	wcf "github.com/Clov614/wcf-rpc-sdk"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 )
 
 type RikkaBot struct {
@@ -30,6 +33,7 @@ type RikkaBot struct {
 	EventPool         *event.EventPool
 	EventFuncs        []func(event event.IEvent)
 	mu                sync.Mutex
+	GroupManager      groupmanager.IGroupManager
 
 	err error
 }
@@ -63,17 +67,35 @@ func NewRikkaBot(ctx context.Context, cancel context.CancelFunc, cli *wcf.Client
 		logging.SetLogLevel("debug")
 	}
 	recvChan := make(chan *message.Message)
+
+	// 初始化 Cache
+	appCache := cachepkg.GetCache()
+	if appCache == nil {
+		log.Warn().Msg("Cache instance is nil, attempting to initialize cache.")
+		appCache = cachepkg.Init()
+		if appCache == nil {
+			log.Fatal().Msg("Failed to initialize cache for RikkaBot")
+		}
+	}
+
+	// 初始化 GroupManager
+	gm, err := groupmanager.NewGroupManager(appCache, "rikka_groups_main")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize GroupManager")
+	}
+
 	// 初始化
 	return &RikkaBot{
-		ctx:        ctx,
-		cancel:     cancel,
-		sendMsg:    make(chan *message.Message),
-		recvMsg:    recvChan,
-		Processor:  processor.NewProcessor(ctx, cli),
-		Config:     cfg,
-		cli:        cli,
-		EventPool:  event.NewEventPool(cfg.HttpServer.EventBufferSize),
-		EventFuncs: make([]func(event event.IEvent), 0),
+		ctx:          ctx,
+		cancel:       cancel,
+		sendMsg:      make(chan *message.Message),
+		recvMsg:      recvChan,
+		Processor:    processor.NewProcessor(ctx, cli),
+		Config:       cfg,
+		cli:          cli,
+		EventPool:    event.NewEventPool(cfg.HttpServer.EventBufferSize),
+		EventFuncs:   make([]func(event event.IEvent), 0),
+		GroupManager: gm,
 	}
 
 }

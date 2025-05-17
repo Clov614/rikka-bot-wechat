@@ -1,8 +1,8 @@
-// Package Queue
+// Package queue
 // @Author Clover
 // @Data 2025/3/31 下午7:09:00
 // @Desc 使用 Go 泛型实现的并发安全的切片队列
-package Queue
+package queue
 
 import (
 	"errors"

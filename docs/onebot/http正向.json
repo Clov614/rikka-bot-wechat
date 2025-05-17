@@ -1,0 +1,1266 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "RikkaBot OneBot HTTP API",
+    "version": "1.0.0",
+    "description": "RikkaBot 的 OneBot V12 兼容 HTTP API。所有动作请求都应包含 'action' 和 'params' 字段。认证通过 Authorization 头部 (Bearer your_token) 进行。"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "本地服务器 (请根据您的实际配置修改)"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "OneBotMessageType": {
+        "type": "string",
+        "enum": ["private", "group"],
+        "description": "OneBot 消息类型 (私聊 'private', 群聊 'group')",
+        "example": "private"
+      },
+      "MessageSegment": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "消息段类型",
+            "example": "text"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "消息段数据",
+            "example": {"text": "你好，世界！"}
+          }
+        },
+        "required": ["type", "data"],
+        "description": "OneBot 消息段"
+      },
+      "SendMsgParams": {
+        "type": "object",
+        "properties": {
+          "message_type": {
+            "$ref": "#/components/schemas/OneBotMessageType"
+          },
+          "user_id": {
+            "type": "string",
+            "description": "用户 ID (私聊时需要)",
+            "example": "wxid_xxxxxxxxxxxxxx"
+          },
+          "group_id": {
+            "type": "string",
+            "description": "群组 ID (群聊时需要)",
+            "example": "xxxxxxxxx@chatroom"
+          },
+          "message": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MessageSegment"
+            },
+            "description": "消息内容 (OneBot 标准的消息段数组)",
+            "example": [
+              {"type": "text", "data": {"text": "这是一条测试消息。"}},
+              {"type": "image", "data": {"url": "http://example.com/image.jpg"}}
+            ]
+          },
+          "auto_escape": {
+            "type": "boolean",
+            "description": "是否自动转义 (OneBot V11 字段)",
+            "example": false
+          },
+          "send_id": {
+            "type": "string",
+            "description": "发送者 ID (兼容字段，私聊时为用户 ID, 群聊时为群组 ID)。如果提供此字段，可不提供 message_type, user_id, group_id。",
+            "example": "wxid_zzzzzzzzzzzz"
+          },
+          "group_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "群组标签 ID 列表。如果提供此字段，将向这些标签下的所有成员发送消息。",
+            "example": ["label_id_1", "label_id_2"]
+          }
+        },
+        "required": ["message"],
+        "description": "send_message 动作的参数"
+      },
+      "MsgRespData": {
+        "type": "object",
+        "properties": {
+          "time": {
+            "type": "number",
+            "format": "double",
+            "description": "时间戳",
+            "example": 1678886400.123
+          },
+          "message_id": {
+            "type": "string",
+            "description": "消息 ID (通常是虚拟生成的)",
+            "example": "abc-123-def-456"
+          }
+        },
+        "description": "发送消息成功时的响应数据"
+      },
+      "CreateGroupParams": {
+        "type": "object",
+        "properties": {
+          "group_name": {
+            "type": "string",
+            "description": "要创建的分组名称",
+            "example": "我的新分组"
+          }
+        },
+        "required": ["group_name"],
+        "description": "create_group 动作的参数"
+      },
+      "DeleteGroupParams": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "description": "要删除的分组ID (可选)",
+            "example": "group_id_to_delete"
+          },
+          "group_name": {
+            "type": "string",
+            "description": "要删除的分组名称 (可选，如果 group_id 未提供)",
+            "example": "要删除的分组名"
+          }
+        },
+        "description": "delete_group 动作的参数。group_id 或 group_name 必须提供一个。"
+      },
+      "RenameGroupParams": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "description": "要重命名的分组ID",
+            "example": "group_id_to_rename"
+          },
+          "new_name": {
+            "type": "string",
+            "description": "分组的新名称",
+            "example": "更新后的分组名称"
+          }
+        },
+        "required": ["group_id", "new_name"],
+        "description": "rename_group 动作的参数"
+      },
+      "GetGroupsParams": {
+        "type": "object",
+        "description": "get_groups 动作不需要额外参数 (但请求中 params 仍需是个空对象)"
+      },
+      "AddMemberToGroupParams": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "description": "目标分组ID",
+            "example": "target_group_id"
+          },
+          "member_id": {
+            "type": "string",
+            "description": "要添加的成员ID (wxid 或 room_id)",
+            "example": "wxid_memberToAdd"
+          }
+        },
+        "required": ["group_id", "member_id"],
+        "description": "add_member_to_group 动作的参数"
+      },
+      "RemoveMemberFromGroupParams": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "description": "目标分组ID",
+            "example": "target_group_id"
+          },
+          "member_id": {
+            "type": "string",
+            "description": "要移除的成员ID (wxid 或 room_id)",
+            "example": "wxid_memberToRemove"
+          }
+        },
+        "required": ["group_id", "member_id"],
+        "description": "remove_member_from_group 动作的参数"
+      },
+      "GetGroupMembersParams": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "description": "目标分组ID (可选)",
+            "example": "group_id_for_members"
+          },
+          "group_name": {
+            "type": "string",
+            "description": "目标分组名称 (可选，如果 group_id 未提供)",
+            "example": "分组名查成员"
+          }
+        },
+        "description": "get_group_members 动作的参数。group_id 或 group_name 必须提供一个。"
+      },
+      "GetMemberGroupsParams": {
+        "type": "object",
+        "properties": {
+          "member_id": {
+            "type": "string",
+            "description": "成员ID (wxid 或 room_id)",
+            "example": "wxid_user123"
+          }
+        },
+        "required": ["member_id"],
+        "description": "get_member_groups 动作的参数"
+      },
+      "Group": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "分组ID",
+            "example": "grp_abc123"
+          },
+          "name": {
+            "type": "string",
+            "description": "分组名称",
+            "example": "日常聊天组"
+          }
+        },
+        "required": ["id", "name"],
+        "description": "分组对象"
+      },
+      "MemberType": {
+        "type": "string",
+        "enum": ["user", "group"],
+        "description": "成员类型 ('user' 表示用户, 'group' 表示群组)",
+        "example": "user"
+      },
+      "Member": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "成员ID (wxid 或 room_id)",
+            "example": "wxid_testuser"
+          },
+          "type": {
+            "$ref": "#/components/schemas/MemberType"
+          }
+        },
+        "required": ["id", "type"],
+        "description": "成员对象"
+      },
+      "BaseActionRequest": {
+        "type": "object",
+        "properties": {
+          "action": { "type": "string", "description": "动作名称" },
+          "params": { "type": "object", "description": "动作参数" },
+          "echo": { "type": "string", "description": "原样返回字段", "example": "request_echo_123" }
+        },
+        "required": ["action", "params"]
+      },
+      "BaseActionResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "failed"],
+            "description": "执行状态",
+            "example": "ok"
+          },
+          "retcode": {
+            "type": "integer",
+            "format": "int64",
+            "description": "返回码 (0 为成功, 其他为错误码，具体定义见 oneboterr 包)",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "错误信息 (仅在 status 为 'failed' 时有效)",
+            "example": "参数无效"
+          },
+          "echo": {
+            "type": "string",
+            "description": "原样返回的 echo 字段",
+            "example": "request_echo_123"
+          }
+        },
+        "required": ["status", "retcode"]
+      }
+    }
+  },
+  "paths": {
+    "/send_message": {
+      "post": {
+        "summary": "发送消息 (POST)",
+        "operationId": "sendMessagePost",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "认证Token，例如：Bearer YOUR_TOKEN",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer YOUR_TOKEN"
+          },
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "description": "请求体的内容类型",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  { "$ref": "#/components/schemas/BaseActionRequest" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": { "example": "send_message" },
+                      "params": { "$ref": "#/components/schemas/SendMsgParams" }
+                    }
+                  }
+                ]
+              },
+              "examples": {
+                "sendPrivateTextMessage": {
+                  "summary": "发送私聊文本消息",
+                  "value": {
+                    "action": "send_message",
+                    "params": {
+                      "message_type": "private",
+                      "user_id": "wxid_xxxxxxxxxxxxxx",
+                      "message": [{"type": "text", "data": {"text": "你好！"}}],
+                      "auto_escape": false
+                    },
+                    "echo": "echo_private_text"
+                  }
+                },
+                "sendGroupImageMessage": {
+                  "summary": "发送群聊图片消息",
+                  "value": {
+                    "action": "send_message",
+                    "params": {
+                      "message_type": "group",
+                      "group_id": "xxxxxxxxx@chatroom",
+                      "message": [{"type": "image", "data": {"url": "http://example.com/image.png"}}]
+                    },
+                    "echo": "echo_group_image"
+                  }
+                },
+                "sendToGroupLabels": {
+                  "summary": "通过群组标签发送消息",
+                  "value": {
+                    "action": "send_message",
+                    "params": {
+                       "group_ids": ["label_A", "label_B"],
+                       "message": [{"type": "text", "data": {"text": "群发通知！"}}]
+                    },
+                    "echo": "echo_group_labels"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/BaseActionResponse" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "$ref": "#/components/schemas/MsgRespData" }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "status": "ok", "retcode": 0, "data": {"message_id": "some-random-uuid", "time": 1625884293.0}, "echo": "echo_private_text"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "发送消息 (GET)",
+        "operationId": "sendMessageGet",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "认证Token，例如：Bearer YOUR_TOKEN",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer YOUR_TOKEN"
+          },
+          { "name": "action", "in": "query", "required": true, "schema": { "type": "string"}, "description": "固定为 'send_message'", "example": "send_message" },
+          { "name": "echo", "in": "query", "schema": { "type": "string" }, "description": "原样返回字段", "example": "my_echo_get_1" },
+          { "name": "message_type", "in": "query", "schema": { "$ref": "#/components/schemas/OneBotMessageType" }, "example": "private" },
+          { "name": "user_id", "in": "query", "schema": { "type": "string" }, "example": "wxid_targetuser" },
+          { "name": "group_id", "in": "query", "schema": { "type": "string" }, "example": "targetgroup@chatroom" },
+          { "name": "send_id", "in": "query", "schema": { "type": "string" }, "example": "wxid_compat_send" },
+          {
+            "name": "message", "in": "query", "required": true,
+            "description": "消息段数组 (作为查询参数时，通常需要进行 JSON 序列化并 URL 编码。例如，一个包含单个文本消息段的数组 `[{\"type\":\"text\",\"data\":{\"text\":\"Hello GET\"}}]` 序列化并编码后附加到URL)",
+            "schema": { "type": "string" },
+            "example": "[{\"type\":\"text\",\"data\":{\"text\":\"Hello via GET\"}}]"
+          },
+          {
+            "name": "group_ids", "in": "query",
+            "description": "群组标签ID列表 (例如 group_ids=id1,id2 或 JSON 序列化的数组)",
+            "schema": { "type": "string" },
+            "example": "label_X,label_Y"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/BaseActionResponse" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "$ref": "#/components/schemas/MsgRespData" }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "status": "ok", "retcode": 0, "data": {"message_id": "another-uuid", "time": 1625884300.0}, "echo": "my_echo_get_1"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/create_group": {
+      "post": {
+        "summary": "创建分组",
+        "operationId": "createGroup",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "认证Token，例如：Bearer YOUR_TOKEN",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer YOUR_TOKEN"
+          },
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "description": "请求体的内容类型",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  { "$ref": "#/components/schemas/BaseActionRequest" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": { "example": "create_group" },
+                      "params": { "$ref": "#/components/schemas/CreateGroupParams" }
+                    }
+                  }
+                ]
+              },
+              "example": {
+                "action": "create_group",
+                "params": {"group_name": "API 测试分组"},
+                "echo": "echo_create_group"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/BaseActionResponse" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "$ref": "#/components/schemas/Group" }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "status": "ok", "retcode": 0, "data": {"id": "new_group_id_123", "name": "API 测试分组"}, "echo": "echo_create_group"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/delete_group": {
+      "post": {
+        "summary": "删除分组",
+        "operationId": "deleteGroup",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "认证Token，例如：Bearer YOUR_TOKEN",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer YOUR_TOKEN"
+          },
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "description": "请求体的内容类型",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  { "$ref": "#/components/schemas/BaseActionRequest" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": { "example": "delete_group" },
+                      "params": { "$ref": "#/components/schemas/DeleteGroupParams" }
+                    }
+                  }
+                ]
+              },
+              "example": {
+                "action": "delete_group",
+                "params": {"group_id": "group_to_delete_id"},
+                "echo": "echo_delete_group"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/BaseActionResponse" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "type": "object", "description": "成功时为空对象" }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "status": "ok", "retcode": 0, "data": {}, "echo": "echo_delete_group"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rename_group": {
+      "post": {
+        "summary": "重命名分组",
+        "operationId": "renameGroup",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "认证Token，例如：Bearer YOUR_TOKEN",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer YOUR_TOKEN"
+          },
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "description": "请求体的内容类型",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  { "$ref": "#/components/schemas/BaseActionRequest" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": { "example": "rename_group" },
+                      "params": { "$ref": "#/components/schemas/RenameGroupParams" }
+                    }
+                  }
+                ]
+              },
+              "example": {
+                "action": "rename_group",
+                "params": {"group_id": "group_id_abc", "new_name": "分组新名称"},
+                "echo": "echo_rename_group"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/BaseActionResponse" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "type": "object", "description": "成功时为空对象" }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "status": "ok", "retcode": 0, "data": {}, "echo": "echo_rename_group"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_groups": {
+      "post": {
+        "summary": "获取所有分组 (POST)",
+        "operationId": "getGroupsPost",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "认证Token，例如：Bearer YOUR_TOKEN",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer YOUR_TOKEN"
+          },
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "description": "请求体的内容类型",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  { "$ref": "#/components/schemas/BaseActionRequest" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": { "example": "get_groups" },
+                      "params": { "$ref": "#/components/schemas/GetGroupsParams", "example": {} }
+                    }
+                  }
+                ]
+              },
+              "example": {
+                "action": "get_groups",
+                "params": {},
+                "echo": "echo_get_groups_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/BaseActionResponse" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/Group" }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "status": "ok", "retcode": 0, "data": [{"id": "grp1", "name": "Group Alpha"}, {"id": "grp2", "name": "Group Beta"}], "echo": "echo_get_groups_post"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "获取所有分组 (GET)",
+        "operationId": "getGroupsGet",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "认证Token，例如：Bearer YOUR_TOKEN",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer YOUR_TOKEN"
+          },
+          { "name": "action", "in": "query", "required": true, "schema": { "type": "string" }, "description": "固定为 'get_groups'", "example": "get_groups" },
+          { "name": "echo", "in": "query", "schema": { "type": "string" }, "description": "原样返回字段", "example": "echo_get_groups_get" }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/BaseActionResponse" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/Group" }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "status": "ok", "retcode": 0, "data": [{"id": "grp_x", "name": "X组"}, {"id": "grp_y", "name": "Y组"}], "echo": "echo_get_groups_get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/add_member_to_group": {
+      "post": {
+        "summary": "添加成员到分组",
+        "operationId": "addMemberToGroup",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "认证Token，例如：Bearer YOUR_TOKEN",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer YOUR_TOKEN"
+          },
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "description": "请求体的内容类型",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  { "$ref": "#/components/schemas/BaseActionRequest" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": { "example": "add_member_to_group" },
+                      "params": { "$ref": "#/components/schemas/AddMemberToGroupParams" }
+                    }
+                  }
+                ]
+              },
+              "example": {
+                "action": "add_member_to_group",
+                "params": {"group_id": "work_group", "member_id": "wxid_new_colleague"},
+                "echo": "echo_add_member"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/BaseActionResponse" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "type": "object", "description": "成功时为空对象" }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "status": "ok", "retcode": 0, "data": {}, "echo": "echo_add_member"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/remove_member_from_group": {
+      "post": {
+        "summary": "从分组移除成员",
+        "operationId": "removeMemberFromGroup",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "认证Token，例如：Bearer YOUR_TOKEN",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer YOUR_TOKEN"
+          },
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "description": "请求体的内容类型",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  { "$ref": "#/components/schemas/BaseActionRequest" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": { "example": "remove_member_from_group" },
+                      "params": { "$ref": "#/components/schemas/RemoveMemberFromGroupParams" }
+                    }
+                  }
+                ]
+              },
+              "example": {
+                "action": "remove_member_from_group",
+                "params": {"group_id": "old_project_group", "member_id": "wxid_former_member"},
+                "echo": "echo_remove_member"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/BaseActionResponse" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "type": "object", "description": "成功时为空对象" }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "status": "ok", "retcode": 0, "data": {}, "echo": "echo_remove_member"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_group_members": {
+      "post": {
+        "summary": "获取分组内成员 (POST)",
+        "operationId": "getGroupMembersPost",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "认证Token，例如：Bearer YOUR_TOKEN",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer YOUR_TOKEN"
+          },
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "description": "请求体的内容类型",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  { "$ref": "#/components/schemas/BaseActionRequest" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": { "example": "get_group_members" },
+                      "params": { "$ref": "#/components/schemas/GetGroupMembersParams" }
+                    }
+                  }
+                ]
+              },
+              "example": {
+                "action": "get_group_members",
+                "params": {"group_id": "grp_friends"},
+                "echo": "echo_get_members_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/BaseActionResponse" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/Member" }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "status": "ok", "retcode": 0, "data": [{"id": "wxid_user1", "type": "user"}, {"id": "12345@chatroom", "type": "group"}], "echo": "echo_get_members_post"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "获取分组内成员 (GET)",
+        "operationId": "getGroupMembersGet",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "认证Token，例如：Bearer YOUR_TOKEN",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer YOUR_TOKEN"
+          },
+          { "name": "action", "in": "query", "required": true, "schema": { "type": "string"}, "description": "固定为 'get_group_members'", "example": "get_group_members" },
+          { "name": "echo", "in": "query", "schema": { "type": "string" }, "description": "原样返回字段", "example": "echo_get_members_get" },
+          { "name": "group_id", "in": "query", "schema": { "type": "string" }, "description": "目标分组ID (可选)", "example": "dev_team_group" },
+          { "name": "group_name", "in": "query", "schema": { "type": "string" }, "description": "目标分组名称 (可选)", "example": "研发一组" }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/BaseActionResponse" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/Member" }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "status": "ok", "retcode": 0, "data": [{"id": "wxid_dev1", "type": "user"}, {"id": "wxid_dev2", "type": "user"}], "echo": "echo_get_members_get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_member_groups": {
+      "post": {
+        "summary": "获取成员所在分组 (POST)",
+        "operationId": "getMemberGroupsPost",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "认证Token，例如：Bearer YOUR_TOKEN",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer YOUR_TOKEN"
+          },
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "description": "请求体的内容类型",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  { "$ref": "#/components/schemas/BaseActionRequest" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": { "example": "get_member_groups" },
+                      "params": { "$ref": "#/components/schemas/GetMemberGroupsParams" }
+                    }
+                  }
+                ]
+              },
+              "example": {
+                "action": "get_member_groups",
+                "params": {"member_id": "wxid_some_user"},
+                "echo": "echo_get_user_groups_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/BaseActionResponse" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/Group" }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                   "status": "ok", "retcode": 0, "data": [{"id": "grp_hobby", "name": "兴趣小组"}, {"id": "grp_work", "name": "工作项目组"}], "echo": "echo_get_user_groups_post"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "获取成员所在分组 (GET)",
+        "operationId": "getMemberGroupsGet",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "认证Token，例如：Bearer YOUR_TOKEN",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer YOUR_TOKEN"
+          },
+          { "name": "action", "in": "query", "required": true, "schema": { "type": "string" }, "description": "固定为 'get_member_groups'", "example": "get_member_groups" },
+          { "name": "echo", "in": "query", "schema": { "type": "string" }, "description": "原样返回字段", "example": "echo_get_user_groups_get" },
+          { "name": "member_id", "in": "query", "required": true, "schema": { "type": "string" }, "description": "成员ID (wxid 或 room_id)", "example": "11223344@chatroom" }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/BaseActionResponse" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/Group" }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                   "status": "ok", "retcode": 0, "data": [{"id": "grp_community", "name": "社区群"}], "echo": "echo_get_user_groups_get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat_image/{image_path}": {
+      "get": {
+        "summary": "获取聊天图片",
+        "operationId": "getChatImage",
+        "description": "根据图片的相对路径获取图片内容。image_path 部分是 /chat_image/ 之后的所有路径字符串，例如 /chat_image/2024/07/my_image.jpg 中的 '2024/07/my_image.jpg'。",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "认证Token，例如：Bearer YOUR_TOKEN",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer YOUR_TOKEN"
+          },
+          {
+            "name": "image_path",
+            "in": "path",
+            "required": true,
+            "description": "图片的相对路径 (例如 2023/12/image.jpg )",
+            "schema": {
+              "type": "string"
+            },
+            "example": "2024/07/example_image.png"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功返回图片数据",
+            "content": {
+              "image/jpeg": {},
+              "image/png": {},
+              "image/gif": {},
+              "image/*": {"description": "其他图片类型"}
+            }
+          },
+          "403": {
+            "description": "鉴权失败",
+             "content": {
+              "application/json": {
+                "schema": { "type": "object", "properties": {"error": {"type": "string", "example": "鉴权失败"}} }
+              }
+            }
+          },
+          "404": {
+            "description": "图片未找到",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {"type": "string", "example": "image not found"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
