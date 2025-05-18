@@ -226,6 +226,39 @@
         "required": ["group_name"],
         "description": "get_group_id_by_name 动作的参数"
       },
+      "HandleFriendRequestParams": {
+        "type": "object",
+        "properties": {
+          "flag": {
+            "type": "string",
+            "description": "好友请求的标识 (通常是来自 friend_request 事件的 v4 ticket)",
+            "example": "v4_xxxxxxxxxxxxxxxxxxxxxx@stranger"
+          },
+          "approve": {
+            "type": "boolean",
+            "description": "是否同意请求 (true: 同意, false: 拒绝)",
+            "example": true
+          },
+          "remark": {
+            "type": "string",
+            "description": "同意好友请求时的备注名 (可选)",
+            "example": "微信好友-小明"
+          },
+          "ticket_v3": {
+            "type": "string",
+            "description": "好友请求的 v3 ticket (来自 friend_request 事件)",
+            "example": "v3_yyyyyyyyyyyyyyyyyyyyyy@stranger"
+          },
+          "scene": {
+            "type": "integer",
+            "format": "int64",
+            "description": "好友请求的场景值 (来自 friend_request 事件)",
+            "example": 14
+          }
+        },
+        "required": ["flag", "approve", "ticket_v3", "scene"],
+        "description": "handle_friend_request 动作的参数"
+      },
       "GroupIDResponseData": {
         "type": "object",
         "properties": {
@@ -1333,6 +1366,87 @@
                 },
                 "example": {
                   "status": "ok", "retcode": 0, "data": {"group_id": "grp_another_id_456"}, "echo": "echo_get_group_id_get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/handle_friend_request": {
+      "post": {
+        "summary": "处理好友请求",
+        "operationId": "handleFriendRequest",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "认证Token，例如：Bearer YOUR_TOKEN",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer {{ACCESS_TOKEN}}"
+          },
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "description": "请求体的内容类型",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  { "$ref": "#/components/schemas/BaseActionRequest" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": { "example": "handle_friend_request" },
+                      "params": { "$ref": "#/components/schemas/HandleFriendRequestParams" }
+                    }
+                  }
+                ]
+              },
+              "example": {
+                "action": "handle_friend_request",
+                "params": {
+                  "flag": "v4_ticket_example_from_event@stranger",
+                  "approve": true,
+                  "remark": "来自API的备注",
+                  "ticket_v3": "v3_ticket_example_from_event@stranger",
+                  "scene": 14
+                },
+                "echo": "echo_handle_friend_req"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/BaseActionResponse" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "type": "object", "description": "成功时为空对象" }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "status": "ok", "retcode": 0, "data": {}, "echo": "echo_handle_friend_req"
                 }
               }
             }

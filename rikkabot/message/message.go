@@ -41,6 +41,7 @@ type Message struct {
 	FileInfo   *wcf.FileInfo      `json:"-"`                      // 文件信息
 	//Self      ISelf              `json:"raw_msg"` // 原先平台对应对象
 	//ReplyFunc func(msg *Message) `json:"-"` // todo 回复消息的方法
+	FriendReq *wcf.NewFriendReq `json:"friend_req,omitempty"` // 新好友请求参数
 }
 
 type IMeta interface {

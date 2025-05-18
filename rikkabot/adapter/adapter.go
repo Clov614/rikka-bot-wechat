@@ -166,11 +166,13 @@ func (a *Adapter) covert(msg *wcf.Message) *message.Message {
 	case wcf.MsgTypeVideo:
 		rikkaMsgType = message.MsgTypeVideo
 	case wcf.MsgTypeXML: // todo test 解析app消息
-		//if msg.AppMsgType == openwechat.AppMsgTypeVideo { // 视频 app 消息
-		//	rikkaMsgType = message.MsgTypeApp
-		//} else { // todo 消息选择器测试无误后移除
-		//	return nil // 忽略未知app消息
-		//}
+	//if msg.AppMsgType == openwechat.AppMsgTypeVideo { // 视频 app 消息
+	//	rikkaMsgType = message.MsgTypeApp
+	//} else { // todo 消息选择器测试无误后移除
+	//	return nil // 忽略未知app消息
+	//}
+	case wcf.MsgTypeFriendConfirm:
+		rikkaMsgType = message.MsgTypeNewFriendVerify
 	default:
 		return nil // 忽略未知的消息种类
 	}
@@ -196,6 +198,7 @@ func (a *Adapter) covert(msg *wcf.Message) *message.Message {
 		IsFriend:   msg.IsSendByFriend(),
 		IsMySelf:   msg.IsSelf, // 是否为自己发送的消息
 		FileInfo:   msg.FileInfo,
+		FriendReq:  msg.NewFriendReq,
 	}
 }
 

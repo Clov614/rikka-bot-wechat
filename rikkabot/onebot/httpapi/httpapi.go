@@ -18,6 +18,8 @@ import (
 	"strings"
 	"time"
 
+	wcf "github.com/Clov614/wcf-rpc-sdk"
+
 	"github.com/Clov614/logging"
 
 	"github.com/Clov614/rikka-bot-wechat/rikkabot"
@@ -30,6 +32,29 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+// FriendRequestEvent 好友请求事件
+// NOTE: 此结构体理想情况下应定义在 rikkabot/onebot/dto/event/event.go 中
+type FriendRequestEvent struct {
+	event.Event        // 内嵌通用事件字段: Id, Time, Type, DetailType, SubType 等
+	UserId      string `json:"user_id"`      // 请求者 wxid
+	Comment     string `json:"comment"`      // 验证信息
+	Flag        string `json:"flag"`         // 加好友请求的 flag (通常是 ticket_v4)
+	DisplayName string `json:"display_name"` // 请求者昵称
+	// 以下字段为微信特有，传递给动作处理器以便调用SDK
+	TicketV3 string `json:"_ticket_v3,omitempty"` // v3 ticket
+	Scene    int64  `json:"_scene,omitempty"`     // 场景值
+}
+
+// HandleFriendRequestParams 定义了 /handle_friend_request 接口的请求参数
+// NOTE: 此结构体理想情况下也应与 ActionRequest 一起定义在更合适的位置，例如 dto/action 或 dto/params
+type HandleFriendRequestParams struct {
+	Flag     string `json:"flag" binding:"required"`      // 来自 FriendRequestEvent 的 Flag (ticket_v4)
+	Approve  bool   `json:"approve"`                      // true 同意, false 拒绝
+	Remark   string `json:"remark,omitempty"`             // 同意时可选的备注名
+	TicketV3 string `json:"ticket_v3" binding:"required"` // 来自 FriendRequestEvent 的 _ticket_v3
+	Scene    int64  `json:"scene" binding:"required"`     // 来自 FriendRequestEvent 的 _scene
+}
 
 // CreateGroupParams 定义了 /create_group 接口的请求参数
 type CreateGroupParams struct {
@@ -172,6 +197,8 @@ func (s HttpServer) globalHandler() gin.HandlerFunc {
 			s.handleGetMemberGroups(c)
 		case "/get_group_id_by_name" == path: // <--- 新增路由处理
 			s.handleGetGroupIDByName(c)
+		case "/handle_friend_request" == path: // 新增：处理好友请求
+			s.handleFriendRequest(c)
 		//case "/login_callback" == path: // 获取登录回调
 		case strings.HasPrefix(path, "/chat_image/"):
 			s.handleChatImage(c, path)
@@ -971,6 +998,67 @@ func (s *HttpServer) handleGetGroupIDByName(c *gin.Context) {
 	}
 
 	logging.Info("通过分组名获取ID成功回执", map[string]interface{}{"response": resp})
+	c.JSON(http.StatusOK, resp)
+}
+
+// handleFriendRequest 处理好友请求的操作 (/handle_friend_request)
+func (s *HttpServer) handleFriendRequest(c *gin.Context) {
+	var req event.ActionRequest[HandleFriendRequestParams]
+	var resp event.ActionResponse
+
+	if c.Request.Method != http.MethodPost {
+		retErr(c, "/handle_friend_request endpoint only accepts POST requests", oneboterr.BAD_REQUEST, failedStatus)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logging.Debug("处理好友请求参数绑定失败", map[string]interface{}{"err": err.Error()})
+		retErr(c, fmt.Sprintf("参数绑定失败: %s. 确保请求体是包含 'action' 和 'params': {...} 的 JSON。", err.Error()),
+			oneboterr.BAD_PARAM, failedStatus)
+		return
+	}
+
+	logging.Debug("处理好友请求参数", map[string]interface{}{"action_request": req})
+
+	if req.Action != "handle_friend_request" { // OneBot v12 风格的动作名，可自定义
+		retErr(c, "/handle_friend_request 端点 action 必须是 'handle_friend_request'", oneboterr.UNSUPPORTED_ACTION, failedStatus)
+		return
+	}
+
+	params := req.Params
+
+	// 调用 RikkaBot 核心逻辑处理好友请求
+	// 假设 RikkaBot 实例有一个方法如 ProcessFriendRequest
+	// err := s.bot.ProcessFriendRequest(params.Flag, params.Approve, params.Remark, params.TicketV3, params.Scene)
+	// 由于 RikkaBot 的具体方法未知，这里暂时模拟 WCF SDK 调用
+	// 实际应通过 s.bot 抽象层调用
+
+	if params.Approve {
+		logging.Info("尝试同意好友请求", map[string]interface{}{"flag(v4)": params.Flag, "v3": params.TicketV3, "scene": params.Scene, "remark": params.Remark})
+
+		b := s.bot.AcceptNewFriend(wcf.NewFriendReq{
+			V3:    params.TicketV3,
+			V4:    params.Flag,
+			Scene: params.Scene,
+		}) // 假设 RikkaBot 有此方法直接调用 WCF
+		if !b {
+			logging.Error("同意好友请求失败 (SDK调用)", map[string]interface{}{"params": params})
+			retErr(c, fmt.Sprintf("同意好友请求失败: %v", b), oneboterr.API_SEND_FAIL, failedStatus) // 或者更具体的错误码
+			return
+		}
+		logging.Info("好友请求已同意", map[string]interface{}{"flag": params.Flag})
+	} else {
+		//logging.Info("尝试拒绝好友请求", map[string]interface{}{"flag(v4)": params.Flag, "v3": params.TicketV3, "scene": params.Scene})
+		// todo 尚未实现拒绝 临时 忽略好友请求
+		logging.Info("好友请求已忽略", map[string]interface{}{"flag": params.Flag})
+	}
+
+	resp.Echo = req.Echo
+	resp.Retcode = oneboterr.OK
+	resp.Status = successStatus
+	resp.Data = gin.H{} // 成功时通常不返回特定数据，或返回空对象
+
+	logging.Info("处理好友请求成功回执", map[string]interface{}{"response": resp})
 	c.JSON(http.StatusOK, resp)
 }
 

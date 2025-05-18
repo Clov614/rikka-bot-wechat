@@ -267,3 +267,8 @@ func (r *RikkaBot) SendMsg(msgType message.MsgType, data any, sendId string) err
 	}
 	return nil
 }
+
+// AcceptNewFriend 同意好友请求
+func (r *RikkaBot) AcceptNewFriend(req wcf.NewFriendReq) bool {
+	return r.cli.AcceptNewFriend(req)
+}
