@@ -2,8 +2,8 @@ package rikkabot
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/coreapi"
 	"sync"
 	"time"
 
@@ -26,24 +26,15 @@ type RikkaBot struct {
 	sendMsg           chan *message.Message
 	recvMsg           chan *message.Message
 	Config            *config.CommonConfig
-	cli               *wcf.Client // hook sdk
-	EnableProcess     bool        // 是否处理消息
+	EnableProcess     bool // 是否处理消息
 	Processor         *processor.Processor
 	enableEventHandle bool // 是否开启事件处理
 	EventPool         *event.EventPool
 	EventFuncs        []func(event event.IEvent)
 	mu                sync.Mutex
-	GroupManager      groupmanager.IGroupManager
-
-	err error
+	core              *coreapi.Core // 核心组件
+	err               error
 }
-
-var (
-	ErrInvalidCall = errors.New("invalid bot call")
-	ErrSendMsg     = errors.New("send message error")
-	ErrFetchImg    = errors.New("fetch image error")
-	ErrUnSupport   = errors.New("unsupported this func")
-)
 
 func init() {
 	cfg := config.GetConfig()
@@ -86,16 +77,15 @@ func NewRikkaBot(ctx context.Context, cancel context.CancelFunc, cli *wcf.Client
 
 	// 初始化
 	return &RikkaBot{
-		ctx:          ctx,
-		cancel:       cancel,
-		sendMsg:      make(chan *message.Message),
-		recvMsg:      recvChan,
-		Processor:    processor.NewProcessor(ctx, cli),
-		Config:       cfg,
-		cli:          cli,
-		EventPool:    event.NewEventPool(cfg.HttpServer.EventBufferSize),
-		EventFuncs:   make([]func(event event.IEvent), 0),
-		GroupManager: gm,
+		ctx:        ctx,
+		cancel:     cancel,
+		sendMsg:    make(chan *message.Message),
+		recvMsg:    recvChan,
+		Processor:  processor.NewProcessor(ctx, cli),
+		Config:     cfg,
+		EventPool:  event.NewEventPool(cfg.HttpServer.EventBufferSize),
+		EventFuncs: make([]func(event event.IEvent), 0),
+		core:       coreapi.NewCore(cli, gm),
 	}
 
 }
@@ -186,7 +176,7 @@ func (r *RikkaBot) Exit() {
 		logging.Info("rikka bot exited")
 		r.EventPool.Close()
 		r.Processor.Close()
-		r.cli.Close()
+		r.core.Close() // cli.Close()
 		r.cancel()
 	})
 }
@@ -230,45 +220,3 @@ func (r *RikkaBot) GetRespMsgRecvChan() <-chan *message.Message {
 }
 
 //endregion
-
-func (r *RikkaBot) GetFullFilePathFromRelativePath(relativePath string) string {
-	return r.cli.GetFullFilePathFromRelativePath(relativePath)
-}
-
-func (r *RikkaBot) GetImgDataByPath(path string) []byte {
-	return r.cli.DecodeDatFileToBytes(path)
-}
-
-// SendMsg 统一发送消息接口 消息类型 是否群组 发送数据 群/好友 id
-// nolint
-func (r *RikkaBot) SendMsg(msgType message.MsgType, data any, sendId string) error {
-	var err error
-	switch msgType {
-	case message.MsgTypeText:
-		text, ok := data.(string)
-		if !ok {
-			return fmt.Errorf("`SendMsg of text` must be a string: %w", ErrSendMsg)
-		}
-		err = r.cli.SendText(sendId, text) // 发送消息
-		if err != nil {
-			return fmt.Errorf("send text to %s error: %w", sendId, err)
-		}
-	case message.MsgTypeImage:
-		src, ok := data.(string)
-		if !ok {
-			return fmt.Errorf("`SendMsg of image` must be a string(src:<ImgPath or URL>): %w", ErrSendMsg)
-		}
-		err = r.cli.SendImage(sendId, src) // todo wcf支持直接传递图片数据（非本机无法发送图片问题）（不成立）
-		if err != nil {
-			return fmt.Errorf("send image to %s error: %w", sendId, err)
-		}
-	default:
-		return fmt.Errorf("`SendMsg of type` must be either text or image: %w", ErrSendMsg)
-	}
-	return nil
-}
-
-// AcceptNewFriend 同意好友请求
-func (r *RikkaBot) AcceptNewFriend(req wcf.NewFriendReq) bool {
-	return r.cli.AcceptNewFriend(req)
-}

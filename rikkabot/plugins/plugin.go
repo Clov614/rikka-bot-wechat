@@ -287,6 +287,8 @@ type Plugin struct {
 	Cli               *wcf.Client // wcf客户端
 	ActionHandlerList []*ActionHandler
 	pluginCancel      context.CancelFunc
+	initFunc          func()         // 初始化方法
+	initOnce          sync.Once      // 确保仅初始化一次
 	wg                sync.WaitGroup // 用于等待所有 ActionHandler 完成
 }
 
@@ -300,6 +302,7 @@ func DefaultPlugin(name string) *Plugin {
 			LifeTime:    time.Minute * 2, // 默认存活 2 分钟
 		},
 		ActionHandlerList: make([]*ActionHandler, 0), // 初始化为空切片
+		initFunc:          func() {},
 	}
 }
 
@@ -318,6 +321,12 @@ func (p *Plugin) AsAction(ah *ActionHandler) *Plugin {
 		p.ActionHandlerList = make([]*ActionHandler, 0)
 	}
 	p.ActionHandlerList = append(p.ActionHandlerList, ah)
+	return p
+}
+
+// AsInitFunc 初始化方法将确保在插件运行前执行仅一次
+func (p *Plugin) AsInitFunc(f func()) *Plugin {
+	p.initFunc = f
 	return p
 }
 
@@ -366,6 +375,7 @@ func (p *Plugin) DisableP() {
 func (p *Plugin) HandleRecv(ctx context.Context, recv *message.Message, sendChan chan<- *message.Message) (execute bool) {
 	deadlineCtx, cancelFunc := context.WithDeadline(ctx, time.Now().Add(p.PluginOpt.LifeTime)) // 使用 Plugin 的上下文作为基础
 	p.pluginCancel = cancelFunc
+	p.initOnce.Do(p.initFunc)  // 确保初始化工作
 	p.ACPool.CheckTimeOut(ctx) // 释放过期长连接
 	if !p.Enable {             // 插件被禁用了
 		return false

@@ -25,6 +25,8 @@ import (
 	// 11
 	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/anime" // 动漫相关插件
 	/* 从上到下对应优先级由高到低 */
+	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/groupcmd" // 注册groupcmd插件
+	//22
 	_ "github.com/Clov614/rikka-bot-wechat/rikkabot/plugins/ai" // AI对话
 	/* 从上到下对应优先级由高到低 */)
 
