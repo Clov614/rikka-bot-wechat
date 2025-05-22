@@ -355,6 +355,11 @@ func GetCache() *Cache {
 }
 
 func Init() *Cache {
+	if cache != nil {
+		// alaready have cache
+		logging.Info("缓存已建立，直接返回")
+		return cache
+	}
 	initCache()
 	// 初始化读取 Cache
 	_, err := manager.LoadCache(cache)

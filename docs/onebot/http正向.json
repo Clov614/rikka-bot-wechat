@@ -343,6 +343,106 @@
           }
         },
         "required": ["status", "retcode"]
+      },
+      "GetFriendListParams": {
+        "type": "object",
+        "description": "get_friend_list 动作不需要额外参数 (但请求中 params 仍需是个空对象)"
+      },
+      "FriendInfo": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "用户ID (wxid)",
+            "example": "wxid_abcdef123456"
+          },
+          "nickname": {
+            "type": "string",
+            "description": "用户昵称",
+            "example": "张三"
+          },
+          "remark": {
+            "type": "string",
+            "description": "备注名 (可选)",
+            "example": "开发-张三"
+          },
+          "_code": {
+            "type": "string",
+            "description": "微信号 (自定义字段，可选)",
+            "example": "zhangsan_wx"
+          },
+          "_gender": {
+            "type": "integer",
+            "format": "int64",
+            "description": "性别 (自定义字段，0-未知, 1-男, 2-女，可选)",
+            "example": 1
+          }
+        },
+        "required": ["user_id", "nickname"],
+        "description": "好友信息对象 (OneBot 标准 + 自定义扩展)"
+      },
+      "GetGroupListParams": {
+        "type": "object",
+        "description": "get_group_list 动作不需要额外参数 (但请求中 params 仍需是个空对象)"
+      },
+      "GroupInfo": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "description": "群组ID (room_id)",
+            "example": "1234567890@chatroom"
+          },
+          "group_name": {
+            "type": "string",
+            "description": "群组名称",
+            "example": "技术交流群"
+          },
+          "member_count": {
+            "type": "integer",
+            "description": "群成员数量",
+            "example": 50
+          },
+          "avatar": {
+            "type": "string",
+            "description": "群头像 URL (可选)",
+            "example": "http://example.com/group_avatar.png"
+          }
+        },
+        "required": ["group_id", "group_name", "member_count"],
+        "description": "群组信息对象 (OneBot 标准 + 自定义扩展)"
+      },
+      "GetGHListParams": {
+        "type": "object",
+        "description": "get_gh_list (或 get_guild_list) 动作不需要额外参数 (但请求中 params 仍需是个空对象)"
+      },
+      "GHInfo": {
+        "type": "object",
+        "description": "公众号信息对象 (映射为 OneBot Guild 信息，包含自定义扩展)",
+        "properties": {
+          "guild_id": {
+            "type": "string",
+            "description": "公众号ID (通常是 gh_ 开头的 wxid)",
+            "example": "gh_abcdef123456"
+          },
+          "guild_name": {
+            "type": "string",
+            "description": "公众号名称",
+            "example": "官方资讯平台"
+          },
+          "_code": {
+            "type": "string",
+            "description": "公众号原始ID或微信号 (自定义字段，可选)",
+            "example": "OfficialNews"
+          },
+          "_gender": {
+            "type": "integer",
+            "format": "int64",
+            "description": "性别 (自定义字段，通常公众号无此概念，但依结构提供，可选)",
+            "example": 0
+          }
+        },
+        "required": ["guild_id", "guild_name"]
       }
     }
   },
@@ -1125,7 +1225,7 @@
                   ]
                 },
                 "example": {
-                  "status": "ok", "retcode": 0, "data": [{"id": "wxid_dev1", "type": "user"}, {"id": "wxid_dev2", "type": "user"}], "echo": "echo_get_members_get"
+                   "status": "ok", "retcode": 0, "data": [{"id": "wxid_dev1", "type": "user"}, {"id": "wxid_dev2", "type": "user"}], "echo": "echo_get_members_get"
                 }
               }
             }
@@ -1447,6 +1547,359 @@
                 },
                 "example": {
                   "status": "ok", "retcode": 0, "data": {}, "echo": "echo_handle_friend_req"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_friend_list": {
+      "post": {
+        "summary": "获取好友列表 (POST)",
+        "operationId": "getFriendListPost",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "认证Token，例如：Bearer YOUR_TOKEN",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "Bearer {{ACCESS_TOKEN}}"
+          },
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "description": "请求体的内容类型",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "application/json"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  { "$ref": "#/components/schemas/BaseActionRequest" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": { "example": "get_friend_list" },
+                      "params": { "$ref": "#/components/schemas/GetFriendListParams", "example": {} }
+                    }
+                  }
+                ]
+              },
+              "example": {
+                "action": "get_friend_list",
+                "params": {},
+                "echo": "echo_get_friends_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/BaseActionResponse" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/FriendInfo" }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "status": "ok", "retcode": 0, "data": [{"user_id": "wxid_user1", "nickname": "好友A", "remark": "备注A", "_code": "wx_a", "_gender": 1}], "echo": "echo_get_friends_post"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "获取好友列表 (GET)",
+        "operationId": "getFriendListGet",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "认证Token，例如：Bearer YOUR_TOKEN",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "Bearer {{ACCESS_TOKEN}}"
+          },
+          { "name": "action", "in": "query", "required": true, "schema": { "type": "string" }, "description": "固定为 'get_friend_list'", "example": "get_friend_list" },
+          { "name": "echo", "in": "query", "schema": { "type": "string" }, "description": "原样返回字段", "example": "echo_get_friends_get" }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/BaseActionResponse" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/FriendInfo" }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "status": "ok", "retcode": 0, "data": [{"user_id": "wxid_user2", "nickname": "好友B"}], "echo": "echo_get_friends_get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_group_list": {
+      "post": {
+        "summary": "获取群列表 (POST)",
+        "operationId": "getGroupListPost",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "认证Token",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "Bearer {{ACCESS_TOKEN}}"
+          },
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "description": "请求体的内容类型",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "application/json"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  { "$ref": "#/components/schemas/BaseActionRequest" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": { "example": "get_group_list" },
+                      "params": { "$ref": "#/components/schemas/GetGroupListParams", "example": {} }
+                    }
+                  }
+                ]
+              },
+              "example": {
+                "action": "get_group_list",
+                "params": {},
+                "echo": "echo_get_groups_post_new"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/BaseActionResponse" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/GroupInfo" }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "status": "ok", "retcode": 0, "data": [{"group_id": "group1@chatroom", "group_name": "群聊A", "member_count": 10, "avatar": "url_to_avatar_a"}], "echo": "echo_get_groups_post_new"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "获取群列表 (GET)",
+        "operationId": "getGroupListGet",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "认证Token",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "Bearer {{ACCESS_TOKEN}}"
+          },
+          { "name": "action", "in": "query", "required": true, "schema": { "type": "string" }, "description": "固定为 'get_group_list'", "example": "get_group_list" },
+          { "name": "echo", "in": "query", "schema": { "type": "string" }, "description": "原样返回字段", "example": "echo_get_groups_get_new" }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/BaseActionResponse" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/GroupInfo" }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "status": "ok", "retcode": 0, "data": [{"group_id": "group2@chatroom", "group_name": "群聊B", "member_count": 25}], "echo": "echo_get_groups_get_new"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_gh_list": {
+      "post": {
+        "summary": "获取公众号列表 (POST, 对应 OneBot v12 get_guild_list)",
+        "operationId": "getGHListPost",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "认证Token",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "Bearer {{ACCESS_TOKEN}}"
+          },
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "description": "请求体的内容类型",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "application/json"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  { "$ref": "#/components/schemas/BaseActionRequest" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": { "examples": ["get_gh_list", "get_guild_list"] },
+                      "params": { "$ref": "#/components/schemas/GetGHListParams", "example": {} }
+                    }
+                  }
+                ]
+              },
+              "examples": {
+                "get_gh_list_example": {
+                  "summary": "使用 get_gh_list action",
+                  "value": {"action": "get_gh_list", "params": {}, "echo": "echo_get_gh_list_post"}
+                },
+                "get_guild_list_example": {
+                  "summary": "使用 get_guild_list action (兼容)",
+                  "value": {"action": "get_guild_list", "params": {}, "echo": "echo_get_guild_list_post"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/BaseActionResponse" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/GHInfo" }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "status": "ok", "retcode": 0, "data": [{"guild_id": "gh_official1", "guild_name": "公众号1", "_code": "Official1_wx"}], "echo": "echo_get_gh_list_post"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "获取公众号列表 (GET, 对应 OneBot v12 get_guild_list)",
+        "operationId": "getGHListGet",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "认证Token",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "Bearer {{ACCESS_TOKEN}}"
+          },
+          { "name": "action", "in": "query", "required": true, "schema": { "type": "string", "examples": ["get_gh_list", "get_guild_list"] }, "description": "动作名，可以是 'get_gh_list' 或 'get_guild_list'", "example": "get_gh_list" },
+          { "name": "echo", "in": "query", "schema": { "type": "string" }, "description": "原样返回字段", "example": "echo_get_gh_list_get" }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/BaseActionResponse" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/GHInfo" }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "status": "ok", "retcode": 0, "data": [{"guild_id": "gh_news2", "guild_name": "快讯"}], "echo": "echo_get_gh_list_get"
                 }
               }
             }

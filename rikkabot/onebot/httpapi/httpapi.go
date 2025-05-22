@@ -11,6 +11,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/config"
+	"github.com/Clov614/rikka-bot-wechat/rikkabot/coreapi"
 	"io"
 	"math/rand"
 	"net/http"
@@ -104,11 +106,48 @@ type GetGroupIDByNameParams struct {
 	GroupName string `form:"group_name" json:"group_name" binding:"required"` // <--- 修改：添加 form tag
 }
 
+// GetFriendListParams (空结构体，因为 get_friend_list 不需要额外参数)
+type GetFriendListParams struct{}
+
+// GetGroupListParams (空结构体，因为 get_group_list 不需要额外参数)
+type GetGroupListParams struct{}
+
+// GetGHListParams (空结构体，因为 get_gh_list 不需要额外参数)
+type GetGHListParams struct{}
+
+// FriendInfo OneBot v12 好友信息结构
+type FriendInfo struct {
+	UserID   string `json:"user_id"`
+	Nickname string `json:"nickname"`
+	Remark   string `json:"remark,omitempty"` // 备注，可选
+	// --- 微信特有字段 (自定义，非OneBot标准) ---
+	Code   string `json:"_code,omitempty"`   // 微信号
+	Gender int64  `json:"_gender,omitempty"` // 性别 (假设 GenderType 可以转换为 int)
+}
+
+// GroupInfo OneBot v12 群信息结构
+type GroupInfo struct {
+	GroupID     string `json:"group_id"`
+	GroupName   string `json:"group_name"`
+	MemberCount int    `json:"member_count"`
+	Avatar      string `json:"avatar,omitempty"` // 群头像URL
+}
+
+// GHInfo OneBot v12 公众号信息结构 (类似 Guild)
+type GHInfo struct {
+	GuildID   string `json:"guild_id"`   // 使用 guild_id 作为公众号的唯一标识
+	GuildName string `json:"guild_name"` // 使用 guild_name 作为公众号的名称
+	// --- 微信特有字段 (自定义，非OneBot标准) ---
+	Code   string `json:"_code,omitempty"`   // 公众号原始ID或微信号
+	Gender int64  `json:"_gender,omitempty"` // 性别 (通常公众号无性别，但结构体有)
+}
+
 // HttpServer http 服务
 type HttpServer struct {
 	HttpAddr    string
 	AccessToken string // 鉴权
-	bot         *rikkabot.RikkaBot
+	botCfg      *config.CommonConfig
+	core        *coreapi.Core
 }
 
 const (
@@ -199,6 +238,12 @@ func (s HttpServer) globalHandler() gin.HandlerFunc {
 			s.handleGetGroupIDByName(c)
 		case "/handle_friend_request" == path: // 新增：处理好友请求
 			s.handleFriendRequest(c)
+		case "/get_friend_list" == path: // 新增：获取好友列表
+			s.handleGetFriendList(c)
+		case "/get_group_list" == path: // 新增：获取群列表
+			s.handleGetGroupList(c)
+		case "/get_gh_list" == path: // 新增：获取公众号列表 (作为 guild_list 的一种实现)
+			s.handleGetGHList(c)
 		//case "/login_callback" == path: // 获取登录回调
 		case strings.HasPrefix(path, "/chat_image/"):
 			s.handleChatImage(c, path)
@@ -213,7 +258,7 @@ func (s HttpServer) handleChatImage(c *gin.Context, path string) {
 	relativePath := path[msgAttachIndex+len("chat_image"):]
 
 	// 获取图片
-	data := s.bot.GetImgDataByPath(s.bot.GetFullFilePathFromRelativePath(relativePath))
+	data := s.core.GetImgDataByPath(s.core.GetFullFilePathFromRelativePath(relativePath))
 	if data == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "image not found"})
 		return
@@ -301,19 +346,19 @@ func (s HttpServer) handleSendMsg(c *gin.Context) {
 	cfgDelayMin := 100 // 默认最小延迟 100ms
 	cfgDelayMax := 300 // 默认最大延迟 300ms (示例值，原为1-3秒)
 
-	if s.bot != nil && s.bot.Config != nil {
+	if s.core != nil && s.botCfg != nil {
 		// 假设配置中的单位是秒，我们需要转换为毫秒
 		// 或者，如果配置已经是毫秒，则直接使用
 		// 为了演示，我们假设配置是秒，并进行转换和限制
-		cfgDelayMin = s.bot.Config.AnswerDelayRandMin * 1000 // 秒转毫秒
-		cfgDelayMax = s.bot.Config.AnswerDelayRandMax * 1000 // 秒转毫秒
+		cfgDelayMin = s.botCfg.AnswerDelayRandMin * 1000 // 秒转毫秒
+		cfgDelayMax = s.botCfg.AnswerDelayRandMax * 1000 // 秒转毫秒
 	}
 
 	// 强制延迟上限为2000毫秒 (2秒)
 	const maxAllowedDelayMs = 2000
 	if cfgDelayMax > maxAllowedDelayMs {
 		cfgDelayMax = maxAllowedDelayMs
-		logging.Debug("Random send delay (max) capped at 2000ms", map[string]interface{}{"original_max_ms": s.bot.Config.AnswerDelayRandMax * 1000})
+		logging.Debug("Random send delay (max) capped at 2000ms", map[string]interface{}{"original_max_ms": s.botCfg.AnswerDelayRandMax * 1000})
 	}
 
 	// 确保 cfgDelayMin 不大于 cfgDelayMax，且不大于 maxAllowedDelayMs
@@ -335,7 +380,7 @@ func (s HttpServer) handleSendMsg(c *gin.Context) {
 		// ... (GroupIDs 发送逻辑)
 		uniqueReceivers := make(map[string]groupmanager.MemberType)
 		for _, groupID := range params.GroupIDs {
-			members, errManager := s.bot.GroupManager.GetGroupMembers(groupID)
+			members, errManager := s.core.GroupManager.GetGroupMembers(groupID)
 			if errManager != nil {
 				logging.Warn("获取群组成员失败，跳过此群组", map[string]interface{}{"groupID": groupID, "error": errManager.Error()})
 				continue
@@ -381,7 +426,7 @@ func (s HttpServer) handleSendMsg(c *gin.Context) {
 					continue
 				}
 
-				sendErr := s.bot.SendMsg(msgType, msgData, receiverID)
+				sendErr := s.core.SendMsg(msgType, msgData, receiverID)
 				if sendErr != nil {
 					logging.ErrorWithErr(sendErr, "向群组标签成员发送消息段失败", map[string]interface{}{
 						"receiverID":    receiverID,
@@ -457,7 +502,7 @@ func (s HttpServer) handleSendMsg(c *gin.Context) {
 				continue
 			}
 
-			sendErr := s.bot.SendMsg(msgType, msgData, targetID)
+			sendErr := s.core.SendMsg(msgType, msgData, targetID)
 			if sendErr != nil {
 				logging.ErrorWithErr(sendErr, "发送消息段失败", map[string]interface{}{"targetID": targetID, "segment_index": i})
 				if firstError == nil {
@@ -549,7 +594,7 @@ func (s *HttpServer) handleCreateGroup(c *gin.Context) {
 		return
 	}
 
-	group, err := s.bot.GroupManager.CreateGroup(req.Params.GroupName)
+	group, err := s.core.GroupManager.CreateGroup(req.Params.GroupName)
 	if err != nil {
 		logging.Error("创建分组失败", map[string]interface{}{"group_name": req.Params.GroupName, "err": err.Error()})
 		if errors.Is(err, groupmanager.ErrGroupExistsWithName) {
@@ -596,7 +641,7 @@ func (s *HttpServer) handleGetGroups(c *gin.Context) {
 		return
 	}
 
-	groups, err := s.bot.GroupManager.GetAllGroups()
+	groups, err := s.core.GroupManager.GetAllGroups()
 	if err != nil {
 		logging.Error("获取所有分组失败", map[string]interface{}{"err": err.Error()})
 		retErr(c, fmt.Sprintf("获取所有分组失败: %s", err.Error()), oneboterr.INTERNAL_HANDLER_ERROR, failedStatus)
@@ -634,7 +679,7 @@ func (s *HttpServer) handleRenameGroup(c *gin.Context) {
 		return
 	}
 
-	err := s.bot.GroupManager.RenameGroup(req.Params.GroupID, req.Params.NewName)
+	err := s.core.GroupManager.RenameGroup(req.Params.GroupID, req.Params.NewName)
 	if err != nil {
 		logging.Error("重命名分组失败", map[string]interface{}{"params": req.Params, "err": err.Error()})
 		if errors.Is(err, groupmanager.ErrGroupNotFound) {
@@ -688,7 +733,7 @@ func (s *HttpServer) handleDeleteGroup(c *gin.Context) {
 	}
 
 	if groupID == "" && groupName != "" {
-		group, err := s.bot.GroupManager.GetGroupByName(groupName)
+		group, err := s.core.GroupManager.GetGroupByName(groupName)
 		if err != nil {
 			logging.Error("通过名称获取分组失败以便删除", map[string]interface{}{"group_name": groupName, "err": err.Error()})
 			if errors.Is(err, groupmanager.ErrGroupNotFoundByName) {
@@ -705,7 +750,7 @@ func (s *HttpServer) handleDeleteGroup(c *gin.Context) {
 		groupID = group.ID
 	}
 
-	err := s.bot.GroupManager.DeleteGroup(groupID)
+	err := s.core.GroupManager.DeleteGroup(groupID)
 	if err != nil {
 		logging.Error("删除分组失败", map[string]interface{}{"group_id": groupID, "err": err.Error()})
 		if errors.Is(err, groupmanager.ErrGroupNotFound) {
@@ -748,7 +793,7 @@ func (s *HttpServer) handleAddMemberToGroup(c *gin.Context) {
 	}
 
 	params := req.Params
-	err := s.bot.GroupManager.AddMemberToGroup(params.GroupID, params.MemberID)
+	err := s.core.GroupManager.AddMemberToGroup(params.GroupID, params.MemberID)
 	if err != nil {
 		logging.Error("添加成员到分组失败", map[string]interface{}{"params": params, "err": err.Error()})
 		if errors.Is(err, groupmanager.ErrGroupNotFound) || errors.Is(err, groupmanager.ErrGroupDoesNotExist) {
@@ -795,7 +840,7 @@ func (s *HttpServer) handleRemoveMemberFromGroup(c *gin.Context) {
 	}
 
 	params := req.Params
-	err := s.bot.GroupManager.RemoveMemberFromGroup(params.GroupID, params.MemberID)
+	err := s.core.GroupManager.RemoveMemberFromGroup(params.GroupID, params.MemberID)
 	if err != nil {
 		logging.Error("从分组移除成员失败", map[string]interface{}{"params": params, "err": err.Error()})
 		if errors.Is(err, groupmanager.ErrGroupNotFound) || errors.Is(err, groupmanager.ErrGroupDoesNotExist) {
@@ -857,7 +902,7 @@ func (s *HttpServer) handleGetGroupMembers(c *gin.Context) {
 	}
 
 	if groupID == "" && groupName != "" {
-		group, err := s.bot.GroupManager.GetGroupByName(groupName)
+		group, err := s.core.GroupManager.GetGroupByName(groupName)
 		if err != nil {
 			logging.Error("通过名称获取分组失败 (GetGroupMembers)", map[string]interface{}{"group_name": groupName, "err": err.Error()})
 			if errors.Is(err, groupmanager.ErrGroupNotFoundByName) {
@@ -874,7 +919,7 @@ func (s *HttpServer) handleGetGroupMembers(c *gin.Context) {
 		groupID = group.ID
 	}
 
-	members, err := s.bot.GroupManager.GetGroupMembers(groupID)
+	members, err := s.core.GroupManager.GetGroupMembers(groupID)
 	if err != nil {
 		logging.Error("获取分组内成员失败", map[string]interface{}{"group_id": groupID, "err": err.Error()})
 		retErr(c, fmt.Sprintf("获取分组 '%s' 内成员失败: %s", groupID, err.Error()), oneboterr.INTERNAL_HANDLER_ERROR, failedStatus)
@@ -920,7 +965,7 @@ func (s *HttpServer) handleGetMemberGroups(c *gin.Context) {
 	}
 
 	params := req.Params
-	groups, err := s.bot.GroupManager.GetMemberGroups(params.MemberID)
+	groups, err := s.core.GroupManager.GetMemberGroups(params.MemberID)
 	if err != nil {
 		logging.Error("获取成员所在分组失败", map[string]interface{}{"member_id": params.MemberID, "err": err.Error()})
 		if errors.Is(err, groupmanager.ErrMemberTypeInferenceFailed) {
@@ -975,7 +1020,7 @@ func (s *HttpServer) handleGetGroupIDByName(c *gin.Context) {
 		return
 	}
 
-	group, err := s.bot.GroupManager.GetGroupByName(req.Params.GroupName)
+	group, err := s.core.GroupManager.GetGroupByName(req.Params.GroupName)
 	if err != nil {
 		logging.Warn("通过名称获取分组失败 (GetGroupIDByName)", map[string]interface{}{"group_name": req.Params.GroupName, "err": err.Error()})
 		if errors.Is(err, groupmanager.ErrGroupNotFoundByName) {
@@ -1036,7 +1081,7 @@ func (s *HttpServer) handleFriendRequest(c *gin.Context) {
 	if params.Approve {
 		logging.Info("尝试同意好友请求", map[string]interface{}{"flag(v4)": params.Flag, "v3": params.TicketV3, "scene": params.Scene, "remark": params.Remark})
 
-		b := s.bot.AcceptNewFriend(wcf.NewFriendReq{
+		b := s.core.AcceptNewFriend(wcf.NewFriendReq{
 			V3:    params.TicketV3,
 			V4:    params.Flag,
 			Scene: params.Scene,
@@ -1059,6 +1104,132 @@ func (s *HttpServer) handleFriendRequest(c *gin.Context) {
 	resp.Data = gin.H{} // 成功时通常不返回特定数据，或返回空对象
 
 	logging.Info("处理好友请求成功回执", map[string]interface{}{"response": resp})
+	c.JSON(http.StatusOK, resp)
+}
+
+// handleGetFriendList 处理获取好友列表的请求
+func (s *HttpServer) handleGetFriendList(c *gin.Context) {
+	var req event.ActionRequest[GetFriendListParams]
+	var resp event.ActionResponse
+
+	if err := c.ShouldBindJSON(&req); err != nil && err != io.EOF { // 允许空 body
+		logging.Debug("获取好友列表参数绑定失败", map[string]interface{}{"err": err.Error()})
+		retErr(c, fmt.Sprintf("参数绑定失败: %s. 确保请求体是包含 'action' 和 'params': {...} 的 JSON，或者为空。", err.Error()),
+			oneboterr.BAD_PARAM, failedStatus)
+		return
+	}
+	if req.Action != "get_friend_list" && req.Action != "" { // 兼容直接调用和通过 action 调用
+		retErr(c, "/get_friend_list 端点 action 必须是 'get_friend_list' 或为空", oneboterr.UNSUPPORTED_ACTION, failedStatus)
+		return
+	}
+
+	friends, ok := s.core.GetCtFriends()
+	if !ok {
+		retErr(c, "获取好友列表失败 (SDK 调用失败)", oneboterr.API_SEND_FAIL, failedStatus)
+		return
+	}
+
+	onebotFriends := make([]FriendInfo, 0, len(friends))
+	for _, f := range friends {
+		onebotFriends = append(onebotFriends, FriendInfo{
+			UserID:   f.Wxid,
+			Nickname: f.Name,
+			Remark:   f.Remark,
+			Code:     f.Code,
+			Gender:   int64(f.Gender), // 假设 f.Gender 是 wcf.GenderType，可以转换为 int64
+		})
+	}
+
+	resp.Echo = req.Echo
+	resp.Retcode = oneboterr.OK
+	resp.Status = successStatus
+	resp.Data = onebotFriends
+	c.JSON(http.StatusOK, resp)
+}
+
+// handleGetGroupList 处理获取群列表的请求
+func (s *HttpServer) handleGetGroupList(c *gin.Context) {
+	var req event.ActionRequest[GetGroupListParams]
+	var resp event.ActionResponse
+
+	if err := c.ShouldBindJSON(&req); err != nil && err != io.EOF {
+		logging.Debug("获取群列表参数绑定失败", map[string]interface{}{"err": err.Error()})
+		retErr(c, fmt.Sprintf("参数绑定失败: %s. 确保请求体是包含 'action' 和 'params': {...} 的 JSON，或者为空。", err.Error()),
+			oneboterr.BAD_PARAM, failedStatus)
+		return
+	}
+	if req.Action != "get_group_list" && req.Action != "" {
+		retErr(c, "/get_group_list 端点 action 必须是 'get_group_list' 或为空", oneboterr.UNSUPPORTED_ACTION, failedStatus)
+		return
+	}
+
+	groups, ok := s.core.GetCtChatRooms()
+	if !ok {
+		retErr(c, "获取群列表失败 (SDK 调用失败)", oneboterr.API_SEND_FAIL, failedStatus)
+		return
+	}
+
+	onebotGroups := make([]GroupInfo, 0, len(groups))
+	for _, g := range groups {
+		memberCount := 0
+		if g.RoomData != nil && g.RoomData.Members != nil {
+			memberCount = len(g.RoomData.Members)
+		}
+		avatarURL := ""
+		if g.RoomHeadImgURL != nil {
+			avatarURL = *g.RoomHeadImgURL
+		}
+		onebotGroups = append(onebotGroups, GroupInfo{
+			GroupID:     g.RoomID,
+			GroupName:   g.Name, // 群名来自 User 嵌套结构
+			MemberCount: memberCount,
+			Avatar:      avatarURL,
+		})
+	}
+
+	resp.Echo = req.Echo
+	resp.Retcode = oneboterr.OK
+	resp.Status = successStatus
+	resp.Data = onebotGroups
+	c.JSON(http.StatusOK, resp)
+}
+
+// handleGetGHList 处理获取公众号列表的请求 (作为 get_guild_list 的一种实现)
+func (s *HttpServer) handleGetGHList(c *gin.Context) {
+	var req event.ActionRequest[GetGHListParams]
+	var resp event.ActionResponse
+
+	if err := c.ShouldBindJSON(&req); err != nil && err != io.EOF {
+		logging.Debug("获取公众号列表参数绑定失败", map[string]interface{}{"err": err.Error()})
+		retErr(c, fmt.Sprintf("参数绑定失败: %s. 确保请求体是包含 'action' 和 'params': {...} 的 JSON，或者为空。", err.Error()),
+			oneboterr.BAD_PARAM, failedStatus)
+		return
+	}
+	if req.Action != "get_gh_list" && req.Action != "get_guild_list" && req.Action != "" { // 兼容 get_gh_list 和 get_guild_list
+		retErr(c, "/get_gh_list (或 /get_guild_list) 端点 action 必须是 'get_gh_list', 'get_guild_list' 或为空", oneboterr.UNSUPPORTED_ACTION, failedStatus)
+		return
+	}
+
+	ghs, ok := s.core.GetCtGHs()
+	if !ok {
+		retErr(c, "获取公众号列表失败 (SDK 调用失败)", oneboterr.API_SEND_FAIL, failedStatus)
+		return
+	}
+
+	onebotGHs := make([]GHInfo, 0, len(ghs))
+	for _, gh := range ghs {
+		onebotGHs = append(onebotGHs, GHInfo{
+			GuildID:   gh.Wxid, // 使用 Wxid 作为公众号的唯一标识
+			GuildName: gh.Name,
+			Code:      gh.Code,
+			Gender:    int64(gh.Gender), // 假设 gh.Gender 是 wcf.GenderType
+		})
+	}
+
+	resp.Echo = req.Echo
+	resp.Retcode = oneboterr.OK
+	resp.Status = successStatus
+	resp.Data = onebotGHs
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -1090,7 +1261,7 @@ func RunHttp(rbot *rikkabot.RikkaBot) {
 	HttpServer{
 		HttpAddr:    httpserverCfg.HttpAddress,
 		AccessToken: httpserverCfg.AccessToken,
-		bot:         rbot,
+		core:        coreapi.GetCore(),
 	}.Run()
 
 	// http上报器
