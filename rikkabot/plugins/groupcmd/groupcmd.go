@@ -274,12 +274,7 @@ func (p *GroupCommandPlugin) handleGetGroupInfoCmd(ctx context.Context, recvMsg 
 
 func (p *GroupCommandPlugin) handleAddMemberCmd(ctx context.Context, recvMsg *message.Message) (reply message.Message, send bool, err error) {
 	reply = *recvMsg
-	args := strings.Fields(strings.TrimSpace(recvMsg.Content))
-	if len(args) < 1 {
-		reply.Content = "用法: !group add <分组ID或名称>"
-		return reply, true, nil
-	}
-	groupIDOrName := args[0]
+	groupIDOrName := recvMsg.Content
 	memberID := recvMsg.WxId // 直接获取消息场地
 	if recvMsg.IsGroup {
 		memberID = recvMsg.RoomId
@@ -303,16 +298,10 @@ func (p *GroupCommandPlugin) handleAddMemberCmd(ctx context.Context, recvMsg *me
 
 func (p *GroupCommandPlugin) handleRemoveMemberCmd(ctx context.Context, recvMsg *message.Message) (reply message.Message, send bool, err error) {
 	reply = *recvMsg
-	args := strings.Fields(strings.TrimSpace(recvMsg.Content))
-	if len(args) < 2 {
-		reply.Content = "用法: !group remove <分组ID或名称> <成员ID>"
-		return reply, true, nil
-	}
-	groupIDOrName := args[0]
-	memberID := args[1]
-	if strings.TrimSpace(memberID) == "" {
-		reply.Content = "错误: 成员ID不能为空。用法: !group remove <分组ID或名称> <成员ID>"
-		return reply, true, nil
+	groupIDOrName := recvMsg.Content
+	memberID := recvMsg.WxId
+	if recvMsg.IsGroup {
+		memberID = recvMsg.RoomId
 	}
 
 	group, errResolve := p.resolveGroup(groupIDOrName)

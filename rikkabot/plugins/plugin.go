@@ -102,11 +102,11 @@ func (ah *ActionHandler) doAction(ctx context.Context, recvMsg *message.Message)
 	// 1. 执行当前 Action 的 action
 	if ah.Action != nil {
 		rMsg, ok, err := ah.Action(ctx, recvMsg)
-		if err != nil {
-			return nil, false, err // 如果 action 执行出错，立即返回错误
-		}
 		if ok { // ok判断是否回复
 			replies = append(replies, rMsg)
+		}
+		if err != nil {
+			return replies, false, err // 如果 action 执行出错，立即返回错误
 		}
 	}
 
