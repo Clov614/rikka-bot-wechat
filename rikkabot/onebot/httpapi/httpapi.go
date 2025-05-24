@@ -1336,7 +1336,8 @@ func (c HttpClient) HandlerPostEvent(event event.IEvent) {
 			c.bot.ExitWithErr(1102, err.Error())
 		}
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+encrypt(c.secret))
+		//req.Header.Set("Authorization", "Bearer "+encrypt(c.secret))
+		req.Header.Set("Authorization", "Bearer "+c.secret)
 
 		resp, err = c.client.Do(req) // nolint:bodyclose
 		if err == nil && resp != nil && resp.StatusCode == 200 {
