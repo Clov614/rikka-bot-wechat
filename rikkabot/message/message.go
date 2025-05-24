@@ -28,6 +28,7 @@ type Message struct {
 	Content    string             `json:"content"`                // 消息内容
 	MsgId      uint64             `json:"msg_id"`                 // 唯一标识
 	WxId       string             `json:"wx_id"`                  // wxid
+	Tags       []string           `json:"tags"`                   // groupIDs 分组ID
 	RoomId     string             `json:"room_id,omitempty"`      // roomId
 	RoomName   string             `json:"room_name"`              // 群昵称
 	RoomAts    []*wcf.ContactInfo `json:"room_ats"`               // 被艾特群成员

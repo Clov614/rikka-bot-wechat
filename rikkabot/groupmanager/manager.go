@@ -15,10 +15,10 @@ import (
 	// "go.etcd.io/bbolt" // 不再直接使用 bbolt
 )
 
-// Group 定义了分组的结构
+// Group 定义了分组的结构  http Event 以及message中称之为tags
 type Group struct {
-	ID   string `json:"id"`   // 分组唯一ID (例如 UUID)
-	Name string `json:"name"` // 分组名称
+	ID   string `json:"id"` // 分组唯一ID (例如 UUID)
+	Name string `json:"name"`
 }
 
 // MemberType 定义了成员的类型，可以是用户或群聊
@@ -52,6 +52,7 @@ type IGroupManager interface {
 	GetAllGroups() ([]*Group, error)
 	AddMemberToGroup(groupID string, memberID string) error
 	RemoveMemberFromGroup(groupID string, memberID string) error
+	GetMemberTags(memberID string) []string
 	GetGroupMembers(groupID string) ([]*Member, error)
 	GetMemberGroups(memberID string) ([]*Group, error)
 	GetGroupByName(name string) (*Group, error)
@@ -663,6 +664,20 @@ func (gm *GroupManager) GetGroupMembers(groupID string) ([]*Member, error) {
 		result[i] = &mCopy
 	}
 	return result, nil
+}
+
+// GetMemberTags 获取分组名称作为标签
+func (gm *GroupManager) GetMemberTags(memberID string) []string {
+	groups, err := gm.GetMemberGroups(memberID)
+	if err != nil {
+		logging.ErrorWithErr(err, "GetMemberTags Error")
+		return nil
+	}
+	var tags = make([]string, 0, len(groups))
+	for _, g := range groups {
+		tags = append(tags, g.Name)
+	}
+	return tags
 }
 
 func (gm *GroupManager) GetMemberGroups(memberID string) ([]*Group, error) {

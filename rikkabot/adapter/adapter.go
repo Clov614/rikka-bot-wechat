@@ -181,6 +181,11 @@ func (a *Adapter) covert(msg *wcf.Message) *message.Message {
 	cfg := config.GetConfig()
 	go metaData.runDelayTimer(cfg.AnswerDelayRandMin, cfg.AnswerDelayRandMax) // 消息随机延迟
 
+	var memberID = msg.WxId
+	if msg.IsGroup {
+		memberID = msg.RoomId
+	}
+
 	//rself := common.GetSelf() // 获取rikka的self对象
 	return &message.Message{
 		Msgtype:    rikkaMsgType,
@@ -189,6 +194,7 @@ func (a *Adapter) covert(msg *wcf.Message) *message.Message {
 		ChatImgUrl: chatImgUrl, // 图片url
 		Content:    msg.Content,
 		MsgId:      msg.MessageId,
+		Tags:       a.rikkaBot.Core.GroupManager.GetMemberTags(memberID), // 获取分组ID
 		WxId:       msg.WxId,
 		RoomId:     msg.RoomId,
 		RoomName:   metaData.GetGroupNickname(),

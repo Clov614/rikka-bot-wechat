@@ -32,7 +32,7 @@ type RikkaBot struct {
 	EventPool         *event.EventPool
 	EventFuncs        []func(event event.IEvent)
 	mu                sync.Mutex
-	core              *coreapi.Core // 核心组件
+	Core              *coreapi.Core // 核心组件
 	err               error
 }
 
@@ -85,7 +85,7 @@ func NewRikkaBot(ctx context.Context, cancel context.CancelFunc, cli *wcf.Client
 		Config:     cfg,
 		EventPool:  event.NewEventPool(cfg.HttpServer.EventBufferSize),
 		EventFuncs: make([]func(event event.IEvent), 0),
-		core:       coreapi.NewCore(cli, gm),
+		Core:       coreapi.NewCore(cli, gm),
 	}
 
 }
@@ -176,7 +176,7 @@ func (r *RikkaBot) Exit() {
 		logging.Info("rikka bot exited")
 		r.EventPool.Close()
 		r.Processor.Close()
-		r.core.Close() // cli.Close()
+		r.Core.Close() // cli.Close()
 		r.cancel()
 	})
 }
