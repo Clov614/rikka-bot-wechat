@@ -8,7 +8,7 @@ require (
 	github.com/Clov614/logging v0.1.4
 	github.com/Clov614/wcf-rpc-sdk v0.7.0
 	github.com/eatmoreapple/openwechat v1.4.10
-	github.com/gin-gonic/gin v1.10.0
+	github.com/gin-gonic/gin v1.10.1
 	github.com/go-ego/gse v0.80.3
 	github.com/google/uuid v1.6.0
 	github.com/robfig/cron/v3 v3.0.1
