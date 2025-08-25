@@ -15,7 +15,7 @@ require (
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.10.0
 	github.com/zwgblue/yaml-encoder v0.0.0-20221226083717-a0bdbda0d998
-	go.etcd.io/bbolt v1.4.1
+	go.etcd.io/bbolt v1.4.3
 	gopkg.in/yaml.v3 v3.0.1
 )
 
