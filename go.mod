@@ -13,7 +13,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/rs/zerolog v1.33.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.0
 	github.com/zwgblue/yaml-encoder v0.0.0-20221226083717-a0bdbda0d998
 	go.etcd.io/bbolt v1.4.1
 	gopkg.in/yaml.v3 v3.0.1
